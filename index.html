@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Priyanshu Debnath — EEE @ IIT Guwahati</title>
+  <meta name="description" content="Priyanshu Debnath — B.Tech EEE at IIT Guwahati. Aspiring Quant Analyst. Competitive Programmer. ML & Finance Researcher."/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,600&family=JetBrains+Mono:wght@300;400;500&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #F8F6F1; --surface: #FFFFFF; --ink: #0D0F14; --ink-mid: #4A4D58;
+      --ink-soft: #8A8D99; --ink-faint: #C8CAD2; --navy: #1A3A6B; --navy-light: #EBF0F8;
+      --gold: #B8862A; --gold-light: #FBF4E8; --border: #E4E1D9; --border-mid: #CDCAC2;
+      --max: 1100px; --r: 8px;
+      --font-disp: 'Cormorant Garamond', Georgia, serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      --font-body: 'Plus Jakarta Sans', sans-serif;
+    }
+    html { scroll-behavior: smooth; }
+    body { background: var(--bg); color: var(--ink); font-family: var(--font-body); line-height: 1.65; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+
+    nav { position: fixed; top: 0; left: 0; right: 0; z-index: 200; background: rgba(248,246,241,0.92); backdrop-filter: blur(18px); border-bottom: 1px solid var(--border); }
+    .nav-inner { max-width: var(--max); margin: 0 auto; display: flex; align-items: center; justify-content: space-between; height: 60px; padding: 0 2rem; }
+    .nav-logo { font-family: var(--font-disp); font-size: 1.15rem; font-weight: 600; color: var(--ink); text-decoration: none; }
+    .nav-logo span { color: var(--navy); }
+    .nav-links { display: flex; gap: 2rem; list-style: none; }
+    .nav-links a { font-family: var(--font-mono); font-size: 0.67rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-soft); text-decoration: none; transition: color 0.2s; }
+    .nav-links a:hover { color: var(--navy); }
+    .nav-cta { font-family: var(--font-mono); font-size: 0.67rem; letter-spacing: 0.08em; text-transform: uppercase; color: #fff; background: var(--navy); padding: 0.45rem 1.1rem; border-radius: 4px; text-decoration: none; transition: background 0.2s; }
+    .nav-cta:hover { background: #0f254a; }
+
+    .container { max-width: var(--max); margin: 0 auto; padding: 0 2rem; }
+    .eyebrow { font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--navy); margin-bottom: 1rem; }
+    .section-title { font-family: var(--font-disp); font-size: clamp(2.2rem, 4vw, 3rem); font-weight: 600; line-height: 1.1; color: var(--ink); margin-bottom: 0.5rem; }
+    .section-sub { font-size: 0.95rem; color: var(--ink-mid); font-weight: 300; margin-bottom: 3rem; max-width: 520px; line-height: 1.7; }
+    .reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.65s ease, transform 0.65s ease; }
+    .reveal.visible { opacity: 1; transform: none; }
+
+    /* HERO */
+    #hero { min-height: 100vh; display: flex; align-items: center; padding: 120px 2rem 80px; position: relative; overflow: hidden; }
+    .hero-lines { position: absolute; right: 0; top: 0; bottom: 0; width: 45%; pointer-events: none; z-index: 0; opacity: 0.055; }
+    .hero-lines svg { width: 100%; height: 100%; }
+    .hero-container { max-width: var(--max); margin: 0 auto; width: 100%; display: grid; grid-template-columns: 1fr 360px; gap: 5rem; align-items: center; }
+    .hero-left { position: relative; z-index: 1; }
+    .hero-status { display: inline-flex; align-items: center; gap: 0.5rem; background: var(--navy-light); border: 1px solid #b8ccee; border-radius: 20px; padding: 0.3rem 0.9rem; font-family: var(--font-mono); font-size: 0.65rem; letter-spacing: 0.08em; color: var(--navy); text-transform: uppercase; margin-bottom: 1.8rem; opacity: 0; animation: fadeUp 0.6s 0.1s ease forwards; }
+    .hero-dot { width: 6px; height: 6px; border-radius: 50%; background: #3dbd75; animation: pulse 2s infinite; }
+    .hero-name { font-family: var(--font-disp); font-size: clamp(3.4rem, 6.5vw, 5.8rem); font-weight: 700; line-height: 0.95; letter-spacing: -0.02em; color: var(--ink); margin-bottom: 1.6rem; opacity: 0; animation: fadeUp 0.65s 0.2s ease forwards; }
+    .hero-name em { font-style: italic; color: var(--navy); }
+    .hero-tagline { font-size: 1.05rem; color: var(--ink-mid); font-weight: 300; line-height: 1.75; max-width: 480px; margin-bottom: 2.4rem; opacity: 0; animation: fadeUp 0.65s 0.33s ease forwards; }
+    .hero-tagline strong { color: var(--ink); font-weight: 600; }
+    .hero-pills { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 2.6rem; opacity: 0; animation: fadeUp 0.65s 0.45s ease forwards; }
+    .pill { font-family: var(--font-mono); font-size: 0.65rem; letter-spacing: 0.07em; text-transform: uppercase; padding: 0.3rem 0.85rem; border: 1px solid var(--border-mid); border-radius: 20px; color: var(--ink-mid); }
+    .pill-navy { background: var(--navy-light); border-color: #b8ccee; color: var(--navy); }
+    .pill-gold { background: var(--gold-light); border-color: #e0c884; color: var(--gold); }
+    .hero-actions { display: flex; gap: 1rem; flex-wrap: wrap; opacity: 0; animation: fadeUp 0.65s 0.55s ease forwards; }
+    .btn-primary { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.8rem 1.8rem; background: var(--navy); color: #fff; border: none; border-radius: 6px; font-family: var(--font-body); font-size: 0.88rem; font-weight: 500; text-decoration: none; cursor: pointer; transition: background 0.2s, transform 0.15s; }
+    .btn-primary:hover { background: #0f254a; transform: translateY(-1px); }
+    .btn-cv { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.8rem 1.8rem; background: transparent; color: var(--navy); border: 1.5px solid var(--navy); border-radius: 6px; font-family: var(--font-body); font-size: 0.88rem; font-weight: 500; text-decoration: none; cursor: pointer; transition: background 0.2s, color 0.2s, transform 0.15s; }
+    .btn-cv:hover { background: var(--navy); color: #fff; transform: translateY(-1px); }
+    .cv-download-banner { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; background: var(--navy-light); border: 1px solid #b8ccee; border-radius: 10px; padding: 1.2rem 1.6rem; margin-top: 2.4rem; }
+    .cv-banner-left { display: flex; align-items: center; gap: 0.9rem; }
+    .cv-banner-icon { width: 40px; height: 40px; background: var(--navy); border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .cv-banner-icon svg { color: #fff; width: 18px; height: 18px; }
+    .cv-banner-text h4 { font-size: 0.9rem; font-weight: 600; color: var(--navy); margin-bottom: 0.1rem; }
+    .cv-banner-text p { font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.05em; color: var(--ink-soft); }
+    .btn-outline { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.8rem 1.8rem; background: transparent; color: var(--ink); border: 1.5px solid var(--border-mid); border-radius: 6px; font-family: var(--font-body); font-size: 0.88rem; font-weight: 500; text-decoration: none; cursor: pointer; transition: border-color 0.2s, color 0.2s, transform 0.15s; }
+    .btn-outline:hover { border-color: var(--navy); color: var(--navy); transform: translateY(-1px); }
+
+    .hero-card { position: relative; z-index: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 2rem; box-shadow: 0 4px 32px rgba(0,0,0,0.06); opacity: 0; animation: fadeIn 0.8s 0.5s ease forwards; }
+    /* PHOTO UPLOAD */
+    .hero-avatar { width: 96px; height: 96px; border-radius: 50%; overflow: hidden; margin-bottom: 1rem; border: 3px solid #c8d8ee; position: relative; flex-shrink: 0; background: linear-gradient(135deg, var(--navy-light), #d0dcf0); cursor: pointer; }
+    .hero-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block; }
+    .hero-avatar .avatar-fallback { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-family: var(--font-disp); font-size: 1.9rem; font-weight: 700; color: var(--navy); }
+    .hero-avatar .avatar-overlay { position: absolute; inset: 0; border-radius: 50%; background: rgba(26,58,107,0.72); display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s; gap: 0.2rem; }
+    .hero-avatar:hover .avatar-overlay { opacity: 1; }
+    .hero-avatar .avatar-overlay svg { color: #fff; width: 20px; height: 20px; }
+    .hero-avatar .avatar-overlay span { font-family: var(--font-mono); font-size: 0.55rem; letter-spacing: 0.07em; color: #fff; text-transform: uppercase; }
+    #photo-input { display: none; }
+    .hero-card-name { font-family: var(--font-disp); font-size: 1.2rem; font-weight: 600; margin-bottom: 0.15rem; }
+    .hero-card-role { font-family: var(--font-mono); font-size: 0.65rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-soft); margin-bottom: 1.6rem; }
+    .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; margin-bottom: 1.4rem; }
+    .stat-box { background: var(--bg); border-radius: 8px; padding: 0.9rem 0.8rem; text-align: center; border: 1px solid var(--border); }
+    .stat-num { font-family: var(--font-disp); font-size: 1.7rem; font-weight: 700; color: var(--navy); line-height: 1; }
+    .stat-lbl { font-family: var(--font-mono); font-size: 0.6rem; letter-spacing: 0.07em; text-transform: uppercase; color: var(--ink-soft); margin-top: 0.25rem; }
+    .hero-card-links { display: flex; flex-direction: column; gap: 0.55rem; border-top: 1px solid var(--border); padding-top: 1.2rem; }
+    .card-link-row { display: flex; align-items: center; gap: 0.6rem; font-family: var(--font-mono); font-size: 0.65rem; letter-spacing: 0.04em; color: var(--ink-mid); text-decoration: none; transition: color 0.2s; }
+    .card-link-row:hover { color: var(--navy); }
+    .card-link-row svg { width: 13px; height: 13px; flex-shrink: 0; }
+
+    /* ABOUT */
+    #about { padding: 100px 0; background: var(--surface); }
+    .about-grid { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 6rem; align-items: start; }
+    .about-text p { color: var(--ink-mid); font-weight: 300; margin-bottom: 1.3rem; font-size: 1.02rem; line-height: 1.8; }
+    .about-text p strong { color: var(--ink); font-weight: 600; }
+    .about-text p em { font-style: italic; color: var(--navy); }
+    .about-quote { border-left: 3px solid var(--navy); padding: 1rem 1.4rem; margin: 2rem 0; background: var(--navy-light); border-radius: 0 8px 8px 0; }
+    .about-quote p { font-family: var(--font-disp); font-size: 1.05rem; font-style: italic; color: var(--navy) !important; margin: 0 !important; line-height: 1.6; }
+    .about-facts { display: flex; flex-direction: column; gap: 1rem; }
+    .fact-card { border: 1px solid var(--border); border-radius: var(--r); padding: 1.3rem 1.5rem; background: var(--bg); position: relative; overflow: hidden; }
+    .fact-card::before { content: ''; position: absolute; left: 0; top: 12%; bottom: 12%; width: 3px; border-radius: 2px; background: var(--navy); }
+    .fact-icon { width: 26px; height: 26px; background: var(--navy-light); border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; margin-right: 0.5rem; flex-shrink: 0; vertical-align: middle; }
+    .fact-icon svg { width: 13px; height: 13px; color: var(--navy); }
+    .fact-card h4 { font-size: 0.9rem; font-weight: 600; margin-bottom: 0.3rem; display: flex; align-items: center; gap: 0.5rem; }
+    .fact-card p { font-size: 0.82rem; color: var(--ink-mid); line-height: 1.55; }
+    .badge-row { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.5rem; }
+    .mini-badge { font-family: var(--font-mono); font-size: 0.6rem; letter-spacing: 0.05em; padding: 0.18rem 0.5rem; border-radius: 3px; }
+    .mb-navy { background: var(--navy-light); color: var(--navy); }
+    .mb-gold { background: var(--gold-light); color: var(--gold); }
+    .mb-green { background: #e4f4ec; color: #1e6b3f; }
+
+    /* SKILLS */
+    #skills { padding: 100px 0; }
+    .skills-layout { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem; }
+    .skill-cat { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.8rem; }
+    .skill-cat-title { font-family: var(--font-mono); font-size: 0.65rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--navy); margin-bottom: 1.4rem; display: flex; align-items: center; gap: 0.5rem; }
+    .skill-cat-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+    .skill-item { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid var(--border); }
+    .skill-item:last-child { border-bottom: none; }
+    .skill-name { font-size: 0.87rem; font-weight: 500; }
+    .skill-level { font-family: var(--font-mono); font-size: 0.6rem; letter-spacing: 0.05em; padding: 0.15rem 0.5rem; border-radius: 3px; }
+    .sl-adv { background: var(--navy-light); color: var(--navy); }
+    .sl-int { background: var(--gold-light); color: var(--gold); }
+    .concepts-wrap { margin-top: 3rem; }
+    .concepts-title { font-family: var(--font-mono); font-size: 0.65rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-soft); margin-bottom: 1rem; }
+    .concepts-cloud { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+    .concept-tag { font-family: var(--font-mono); font-size: 0.67rem; letter-spacing: 0.04em; padding: 0.35rem 0.85rem; border: 1px solid var(--border); border-radius: 20px; color: var(--ink-mid); background: var(--surface); transition: border-color 0.2s, color 0.2s; }
+    .concept-tag:hover { border-color: var(--navy); color: var(--navy); }
+
+    /* CP */
+    #cp { padding: 100px 0; background: var(--surface); }
+    .cp-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem; }
+    .cp-card { border: 1px solid var(--border); border-radius: 12px; padding: 1.8rem; background: var(--bg); position: relative; overflow: hidden; }
+    .cp-card::after { content: ''; position: absolute; right: -30px; top: -30px; width: 100px; height: 100px; border-radius: 50%; background: var(--navy-light); opacity: 0.5; pointer-events: none; }
+    .cp-platform { font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-soft); margin-bottom: 0.5rem; }
+    .cp-handle { font-family: var(--font-disp); font-size: 1.5rem; font-weight: 600; color: var(--ink); margin-bottom: 0.25rem; }
+    .cp-rating { font-family: var(--font-mono); font-size: 0.7rem; color: var(--navy); margin-bottom: 1.2rem; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+    .rating-badge { display: inline-block; padding: 0.15rem 0.55rem; border-radius: 4px; font-size: 0.6rem; font-weight: 500; letter-spacing: 0.05em; }
+    .rb-spec { background: #d0e6ff; color: #1a4a9f; }
+    .rb-2star { background: #fdebd0; color: #8a4a10; }
+    .cp-stats { display: flex; gap: 1.5rem; }
+    .cp-stat .v { font-family: var(--font-disp); font-size: 1.5rem; font-weight: 700; color: var(--ink); line-height: 1; }
+    .cp-stat .k { font-family: var(--font-mono); font-size: 0.6rem; letter-spacing: 0.06em; color: var(--ink-soft); text-transform: uppercase; }
+    .cp-achievements { border: 1px solid var(--border); border-radius: 12px; padding: 1.8rem; background: var(--navy-light); }
+    .cp-ach-title { font-family: var(--font-mono); font-size: 0.65rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--navy); margin-bottom: 1.2rem; }
+    .ach-list { display: flex; flex-direction: column; gap: 0.8rem; }
+    .ach-item { display: flex; align-items: flex-start; gap: 0.8rem; font-size: 0.88rem; color: var(--ink-mid); line-height: 1.55; }
+    .ach-icon { width: 30px; height: 30px; border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: rgba(26,58,107,0.12); }
+    .ach-icon svg { width: 15px; height: 15px; color: var(--navy); }
+
+    /* PROJECTS */
+    #projects { padding: 100px 0; }
+    .projects-list { display: flex; flex-direction: column; gap: 1.4rem; }
+    .proj-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 2rem 2.4rem; display: grid; grid-template-columns: 56px 1fr auto; gap: 0 1.8rem; align-items: start; transition: transform 0.2s, box-shadow 0.2s; }
+    .proj-card:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(0,0,0,0.06); }
+    .proj-num { font-family: var(--font-disp); font-size: 2.4rem; font-weight: 700; color: var(--ink-faint); line-height: 1; padding-top: 0.3rem; }
+    .proj-title-row { display: flex; align-items: center; gap: 0.8rem; margin-bottom: 0.5rem; flex-wrap: wrap; }
+    .proj-title { font-family: var(--font-disp); font-size: 1.3rem; font-weight: 600; color: var(--ink); }
+    .proj-date { font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.07em; color: var(--ink-soft); text-transform: uppercase; }
+    .proj-highlight { display: inline-flex; align-items: center; background: var(--gold-light); border: 1px solid #e0c884; border-radius: 4px; font-family: var(--font-mono); font-size: 0.6rem; letter-spacing: 0.05em; color: var(--gold); padding: 0.15rem 0.5rem; }
+    .proj-desc { font-size: 0.9rem; color: var(--ink-mid); line-height: 1.7; font-weight: 300; margin-bottom: 1rem; }
+    .proj-desc strong { color: var(--ink); font-weight: 600; }
+    .proj-stack { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+    .stack-tag { font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.04em; padding: 0.22rem 0.6rem; border: 1px solid var(--border); border-radius: 4px; color: var(--ink-soft); background: var(--bg); }
+    .proj-links { display: flex; flex-direction: column; gap: 0.5rem; min-width: 90px; align-items: flex-end; padding-top: 0.4rem; }
+    .proj-link { font-family: var(--font-mono); font-size: 0.63rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--navy); text-decoration: none; border-bottom: 1px solid transparent; transition: border-color 0.2s; white-space: nowrap; }
+    .proj-link:hover { border-color: var(--navy); }
+
+    /* EXPERIENCE */
+    #experience { padding: 100px 0; background: var(--surface); }
+    .exp-timeline { display: flex; flex-direction: column; }
+    .exp-item { display: grid; grid-template-columns: 160px 1fr; gap: 0 2.5rem; padding: 2rem 0; border-bottom: 1px solid var(--border); position: relative; }
+    .exp-item:last-child { border-bottom: none; }
+    .exp-item::before { content: ''; position: absolute; left: 160px; top: 2.6rem; width: 10px; height: 10px; border-radius: 50%; background: var(--navy); border: 2px solid var(--surface); box-shadow: 0 0 0 2px var(--navy); transform: translateX(-50%); z-index: 1; }
+    .exp-item::after { content: ''; position: absolute; left: 160px; top: 3.6rem; bottom: 0; width: 1px; background: var(--border); transform: translateX(-50%); }
+    .exp-item:last-child::after { display: none; }
+    .exp-date-col { font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.06em; color: var(--ink-soft); padding-top: 0.2rem; text-align: right; line-height: 1.6; }
+    .exp-body { padding-left: 1.5rem; }
+    .exp-role { font-family: var(--font-disp); font-size: 1.2rem; font-weight: 600; margin-bottom: 0.2rem; }
+    .exp-org { font-size: 0.85rem; color: var(--navy); font-weight: 500; margin-bottom: 0.6rem; }
+    .exp-desc { font-size: 0.88rem; color: var(--ink-mid); font-weight: 300; line-height: 1.65; }
+    .exp-tags { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.8rem; }
+
+    /* EDUCATION */
+    #education { padding: 100px 0; }
+    .edu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem; }
+    .edu-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 2rem; position: relative; overflow: hidden; }
+    .edu-card.primary { background: var(--navy); color: #fff; border-color: var(--navy); }
+    .edu-tag { font-family: var(--font-mono); font-size: 0.6rem; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 1rem; }
+    .edu-card.primary .edu-tag { color: #8bb3e8; }
+    .edu-card:not(.primary) .edu-tag { color: var(--navy); }
+    .edu-card h3 { font-family: var(--font-disp); font-size: 1.25rem; font-weight: 600; margin-bottom: 0.25rem; }
+    .edu-card.primary h3 { color: #fff; }
+    .edu-inst { font-size: 0.85rem; margin-bottom: 0.5rem; }
+    .edu-card.primary .edu-inst { color: #a8c4e8; }
+    .edu-card:not(.primary) .edu-inst { color: var(--navy); font-weight: 500; }
+    .edu-meta { font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.05em; line-height: 1.6; }
+    .edu-card.primary .edu-meta { color: #c0d4ef; }
+    .edu-card:not(.primary) .edu-meta { color: var(--ink-soft); }
+    .edu-cgpa { position: absolute; right: 1.5rem; top: 1.5rem; font-family: var(--font-disp); font-size: 2.4rem; font-weight: 700; }
+    .edu-card.primary .edu-cgpa { color: rgba(255,255,255,0.12); }
+    .edu-card:not(.primary) .edu-cgpa { color: rgba(26,58,107,0.07); }
+    .scores-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 2rem; }
+    .score-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 1.5rem; display: flex; justify-content: space-between; align-items: center; }
+    .score-left h4 { font-size: 0.9rem; font-weight: 600; margin-bottom: 0.2rem; }
+    .score-left p { font-size: 0.8rem; color: var(--ink-mid); }
+    .score-rank { font-family: var(--font-disp); font-size: 2rem; font-weight: 700; color: var(--navy); line-height: 1; }
+    .score-sub { font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.05em; color: var(--ink-soft); text-transform: uppercase; }
+    .certs-title { font-family: var(--font-mono); font-size: 0.65rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-soft); margin-bottom: 1.2rem; margin-top: 2.5rem; }
+    .certs-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+    .cert-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 1.2rem 1.4rem; display: flex; align-items: flex-start; gap: 1rem; }
+    .cert-icon { width: 36px; height: 36px; background: var(--navy-light); border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .cert-icon svg { width: 16px; height: 16px; color: var(--navy); }
+    .cert-name { font-size: 0.84rem; font-weight: 600; margin-bottom: 0.15rem; }
+    .cert-org { font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.05em; color: var(--ink-soft); }
+
+    /* CONTACT */
+    #contact { padding: 100px 0; background: var(--surface); }
+    .contact-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 5rem; align-items: start; }
+    .contact-heading { font-family: var(--font-disp); font-size: clamp(2.2rem, 4vw, 3.2rem); font-weight: 600; line-height: 1.1; margin-bottom: 1.2rem; }
+    .contact-heading em { font-style: italic; color: var(--navy); }
+    .contact-desc { font-size: 0.95rem; color: var(--ink-mid); font-weight: 300; line-height: 1.75; margin-bottom: 2.4rem; }
+    .contact-links { display: flex; flex-direction: column; gap: 0.9rem; }
+    .contact-link { display: flex; align-items: center; gap: 0.9rem; font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.06em; color: var(--ink-mid); text-decoration: none; transition: color 0.2s; }
+    .contact-link:hover { color: var(--navy); }
+    .contact-link-icon { width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); flex-shrink: 0; }
+    .form-wrap { background: var(--bg); border: 1px solid var(--border); border-radius: 16px; padding: 2.2rem; }
+    .form-title { font-family: var(--font-disp); font-size: 1.2rem; font-weight: 600; margin-bottom: 1.6rem; }
+    .form-group { margin-bottom: 1.2rem; }
+    .form-group label { display: block; font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-soft); margin-bottom: 0.45rem; }
+    .form-group input, .form-group textarea { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 0.75rem 1rem; font-family: var(--font-body); font-size: 0.88rem; color: var(--ink); outline: none; transition: border-color 0.2s; resize: none; }
+    .form-group input:focus, .form-group textarea:focus { border-color: var(--navy); }
+    .form-group textarea { height: 120px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .btn-send { width: 100%; padding: 0.85rem; background: var(--navy); color: #fff; border: none; border-radius: 6px; font-family: var(--font-body); font-size: 0.9rem; font-weight: 500; cursor: pointer; transition: background 0.2s; letter-spacing: 0.02em; }
+    .btn-send:hover { background: #0f254a; }
+    .form-note { font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.05em; color: var(--ink-soft); text-align: center; margin-top: 0.8rem; }
+
+    footer { border-top: 1px solid var(--border); padding: 2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+    .footer-left { font-family: var(--font-mono); font-size: 0.65rem; letter-spacing: 0.07em; color: var(--ink-faint); }
+    .footer-right { display: flex; gap: 1.5rem; }
+    .footer-link { font-family: var(--font-mono); font-size: 0.65rem; letter-spacing: 0.07em; color: var(--ink-soft); text-decoration: none; transition: color 0.2s; }
+    .footer-link:hover { color: var(--navy); }
+
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+    @media (max-width: 900px) {
+      .hero-container { grid-template-columns: 1fr; }
+      .hero-card { display: none; }
+      .about-grid { grid-template-columns: 1fr; gap: 3rem; }
+      .skills-layout { grid-template-columns: 1fr 1fr; }
+      .cp-grid { grid-template-columns: 1fr; }
+      .edu-grid { grid-template-columns: 1fr; }
+      .certs-grid { grid-template-columns: 1fr 1fr; }
+      .contact-grid { grid-template-columns: 1fr; gap: 3rem; }
+      .scores-row { grid-template-columns: 1fr; }
+      .proj-card { grid-template-columns: 40px 1fr; }
+      .nav-links { display: none; }
+      .exp-item { grid-template-columns: 1fr; }
+      .exp-item::before, .exp-item::after { display: none; }
+      .exp-date-col { text-align: left; margin-bottom: 0.4rem; }
+      .exp-body { padding-left: 0; }
+    }
+    @media (max-width: 600px) {
+      .skills-layout { grid-template-columns: 1fr; }
+      .certs-grid { grid-template-columns: 1fr; }
+      .proj-card { grid-template-columns: 1fr; }
+      .proj-num { display: none; }
+      .form-row { grid-template-columns: 1fr; }
+      .proj-links { flex-direction: row; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a href="#hero" class="nav-logo">Priyanshu <span>Debnath</span></a>
+    <ul class="nav-links">
+      <li><a href="#about">About</a></li>
+      <li><a href="#skills">Skills</a></li>
+      <li><a href="#cp">CP</a></li>
+      <li><a href="#projects">Projects</a></li>
+      <li><a href="#experience">Experience</a></li>
+      <li><a href="#education">Education</a></li>
+      <li><a href="#contact">Contact</a></li>
+    </ul>
+    <a href="#contact" class="nav-cta">Hire Me</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="hero-lines">
+    <svg viewBox="0 0 400 800" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="200" cy="400" r="350" stroke="#1A3A6B" stroke-width="1"/>
+      <circle cx="200" cy="400" r="270" stroke="#1A3A6B" stroke-width="0.8"/>
+      <circle cx="200" cy="400" r="190" stroke="#1A3A6B" stroke-width="0.8"/>
+      <circle cx="200" cy="400" r="110" stroke="#1A3A6B" stroke-width="0.8"/>
+      <line x1="0" y1="400" x2="400" y2="400" stroke="#1A3A6B" stroke-width="0.7"/>
+      <line x1="200" y1="0" x2="200" y2="800" stroke="#1A3A6B" stroke-width="0.7"/>
+      <line x1="0" y1="100" x2="400" y2="700" stroke="#1A3A6B" stroke-width="0.4"/>
+      <line x1="400" y1="100" x2="0" y2="700" stroke="#1A3A6B" stroke-width="0.4"/>
+    </svg>
+  </div>
+  <div class="hero-container">
+    <div class="hero-left">
+      <div class="hero-status"><span class="hero-dot"></span>Open to Internships &amp; Research Roles</div>
+      <h1 class="hero-name">Priyanshu<br><em>Debnath</em></h1>
+      <p class="hero-tagline"><strong>B.Tech EEE @ IIT Guwahati</strong> (CGPA 9.68) · Aspiring Quantitative Analyst exploring the intersection of <strong>Machine Learning &amp; Finance</strong>. Competitive Programmer. ML Researcher. Builder.</p>
+      <div class="hero-pills">
+        <span class="pill pill-navy">EEE + Minor Maths · IITG</span>
+        <span class="pill pill-gold">Aspiring Quant Analyst</span>
+        <span class="pill">CF Specialist · 1437</span>
+        <span class="pill">CodeChef 2★</span>
+        <span class="pill">JEE Adv AIR 1941</span>
+      </div>
+      <div class="hero-actions">
+        <a href="#projects" class="btn-primary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+          View Projects
+        </a>
+        <a href="Priyanshu_Debnath_CV.pdf" download class="btn-cv">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download CV
+        </a>
+        <a href="#contact" class="btn-outline">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 7 10-7"/></svg>
+          Get in Touch
+        </a>
+      </div>
+    </div>
+    <div class="hero-card">
+      <input type="file" id="photo-input" accept="image/*" onchange="loadPhoto(event)"/>
+      <div class="hero-avatar" onclick="document.getElementById('photo-input').click()" title="Click to upload your photo">
+        <img id="profile-photo" src="" alt="Priyanshu Debnath" style="display:none;"/>
+        <div class="avatar-fallback" id="avatar-fallback">PD</div>
+        <div class="avatar-overlay">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          <span>Upload Photo</span>
+        </div>
+      </div>
+      <div class="hero-card-name">Priyanshu Debnath</div>
+      <div class="hero-card-role">EEE'29 · IIT Guwahati · Kolkata, WB</div>
+      <div class="stat-grid">
+        <div class="stat-box"><div class="stat-num">9.68</div><div class="stat-lbl">CGPA</div></div>
+        <div class="stat-box"><div class="stat-num">1437</div><div class="stat-lbl">CF Rating</div></div>
+        <div class="stat-box"><div class="stat-num">200+</div><div class="stat-lbl">Problems</div></div>
+        <div class="stat-box"><div class="stat-num">5</div><div class="stat-lbl">Projects</div></div>
+      </div>
+      <div class="hero-card-links">
+        <a href="mailto:priyanshuib01@gmail.com" class="card-link-row">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 7 10-7"/></svg>
+          priyanshuib01@gmail.com
+        </a>
+        <a href="https://linkedin.com/in/priyanshu-debnath-3a81711b3" class="card-link-row" target="_blank">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+          linkedin/priyanshu-debnath
+        </a>
+        <a href="https://github.com/PriyanshuIITGHY2006" class="card-link-row" target="_blank">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+          PriyanshuIITGHY2006
+        </a>
+        <a href="tel:+918777065350" class="card-link-row">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 1.27h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 8.91a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          +91-8777065350
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ABOUT -->
+<section id="about">
+  <div class="container">
+    <div class="about-grid reveal">
+      <div class="about-text">
+        <p class="eyebrow">// About Me</p>
+        <h2 class="section-title">The person<br>behind the résumé.</h2>
+        <p>I'm a <strong>B.Tech student in Electronics &amp; Electrical Engineering at IIT Guwahati</strong>, currently holding a CGPA of <strong>9.68</strong> and pursuing a <em>Minor in Mathematics</em>. I come from Kolkata and secured <strong>AIR 1941 in JEE Advanced 2025</strong> — top 1% among 1.5 lakh+ candidates.</p>
+        <div class="about-quote">
+          <p>"I want to be at the intersection of rigorous mathematics, machine learning, and financial markets — building things that are both theoretically sound and practically useful."</p>
+        </div>
+        <p>My interests span <strong>quantitative finance, deep learning, and competitive programming</strong>. I've built post-transformer legal AI systems, minimum-variance portfolio optimizers, long-form memory architectures, and derived novel stochastic game-theory solutions. Each project is driven by the same question: <em>can we make this both smarter and more interpretable?</em></p>
+        <p>I'm an active member of the <strong>Coding Club</strong> (Deputy Coordinator, CP module), <strong>Finance &amp; Economics Club</strong> (Quant Associate), and the <strong>Consulting &amp; Analytics Club</strong> at IITG. Open to research internships, quant internships, and SWE roles.</p>
+        <div style="margin-top:2rem; display:flex; gap:1rem; flex-wrap:wrap;">
+          <a href="#contact" class="btn-primary">Get in Touch</a>
+          <a href="#projects" class="btn-outline">See Projects →</a>
+        </div>
+        <div class="cv-download-banner">
+          <div class="cv-banner-left">
+            <div class="cv-banner-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            </div>
+            <div class="cv-banner-text">
+              <h4>Curriculum Vitae</h4>
+              <p>Priyanshu_Debnath_CV.pdf · Updated 2026</p>
+            </div>
+          </div>
+          <a href="Priyanshu_Debnath_CV.pdf" download class="btn-cv">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Download CV
+          </a>
+        </div>
+      </div>
+      <div class="about-facts">
+        <div class="fact-card">
+          <h4><span class="fact-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg></span>IIT Guwahati · EEE'29</h4>
+          <p>CGPA 9.68 · Minor in Mathematics. One of India's premier technical institutions on the banks of the Brahmaputra, Guwahati, Assam.</p>
+          <div class="badge-row"><span class="mini-badge mb-navy">9.68 CGPA</span><span class="mini-badge mb-navy">Minor: Maths</span></div>
+        </div>
+        <div class="fact-card">
+          <h4><span class="fact-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span>Aspiring Quantitative Analyst</h4>
+          <p>Exploring Modern Portfolio Theory, stochastic calculus, options pricing, and ML-driven trading strategy research through hands-on projects at FEC, IITG.</p>
+          <div class="badge-row"><span class="mini-badge mb-gold">Quant Associate, FEC</span><span class="mini-badge mb-gold">Kelly Criterion</span></div>
+        </div>
+        <div class="fact-card">
+          <h4><span class="fact-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></span>Competitive Programmer</h4>
+          <p>Codeforces Specialist (max 1437) · CodeChef 2★ · 200+ problems solved. Went from zero coding background to Specialist in under 6 months.</p>
+          <div class="badge-row"><span class="mini-badge mb-navy">CF Specialist</span><span class="mini-badge mb-green">200+ Problems</span></div>
+        </div>
+        <div class="fact-card">
+          <h4><span class="fact-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 0 1 10 10c0 5.52-4.48 10-10 10S2 17.52 2 12c0-2.76 1.12-5.26 2.93-7.07"/><path d="M12 6v6l4 2"/></svg></span>ML Researcher &amp; Builder</h4>
+          <p>Hackathons, interpretability research, LLM pipelines, vector memory systems. From NeuroHack 2026 to Kriti 2026 — shipping research-grade projects as a freshman.</p>
+          <div class="badge-row"><span class="mini-badge mb-navy">PyTorch · LangChain</span><span class="mini-badge mb-gold">Micro-F1 0.7716</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SKILLS -->
+<section id="skills">
+  <div class="container reveal">
+    <p class="eyebrow">// Technical Skills</p>
+    <h2 class="section-title">Tools of the trade.</h2>
+    <p class="section-sub">From C++ for competitive programming to PyTorch for deep learning and Python for quantitative finance pipelines.</p>
+    <div class="skills-layout">
+      <div class="skill-cat">
+        <div class="skill-cat-title">Programming</div>
+        <div class="skill-item"><span class="skill-name">C++</span><span class="skill-level sl-adv">Advanced</span></div>
+        <div class="skill-item"><span class="skill-name">Python</span><span class="skill-level sl-adv">Advanced</span></div>
+        <div class="skill-item"><span class="skill-name">C</span><span class="skill-level sl-int">Intermediate</span></div>
+        <div class="skill-item"><span class="skill-name">LaTeX</span><span class="skill-level sl-int">Intermediate</span></div>
+        <div class="skill-item"><span class="skill-name">Git / GitHub</span><span class="skill-level sl-int">Intermediate</span></div>
+      </div>
+      <div class="skill-cat">
+        <div class="skill-cat-title">ML / AI Libraries</div>
+        <div class="skill-item"><span class="skill-name">PyTorch</span><span class="skill-level sl-adv">Advanced</span></div>
+        <div class="skill-item"><span class="skill-name">NumPy / Pandas</span><span class="skill-level sl-adv">Advanced</span></div>
+        <div class="skill-item"><span class="skill-name">Scikit-learn</span><span class="skill-level sl-int">Intermediate</span></div>
+        <div class="skill-item"><span class="skill-name">UMAP</span><span class="skill-level sl-int">Intermediate</span></div>
+        <div class="skill-item"><span class="skill-name">LangChain</span><span class="skill-level sl-int">Intermediate</span></div>
+        <div class="skill-item"><span class="skill-name">Matplotlib</span><span class="skill-level sl-int">Intermediate</span></div>
+      </div>
+      <div class="skill-cat">
+        <div class="skill-cat-title">Quant Finance</div>
+        <div class="skill-item"><span class="skill-name">yfinance</span><span class="skill-level sl-adv">Advanced</span></div>
+        <div class="skill-item"><span class="skill-name">PyPortfolioOpt</span><span class="skill-level sl-adv">Advanced</span></div>
+        <div class="skill-item"><span class="skill-name">Portfolio Theory</span><span class="skill-level sl-int">Intermediate</span></div>
+        <div class="skill-item"><span class="skill-name">Stochastic Calculus</span><span class="skill-level sl-int">Intermediate</span></div>
+        <div class="skill-item"><span class="skill-name">Options Pricing</span><span class="skill-level sl-int">Intermediate</span></div>
+        <div class="skill-item"><span class="skill-name">Risk Modeling</span><span class="skill-level sl-int">Intermediate</span></div>
+      </div>
+    </div>
+    <div class="concepts-wrap">
+      <div class="concepts-title">Key Concepts &amp; Domains</div>
+      <div class="concepts-cloud">
+        <span class="concept-tag">Deep Learning</span><span class="concept-tag">Transformer Architectures</span><span class="concept-tag">Hebbian Learning</span><span class="concept-tag">Data Structures &amp; Algorithms</span><span class="concept-tag">Modern Portfolio Theory</span><span class="concept-tag">Stochastic Calculus</span><span class="concept-tag">Game Theory</span><span class="concept-tag">Risk Modeling</span><span class="concept-tag">Covariance Estimation</span><span class="concept-tag">Vector Embeddings</span><span class="concept-tag">Agglomerative Clustering</span><span class="concept-tag">NLP / Legal AI</span><span class="concept-tag">Kelly Criterion</span><span class="concept-tag">MECE Frameworks</span><span class="concept-tag">Financial Derivatives</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- COMPETITIVE PROGRAMMING -->
+<section id="cp">
+  <div class="container reveal">
+    <p class="eyebrow">// Competitive Programming</p>
+    <h2 class="section-title">Ranked &amp; Rated.</h2>
+    <p class="section-sub">Started CP with zero coding background in mid-2025. Reached Codeforces Specialist in under 6 months through sheer consistency and love for problem-solving.</p>
+    <div class="cp-grid">
+      <div class="cp-card">
+        <div class="cp-platform">Codeforces</div>
+        <div class="cp-handle">Specialist</div>
+        <div class="cp-rating">Max Rating: 1437 <span class="rating-badge rb-spec">Specialist</span></div>
+        <div class="cp-stats">
+          <div class="cp-stat"><div class="v">200+</div><div class="k">Problems</div></div>
+          <div class="cp-stat"><div class="v">Active</div><div class="k">Contests</div></div>
+        </div>
+      </div>
+      <div class="cp-card">
+        <div class="cp-platform">CodeChef</div>
+        <div class="cp-handle">2-Star Rated</div>
+        <div class="cp-rating">Rated Competitive <span class="rating-badge rb-2star">2★</span></div>
+        <div class="cp-stats">
+          <div class="cp-stat"><div class="v">2★</div><div class="k">Star Rating</div></div>
+          <div class="cp-stat"><div class="v">Div 2</div><div class="k">Level</div></div>
+        </div>
+      </div>
+      <div class="cp-card" style="background: var(--navy); border-color: var(--navy);">
+        <div class="cp-platform" style="color:#8bb3e8;">Journey</div>
+        <div class="cp-handle" style="color:#fff;">Oct '25 → Specialist</div>
+        <div class="cp-rating" style="color:#a8c4e8;">Achieved in &lt; 6 months · 0 prior background</div>
+        <div class="cp-stats">
+          <div class="cp-stat"><div class="v" style="color:#fff;">1437</div><div class="k" style="color:#8bb3e8;">Peak CF Rating</div></div>
+          <div class="cp-stat"><div class="v" style="color:#fff;">100th</div><div class="k" style="color:#8bb3e8;">Problem: Pinely Round</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="cp-achievements">
+      <div class="cp-ach-title">Hackathons &amp; Achievements</div>
+      <div class="ach-list">
+        <div class="ach-item">
+          <span class="ach-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg></span>
+          <span><strong>NeuroHack Challenge 2026</strong> — Built MemoryOS: a three-tier long-form AI memory system (1,000+ turns). Organized by IITG.ai × Smallest.ai at IIT Guwahati.</span>
+        </div>
+        <div class="ach-item">
+          <span class="ach-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg></span>
+          <span><strong>FEC Options Hackathon — Certificate of Achievement</strong> (Jan 2026) — Applied options theory to real-world trading through data-driven strategy design and risk management under Finance &amp; Economics Club, IITG.</span>
+        </div>
+        <div class="ach-item">
+          <span class="ach-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>
+          <span><strong>Winter Consulting 2025</strong> — Completed intensive consulting course with capstone on "Regional Airline × Fuel Price Shock". Financial stress testing, route profitability, strategic trade-offs. Issued by CAC, IITG.</span>
+        </div>
+        <div class="ach-item">
+          <span class="ach-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18"/></svg></span>
+          <span><strong>Kriti 2026 (IITG Techfest) — High Prep Pathway AI</strong> — Submitted BDH-ECHR post-transformer legal AI research paper. Micro-F1 = 0.7716, outperforms BERT-base by +13.2 pts at 5.4× fewer parameters.</span>
+        </div>
+        <div class="ach-item">
+          <span class="ach-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>
+          <span><strong>JEE Advanced 2025: AIR 1941</strong> — Top 1% among 1.5 Lakh+ candidates. Score: 183. JEE Mains AIR 4738 (99.69 percentile).</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PROJECTS -->
+<section id="projects">
+  <div class="container reveal">
+    <p class="eyebrow">// Projects</p>
+    <h2 class="section-title">Things I've built.</h2>
+    <p class="section-sub">Research papers, hackathon submissions, and quantitative tools — each one solving a real, well-defined problem with rigorous methodology.</p>
+    <div class="projects-list">
+
+      <div class="proj-card">
+        <div class="proj-num">01</div>
+        <div class="proj-body">
+          <div class="proj-title-row">
+            <span class="proj-title">BDH-ECHR: Post-Transformer Interpretable Legal AI</span>
+            <span class="proj-date">Jan – Feb 2026</span>
+            <span class="proj-highlight">Research Paper · Kriti 2026</span>
+          </div>
+          <p class="proj-desc">Applied the Dragon Hatchling (BDH) post-transformer to multi-label ECHR legal violation classification. Achieved <strong>Micro-F1 = 0.7716</strong>, outperforming BERT-base by +13.2 pts and LegalBERT by +5.2 pts at <strong>5.4× fewer parameters</strong> (20.4M vs. 110M). Conducted the first neuron→concept monosemanticity audit: 218 neurons mapped to 477 legal concepts; 2 neurons with perfect isolation (E=1.0); per-doc sparsity 0.305% — 16× below BDH's own target. Engineered hierarchical chunking with 7× BERT context window (3,584 tokens).</p>
+          <div class="proj-stack">
+            <span class="stack-tag">Python</span><span class="stack-tag">PyTorch</span><span class="stack-tag">Dragon Hatchling (BDH)</span><span class="stack-tag">Hebbian Learning</span><span class="stack-tag">Gemini 2.0 Flash</span><span class="stack-tag">ChromaDB</span>
+          </div>
+        </div>
+        <div class="proj-links">
+          <a href="https://github.com/PriyanshuIITGHY2006" target="_blank" class="proj-link">↗ GitHub</a>
+        </div>
+      </div>
+
+      <div class="proj-card">
+        <div class="proj-num">02</div>
+        <div class="proj-body">
+          <div class="proj-title-row">
+            <span class="proj-title">SpeakX Aurora — Self-Learning Notification Orchestrator</span>
+            <span class="proj-date">Jan – Feb 2026</span>
+            <span class="proj-highlight">Kriti 2026 Hackathon</span>
+          </div>
+          <p class="proj-desc">Domain-agnostic ML pipeline for behavioural segmentation and bilingual notification generation. Used <strong>UMAP + Agglomerative Clustering</strong> for MECE behavioural segmentation; Octalysis-driven bilingual (EN/HI) template generation via Groq LLaMA-3.3-70B. Built a <strong>self-learning feedback loop</strong> that classifies templates on live CTR/engagement, suppresses underperformers, and injects high-CTR examples as LLM few-shot context — auto-updating timing &amp; frequency each iteration.</p>
+          <div class="proj-stack">
+            <span class="stack-tag">Python</span><span class="stack-tag">UMAP</span><span class="stack-tag">Scikit-learn</span><span class="stack-tag">Groq LLaMA-3.3-70B</span><span class="stack-tag">LangChain</span><span class="stack-tag">Pandas</span>
+          </div>
+        </div>
+        <div class="proj-links">
+          <a href="https://github.com/PriyanshuIITGHY2006" target="_blank" class="proj-link">↗ GitHub</a>
+        </div>
+      </div>
+
+      <div class="proj-card">
+        <div class="proj-num">03</div>
+        <div class="proj-body">
+          <div class="proj-title-row">
+            <span class="proj-title">MemoryOS — Long-Form AI Memory System</span>
+            <span class="proj-date">Feb 2026</span>
+            <span class="proj-highlight">NeuroHack 2026</span>
+          </div>
+          <p class="proj-desc">Built for the NeuroHack Challenge (IITG.ai × Smallest.ai): a three-tier memory architecture that retains and recalls information across <strong>1,000+ conversation turns</strong>. Layers: Buffer Memory (recent context), Core Memory (JSON + Vector DB), Archival Memory (ChromaDB). Implemented vector search with cosine similarity, entity deduplication, temporal boosting, and confidence score analytics dashboard. Tested to 1,500 turns with sub-200ms latency.</p>
+          <div class="proj-stack">
+            <span class="stack-tag">Python</span><span class="stack-tag">ChromaDB</span><span class="stack-tag">FastAPI</span><span class="stack-tag">Streamlit</span><span class="stack-tag">Groq</span><span class="stack-tag">Sentence Transformers</span>
+          </div>
+        </div>
+        <div class="proj-links">
+          <a href="https://github.com/PriyanshuIITGHY2006/NeuroHack-Challenge" target="_blank" class="proj-link">↗ GitHub</a>
+        </div>
+      </div>
+
+      <div class="proj-card">
+        <div class="proj-num">04</div>
+        <div class="proj-body">
+          <div class="proj-title-row">
+            <span class="proj-title">Minimum-Variance Portfolio Optimizer</span>
+            <span class="proj-date">Dec 2025 – Present</span>
+          </div>
+          <p class="proj-desc">Quantitative pipeline for the lowest-risk long-only portfolio from user-selected tickers. Applied <strong>Ledoit-Wolf shrinkage</strong> and nearest-PSD correction for covariance stability, preventing the optimizer from chasing ghost patterns. Custom data cleaning for multi-index yfinance structures. Enforced no-short-selling constraints with weight normalization. Demonstrates full Markowitz MPT pipeline from raw data to interpretable weights.</p>
+          <div class="proj-stack">
+            <span class="stack-tag">Python</span><span class="stack-tag">Pandas</span><span class="stack-tag">NumPy</span><span class="stack-tag">yfinance</span><span class="stack-tag">PyPortfolioOpt</span><span class="stack-tag">Matplotlib</span>
+          </div>
+        </div>
+        <div class="proj-links">
+          <a href="https://github.com/PriyanshuIITGHY2006" target="_blank" class="proj-link">↗ GitHub</a>
+          <a href="https://linkedin.com/in/priyanshu-debnath-3a81711b3" target="_blank" class="proj-link">↗ LinkedIn</a>
+        </div>
+      </div>
+
+      <div class="proj-card">
+        <div class="proj-num">05</div>
+        <div class="proj-body">
+          <div class="proj-title-row">
+            <span class="proj-title">Kelly Criterion for Fixed-Limit Games</span>
+            <span class="proj-date">Dec 2025 – Jan 2026</span>
+            <span class="proj-highlight">Mathematical Proof</span>
+          </div>
+          <p class="proj-desc">Derived the <strong>Stochastic Gate</strong> — converting the optimal Kelly fraction f* into a Kelly Frequency for fixed-bet-size games (Finopoly, poker tournaments). Classical Kelly applies to sizing; this solves the Fixed-Limit constraint where sizing is fixed but frequency can be optimized. Built a Python stochastic decision engine matching the optimal geometric growth curve through mixed-strategy frequency. Co-developed with Md Adnan Khalid for the FEC, IITG recruitment challenge.</p>
+          <div class="proj-stack">
+            <span class="stack-tag">Python</span><span class="stack-tag">Game Theory</span><span class="stack-tag">Stochastic Modeling</span><span class="stack-tag">Mathematical Finance</span>
+          </div>
+        </div>
+        <div class="proj-links">
+          <a href="https://linkedin.com/in/priyanshu-debnath-3a81711b3" target="_blank" class="proj-link">↗ LinkedIn</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- EXPERIENCE -->
+<section id="experience">
+  <div class="container reveal">
+    <p class="eyebrow">// Experience &amp; Roles</p>
+    <h2 class="section-title">Positions held.</h2>
+    <p class="section-sub">Building, researching, and leading across clubs at IIT Guwahati since day one.</p>
+    <div class="exp-timeline">
+      <div class="exp-item">
+        <div class="exp-date-col">Jan 2026<br>– Present</div>
+        <div class="exp-body">
+          <div class="exp-role">Deputy Coordinator</div>
+          <div class="exp-org">Coding Club, IIT Guwahati</div>
+          <div class="exp-desc">Lead the Competitive Programming Module; design problem sets, conduct algorithm training sessions, and organize inter-campus coding contests. Building a structured CP curriculum and mentoring junior members.</div>
+          <div class="exp-tags"><span class="mini-badge mb-navy">Competitive Programming</span><span class="mini-badge mb-navy">Problem Setting</span><span class="mini-badge mb-green">Leadership</span></div>
+        </div>
+      </div>
+      <div class="exp-item">
+        <div class="exp-date-col">Jan 2026<br>– Present</div>
+        <div class="exp-body">
+          <div class="exp-role">Quant Associate</div>
+          <div class="exp-org">Finance &amp; Economics Club, IIT Guwahati</div>
+          <div class="exp-desc">Work on quantitative finance projects spanning Risk Modeling and Stochastic Calculus; research financial derivatives pricing and trading strategy optimization. Built the Kelly Criterion stochastic gate solution for the Finopoly challenge. Completed the Introductory Options Hackathon (Certificate of Achievement).</div>
+          <div class="exp-tags"><span class="mini-badge mb-gold">Risk Modeling</span><span class="mini-badge mb-gold">Stochastic Calculus</span><span class="mini-badge mb-gold">Options Theory</span></div>
+        </div>
+      </div>
+      <div class="exp-item">
+        <div class="exp-date-col">Dec 2025<br>– Present</div>
+        <div class="exp-body">
+          <div class="exp-role">Associate</div>
+          <div class="exp-org">Consulting &amp; Analytics Club, IIT Guwahati</div>
+          <div class="exp-desc">Completed the Winter Consulting Course (Jan 2026) with a capstone project on "Regional Airline × Fuel Price Shock: Navigating Profitability, Stability, and Growth." Covered financial stress testing, fare-demand trade-offs, and operational optimization. Earned the Winter Consulting 2025 certificate.</div>
+          <div class="exp-tags"><span class="mini-badge mb-navy">Consulting</span><span class="mini-badge mb-navy">MECE</span><span class="mini-badge mb-navy">Case Studies</span></div>
+        </div>
+      </div>
+      <div class="exp-item">
+        <div class="exp-date-col">Oct 2025<br>– Jan 2026</div>
+        <div class="exp-body">
+          <div class="exp-role">Associate</div>
+          <div class="exp-org">Udgam, IIT Guwahati (E-Cell)</div>
+          <div class="exp-desc">Start-up expo associate at Udgam'26 — flagship event of the Entrepreneurship Cell, IIT Guwahati. Coordinated logistics, outreach, and operations for the annual startup fair.</div>
+          <div class="exp-tags"><span class="mini-badge mb-green">Entrepreneurship</span><span class="mini-badge mb-green">Event Management</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- EDUCATION -->
+<section id="education">
+  <div class="container reveal">
+    <p class="eyebrow">// Education</p>
+    <h2 class="section-title">Academic foundation.</h2>
+    <p class="section-sub">Strong academic performance underpinned by rigorous coursework in mathematics, circuits, signals, and computer science.</p>
+    <div class="edu-grid">
+      <div class="edu-card primary">
+        <div class="edu-cgpa">9.68</div>
+        <div class="edu-tag">Major · 2025 – 2029</div>
+        <h3>B.Tech — Electronics &amp; Electrical Engineering</h3>
+        <div class="edu-inst">Indian Institute of Technology, Guwahati</div>
+        <div class="edu-meta">CGPA: 9.68 / 10.0 (Current) · Roll No.: 250102242<br>Relevant Courses: DS&amp;A, Signals &amp; Systems, Digital Systems, Linear Algebra, Probability, Microprocessors, Control Systems</div>
+      </div>
+      <div class="edu-card" style="display:flex;flex-direction:column;gap:1.5rem;">
+        <div>
+          <div class="edu-tag">Minor · 2026 – Present</div>
+          <h3>Minor in Mathematics</h3>
+          <div class="edu-inst">Indian Institute of Technology, Guwahati</div>
+          <div class="edu-meta">In Progress · 2026 – Present</div>
+        </div>
+        <div style="border-top:1px solid var(--border);padding-top:1.2rem;">
+          <div class="edu-tag">Senior Secondary · 2023 – 2025</div>
+          <h3>Class XII — Science (PCM)</h3>
+          <div class="edu-inst">WBCHSE Board</div>
+          <div class="edu-meta">Score: 95.0% · 2025 · Associated with FIITJEE</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="scores-row">
+      <div class="score-card">
+        <div class="score-left"><h4>JEE Advanced 2025</h4><p>IIT Kanpur · Score: 183 · Top 1% of 1.5L+ candidates</p></div>
+        <div class="score-right"><div class="score-rank">1941</div><div class="score-sub">All India Rank</div></div>
+      </div>
+      <div class="score-card">
+        <div class="score-left"><h4>JEE Mains 2025</h4><p>NTA · Associated with FIITJEE</p></div>
+        <div class="score-right"><div class="score-rank">4738</div><div class="score-sub">AIR · 99.69 Percentile</div></div>
+      </div>
+    </div>
+
+    <div class="certs-title">Certifications</div>
+    <div class="certs-grid">
+      <div class="cert-card">
+        <div class="cert-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg></div>
+        <div><div class="cert-name">Winter Consulting 2025</div><div class="cert-org">CAC, IITG · Issued Jan 2026 · Credential: 6af1024a</div></div>
+      </div>
+      <div class="cert-card">
+        <div class="cert-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg></div>
+        <div><div class="cert-name">NeuroHack Challenge 2026</div><div class="cert-org">IITG.ai × Smallest.ai · Certificate of Participation</div></div>
+      </div>
+      <div class="cert-card">
+        <div class="cert-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+        <div><div class="cert-name">Options Hackathon — Achievement</div><div class="cert-org">Finance &amp; Economics Club, IITG · Jan 2026</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CONTACT -->
+<section id="contact">
+  <div class="container">
+    <div class="contact-grid reveal">
+      <div>
+        <p class="eyebrow">// Contact</p>
+        <h2 class="contact-heading">Let's build something<br><em>remarkable</em> together.</h2>
+        <p class="contact-desc">Whether you have a research internship, quant role, SWE opportunity, or just want to talk about competitive programming and ML — I'd love to hear from you.</p>
+        <div class="contact-links">
+          <a href="mailto:priyanshuib01@gmail.com" class="contact-link">
+            <div class="contact-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="15" height="15"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 7 10-7"/></svg></div>
+            priyanshuib01@gmail.com
+          </a>
+          <a href="mailto:priyanshu.debnath@iitg.ac.in" class="contact-link">
+            <div class="contact-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="15" height="15"><path d="M22 10.5V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8"/><polyline points="15 17 18 20 22 16"/></svg></div>
+            priyanshu.debnath@iitg.ac.in
+          </a>
+          <a href="https://linkedin.com/in/priyanshu-debnath-3a81711b3" target="_blank" class="contact-link">
+            <div class="contact-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="15" height="15"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg></div>
+            linkedin.com/in/priyanshu-debnath-3a81711b3
+          </a>
+          <a href="https://github.com/PriyanshuIITGHY2006" target="_blank" class="contact-link">
+            <div class="contact-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="15" height="15"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg></div>
+            github.com/PriyanshuIITGHY2006
+          </a>
+          <a href="tel:+918777065350" class="contact-link">
+            <div class="contact-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="15" height="15"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 1.27h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 8.91a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg></div>
+            +91-8777065350
+          </a>
+        </div>
+      </div>
+      <div class="form-wrap">
+        <div class="form-title">Send a Message</div>
+        <div class="form-row">
+          <div class="form-group"><label>Name</label><input type="text" id="f-name" placeholder="Your name"/></div>
+          <div class="form-group"><label>Email</label><input type="email" id="f-email" placeholder="you@example.com"/></div>
+        </div>
+        <div class="form-group"><label>Subject</label><input type="text" id="f-subject" placeholder="Internship / Research / Collaboration..."/></div>
+        <div class="form-group"><label>Message</label><textarea id="f-msg" placeholder="Tell me about the opportunity or topic you'd like to discuss..."></textarea></div>
+        <button class="btn-send" onclick="sendMsg()">Send Message →</button>
+        <div class="form-note" id="form-note">Your message will open in your default email client.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-left">© 2026 Priyanshu Debnath · EEE @ IIT Guwahati · Kolkata, India</div>
+  <div class="footer-right">
+    <a href="https://linkedin.com/in/priyanshu-debnath-3a81711b3" class="footer-link" target="_blank">LinkedIn</a>
+    <a href="https://github.com/PriyanshuIITGHY2006" class="footer-link" target="_blank">GitHub</a>
+    <a href="mailto:priyanshuib01@gmail.com" class="footer-link">Email</a>
+    <a href="https://codeforces.com" class="footer-link" target="_blank">Codeforces</a>
+  </div>
+</footer>
+
+<script>
+  function loadPhoto(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const img = document.getElementById('profile-photo');
+      const fallback = document.getElementById('avatar-fallback');
+      img.src = e.target.result;
+      img.style.display = 'block';
+      fallback.style.display = 'none';
+    };
+    reader.readAsDataURL(file);
+  }
+
+  const revs = document.querySelectorAll('.reveal');
+  const obs = new IntersectionObserver(es => es.forEach(e => { if(e.isIntersecting){e.target.classList.add('visible');obs.unobserve(e.target);} }), {threshold:0.07});
+  revs.forEach(el => obs.observe(el));
+
+  const secs = document.querySelectorAll('section[id]');
+  const navAs = document.querySelectorAll('.nav-links a');
+  window.addEventListener('scroll', () => {
+    let cur = '';
+    secs.forEach(s => { if(window.scrollY >= s.offsetTop - 80) cur = s.id; });
+    navAs.forEach(a => {
+      const active = a.getAttribute('href') === '#' + cur;
+      a.style.color = active ? 'var(--navy)' : '';
+    });
+  });
+
+  function sendMsg() {
+    const name = document.getElementById('f-name').value.trim();
+    const email = document.getElementById('f-email').value.trim();
+    const subject = document.getElementById('f-subject').value.trim();
+    const msg = document.getElementById('f-msg').value.trim();
+    const note = document.getElementById('form-note');
+    if (!name || !email || !msg) {
+      note.textContent = '⚠ Please fill in name, email, and message.';
+      note.style.color = '#c0392b';
+      return;
+    }
+    const body = encodeURIComponent(`From: ${name} <${email}>\n\n${msg}`);
+    const sub = encodeURIComponent(subject || `Message from ${name} via portfolio`);
+    window.location.href = `mailto:priyanshuib01@gmail.com?subject=${sub}&body=${body}`;
+    note.textContent = '✓ Email client opened. Thank you!';
+    note.style.color = 'var(--navy)';
+  }
+</script>
+</body>
+</html>
