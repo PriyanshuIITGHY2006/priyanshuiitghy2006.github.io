@@ -247,6 +247,7 @@
     @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
     @media (max-width: 900px) {
       .hero-container { grid-template-columns: 1fr; }
@@ -353,9 +354,9 @@
         <div class="stat-box"><div class="stat-num">5</div><div class="stat-lbl">Projects</div></div>
       </div>
       <div class="hero-card-links">
-        <a href="mailto:priyanshuib01@gmail.com" class="card-link-row">
+        <a href="/cdn-cgi/l/email-protection#9fefedf6e6fef1ecf7eaf6fdafaedff8f2fef6f3b1fcf0f2" class="card-link-row">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 7 10-7"/></svg>
-          priyanshuib01@gmail.com
+          <span class="__cf_email__" data-cfemail="fb8b8992829a9588938e9299cbcabb9c969a9297d5989496">[email&#160;protected]</span>
         </a>
         <a href="https://linkedin.com/in/priyanshu-debnath-3a81711b3" class="card-link-row" target="_blank">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
@@ -756,13 +757,13 @@
         <h2 class="contact-heading">Let's build something<br><em>remarkable</em> together.</h2>
         <p class="contact-desc">Whether you have a research internship, quant role, SWE opportunity, or just want to talk about competitive programming and ML — I'd love to hear from you.</p>
         <div class="contact-links">
-          <a href="mailto:priyanshuib01@gmail.com" class="contact-link">
+          <a href="/cdn-cgi/l/email-protection#1262607b6b737c617a677b70222352757f737b7e3c717d7f" class="contact-link">
             <div class="contact-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="15" height="15"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 7 10-7"/></svg></div>
-            priyanshuib01@gmail.com
+            <span class="__cf_email__" data-cfemail="bacac8d3c3dbd4c9d2cfd3d88a8bfaddd7dbd3d694d9d5d7">[email&#160;protected]</span>
           </a>
-          <a href="mailto:priyanshu.debnath@iitg.ac.in" class="contact-link">
+          <a href="/cdn-cgi/l/email-protection#5323213a2a323d203b267d3736313d32273b133a3a27347d32307d3a3d" class="contact-link">
             <div class="contact-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="15" height="15"><path d="M22 10.5V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8"/><polyline points="15 17 18 20 22 16"/></svg></div>
-            priyanshu.debnath@iitg.ac.in
+            <span class="__cf_email__" data-cfemail="f080829989919e839885de9495929e918498b099998497de9193de999e">[email&#160;protected]</span>
           </a>
           <a href="https://linkedin.com/in/priyanshu-debnath-3a81711b3" target="_blank" class="contact-link">
             <div class="contact-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="15" height="15"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg></div>
@@ -780,14 +781,34 @@
       </div>
       <div class="form-wrap">
         <div class="form-title">Send a Message</div>
-        <div class="form-row">
-          <div class="form-group"><label>Name</label><input type="text" id="f-name" placeholder="Your name"/></div>
-          <div class="form-group"><label>Email</label><input type="email" id="f-email" placeholder="you@example.com"/></div>
+
+        <!-- Success state (hidden by default) -->
+        <div id="form-success" style="display:none; text-align:center; padding: 2.5rem 1rem;">
+          <div style="width:52px;height:52px;background:var(--navy-light);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1.2rem;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--navy)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <h3 style="font-family:var(--font-disp);font-size:1.2rem;font-weight:600;margin-bottom:0.4rem;">Message Sent!</h3>
+          <p style="font-size:0.85rem;color:var(--ink-soft);font-weight:300;margin-bottom:1.2rem;">Thanks for reaching out. I'll get back to you within 24–48 hours.</p>
+          <button onclick="resetForm()" style="font-family:var(--font-mono);font-size:0.68rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--navy);background:var(--navy-light);border:1px solid #b8ccee;border-radius:4px;padding:0.4rem 1rem;cursor:pointer;">Send Another →</button>
         </div>
-        <div class="form-group"><label>Subject</label><input type="text" id="f-subject" placeholder="Internship / Research / Collaboration..."/></div>
-        <div class="form-group"><label>Message</label><textarea id="f-msg" placeholder="Tell me about the opportunity or topic you'd like to discuss..."></textarea></div>
-        <button class="btn-send" onclick="sendMsg()">Send Message →</button>
-        <div class="form-note" id="form-note">Your message will open in your default email client.</div>
+
+        <!-- Form (shown by default) -->
+        <div id="form-fields">
+          <div class="form-row">
+            <div class="form-group"><label>Name *</label><input type="text" id="f-name" placeholder="Your name"/></div>
+            <div class="form-group"><label>Email *</label><input type="email" id="f-email" placeholder="you@example.com"/></div>
+          </div>
+          <div class="form-group"><label>Subject</label><input type="text" id="f-subject" placeholder="Internship / Research / Collaboration..."/></div>
+          <div class="form-group"><label>Message *</label><textarea id="f-msg" placeholder="Tell me about the opportunity or topic you'd like to discuss..."></textarea></div>
+          <button class="btn-send" id="send-btn" onclick="sendMsg()">
+            <span id="btn-label">Send Message →</span>
+            <span id="btn-loading" style="display:none;display:inline-flex;align-items:center;gap:0.5rem;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin 1s linear infinite"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+              Sending...
+            </span>
+          </button>
+          <div class="form-note" id="form-note">Sent directly to priyanshuib01@gmail.com · No spam, ever.</div>
+        </div>
       </div>
     </div>
   </div>
@@ -798,12 +819,12 @@
   <div class="footer-right">
     <a href="https://linkedin.com/in/priyanshu-debnath-3a81711b3" class="footer-link" target="_blank">LinkedIn</a>
     <a href="https://github.com/PriyanshuIITGHY2006" class="footer-link" target="_blank">GitHub</a>
-    <a href="mailto:priyanshuib01@gmail.com" class="footer-link">Email</a>
+    <a href="/cdn-cgi/l/email-protection#f181839888909f8299849893c1c0b1969c90989ddf929e9c" class="footer-link">Email</a>
     <a href="https://codeforces.com" class="footer-link" target="_blank">Codeforces</a>
   </div>
 </footer>
 
-<script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
   function loadPhoto(event) {
     const file = event.target.files[0];
     if (!file) return;
@@ -833,23 +854,74 @@
     });
   });
 
-  function sendMsg() {
-    const name = document.getElementById('f-name').value.trim();
-    const email = document.getElementById('f-email').value.trim();
+  async function sendMsg() {
+    const name    = document.getElementById('f-name').value.trim();
+    const email   = document.getElementById('f-email').value.trim();
     const subject = document.getElementById('f-subject').value.trim();
-    const msg = document.getElementById('f-msg').value.trim();
-    const note = document.getElementById('form-note');
+    const msg     = document.getElementById('f-msg').value.trim();
+    const note    = document.getElementById('form-note');
+    const btn     = document.getElementById('send-btn');
+    const label   = document.getElementById('btn-label');
+    const loading = document.getElementById('btn-loading');
+
+    // Validation
     if (!name || !email || !msg) {
-      note.textContent = '⚠ Please fill in name, email, and message.';
+      note.textContent = 'Please fill in your name, email, and message.';
       note.style.color = '#c0392b';
       return;
     }
-    const body = encodeURIComponent(`From: ${name} <${email}>\n\n${msg}`);
-    const sub = encodeURIComponent(subject || `Message from ${name} via portfolio`);
-    window.location.href = `mailto:priyanshuib01@gmail.com?subject=${sub}&body=${body}`;
-    note.textContent = '✓ Email client opened. Thank you!';
-    note.style.color = 'var(--navy)';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      note.textContent = 'Please enter a valid email address.';
+      note.style.color = '#c0392b';
+      return;
+    }
+
+    // Loading state
+    btn.disabled = true;
+    label.style.display = 'none';
+    loading.style.display = 'inline-flex';
+    note.textContent = 'Sending your message...';
+    note.style.color = 'var(--ink-soft)';
+
+    try {
+      const res = await fetch('https://formspree.io/f/mvzwkewd', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({
+          name: name,
+          email: email,
+          subject: subject || `Portfolio message from ${name}`,
+          message: msg
+        })
+      });
+
+      if (res.ok) {
+        // Show success state
+        document.getElementById('form-fields').style.display = 'none';
+        document.getElementById('form-success').style.display = 'block';
+      } else {
+        const data = await res.json();
+        throw new Error(data?.errors?.[0]?.message || 'Submission failed');
+      }
+    } catch (err) {
+      note.textContent = 'Something went wrong. Please email priyanshuib01@gmail.com directly.';
+      note.style.color = '#c0392b';
+      btn.disabled = false;
+      label.style.display = 'inline';
+      loading.style.display = 'none';
+    }
   }
-</script>
-</body>
-</html>
+
+  function resetForm() {
+    document.getElementById('f-name').value = '';
+    document.getElementById('f-email').value = '';
+    document.getElementById('f-subject').value = '';
+    document.getElementById('f-msg').value = '';
+    document.getElementById('form-success').style.display = 'none';
+    document.getElementById('form-fields').style.display = 'block';
+    document.getElementById('send-btn').disabled = false;
+    document.getElementById('btn-label').style.display = 'inline';
+    document.getElementById('btn-loading').style.display = 'none';
+    document.getElementById('form-note').textContent = 'Sent directly to priyanshuib01@gmail.com · No spam, ever.';
+    document.getElementById('form-note').style.color = '';
+  }
