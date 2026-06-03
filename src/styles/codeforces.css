@@ -1,5 +1,6 @@
 /* ─── Codeforces profile page — faithful to codeforces.com ───────────
-   Verdana base, rounded bordered boxes, CF link blue, rank colours. */
+   Tahoma/Arial base (exact CF font stack), rounded bordered boxes,
+   CF link blue, rank colours, interactive charts. */
 
 .cf {
   --cf-bg: #ffffff;
@@ -10,7 +11,8 @@
   --cf-border-2: #e1e1e1;
   --cf-box-shadow: 0 0 0 1px rgba(0,0,0,0.02), 1px 1px 5px rgba(0,0,0,0.10);
 
-  font-family: verdana, arial, "Helvetica Neue", sans-serif;
+  /* Exact Codeforces font stack */
+  font-family: Tahoma, Arial, sans-serif;
   font-size: 13px;
   line-height: 1.45;
   color: var(--cf-ink);
@@ -18,21 +20,21 @@
     linear-gradient(180deg, #e8e8e8 0, #e8e8e8 160px, transparent 160px),
     #ffffff;
   min-height: 100vh;
-  max-width: 1000px;
+  width: 100%;
   margin: 0 auto;
-  padding: 14px 12px 60px;
+  padding: 14px 20px 60px;
 }
 .cf * { box-sizing: border-box; }
 .cf a { color: var(--cf-link); text-decoration: none; }
 .cf a:hover { text-decoration: underline; }
 .cf b { font-weight: bold; }
 
-/* ── Top tab bar (only the active handle tab, like CF) ──────────────── */
+/* ── Top tab bar ────────────────────────────────────────────────────── */
 .cf-bar {
   display: flex;
   align-items: center;
-  gap: 16px;
-  margin-bottom: 12px;
+  justify-content: space-between;
+  margin-bottom: 14px;
 }
 .cf-tab {
   display: inline-block;
@@ -43,14 +45,26 @@
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.3px;
+  text-decoration: none !important;
 }
 .cf-tab-active {
   background: #e3e3e3;
-  color: #222;
+  color: #222 !important;
   box-shadow: inset 0 1px 0 #fff;
 }
+.cf-tab-active:hover { background: #d5d5d5; }
 .cf-home { font-size: 12px; color: var(--cf-muted) !important; }
 .cf-home:hover { color: var(--cf-link) !important; }
+
+/* ── Two-column layout ──────────────────────────────────────────────── */
+.cf-twocol {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 0 20px;
+  align-items: start;
+}
+.cf-main { min-width: 0; }
+.cf-sidebar { position: sticky; top: 14px; }
 
 /* ── Rounded boxes ──────────────────────────────────────────────────── */
 .cf-roundbox {
@@ -80,6 +94,13 @@
 .cf-place { color: #444; margin-bottom: 2px; }
 .cf-realname { color: #000; }
 .cf-link { color: var(--cf-link); }
+.cf-profile-cflink {
+  font-size: 12px;
+  color: var(--cf-muted);
+  margin-bottom: 6px;
+}
+.cf-profile-cflink a { color: var(--cf-muted); font-size: 12px; }
+.cf-profile-cflink a:hover { color: var(--cf-link); text-decoration: underline; }
 
 .cf-props { list-style: none; margin: 14px 0 0; padding: 0; }
 .cf-props li {
@@ -93,16 +114,22 @@
 .cf-muted { color: var(--cf-muted); font-weight: normal; }
 
 .cf-photo img {
-  width: 200px;
+  width: 220px;
   height: auto;
   border: 1px solid var(--cf-border);
+  border-radius: 3px;
   display: block;
 }
 
 /* ── Activity heatmap ───────────────────────────────────────────────── */
 .cf-heatwrap { overflow-x: auto; padding-bottom: 4px; }
-.cf-heat { display: block; }
-.cf-heat-label { fill: #767676; font-size: 10px; font-family: verdana, arial, sans-serif; }
+.cf-heat { display: block; width: 100%; height: auto; min-width: 560px; }
+.cf-heat-label { fill: #767676; font-size: 10px; font-family: Tahoma, Arial, sans-serif; }
+.cf-heat-cell {
+  transition: opacity 0.12s ease;
+  cursor: default;
+}
+.cf-heat-cell:hover { opacity: 0.7; }
 
 .cf-actstats {
   display: grid;
@@ -111,7 +138,7 @@
   margin-top: 18px;
   padding-top: 4px;
 }
-.cf-bignum { font-size: 26px; font-weight: bold; color: #111; line-height: 1.15; }
+.cf-bignum { font-size: 26px; font-weight: normal; color: #111; line-height: 1.15; }
 .cf-actsub { color: #c08a3e; font-size: 12px; margin-top: 1px; }
 
 /* ── Section heading inside boxes ───────────────────────────────────── */
@@ -138,7 +165,18 @@
 .cf-chartwrap { width: 100%; overflow-x: auto; }
 .cf-chart { width: 100%; height: auto; min-width: 560px; display: block; }
 .cf-grid { stroke: #ededed; stroke-width: 1; }
-.cf-axis { fill: #888; font-size: 11px; font-family: verdana, arial, sans-serif; }
+.cf-axis { fill: #888; font-size: 11px; font-family: Tahoma, Arial, sans-serif; }
+
+/* Interactive bar chart */
+.cf-bar-rect {
+  cursor: pointer;
+  transition: opacity 0.12s ease, filter 0.12s ease;
+  transform-origin: bottom center;
+}
+.cf-bar-rect:hover {
+  opacity: 0.78;
+  filter: brightness(1.08);
+}
 
 /* ── Tags donut + legend ────────────────────────────────────────────── */
 .cf-tagsbody {
@@ -147,7 +185,16 @@
   gap: 28px;
   align-items: center;
 }
-.cf-donut { width: 240px; height: 240px; }
+.cf-donut { width: 240px; height: 240px; overflow: visible; }
+.cf-donut-slice {
+  cursor: pointer;
+  transition: opacity 0.12s ease, filter 0.12s ease;
+  transform-origin: 120px 120px;
+}
+.cf-donut-slice:hover {
+  opacity: 0.82;
+  filter: brightness(1.1) drop-shadow(0 0 4px rgba(0,0,0,0.25));
+}
 .cf-taglegend {
   list-style: none;
   margin: 0;
@@ -169,9 +216,92 @@
 .cf-legend-name { color: #222; }
 .cf-legend-count { color: var(--cf-muted); }
 
+/* ── Floating tooltip ───────────────────────────────────────────────── */
+.cf-tooltip {
+  position: fixed;
+  background: rgba(30, 30, 30, 0.92);
+  color: #fff;
+  font-family: Tahoma, Arial, sans-serif;
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 6px 10px;
+  border-radius: 4px;
+  pointer-events: none;
+  z-index: 9999;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.1s ease;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+.cf-tooltip.cf-tip-visible { opacity: 1; }
+
+/* ── Sidebar: Latest Submissions ────────────────────────────────────── */
+.cf-sublist { display: flex; flex-direction: column; gap: 0; }
+.cf-subrow {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--cf-border-2);
+}
+.cf-subrow:last-child { border-bottom: none; }
+
+.cf-verdict {
+  display: inline-block;
+  min-width: 32px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: bold;
+  text-align: center;
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+.cf-verdict-ok {
+  background: #d4edda;
+  color: #1a7c34;
+  border: 1px solid #b0d9bc;
+}
+.cf-verdict-fail {
+  background: #fde8e8;
+  color: #c0392b;
+  border: 1px solid #f5b7b1;
+}
+
+.cf-subinfo { flex: 1; min-width: 0; }
+.cf-subproblem {
+  display: block;
+  font-size: 12px;
+  font-weight: bold;
+  color: var(--cf-link);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+.cf-subproblem:hover { text-decoration: underline; }
+.cf-submeta {
+  font-size: 11px;
+  color: var(--cf-muted);
+  margin-top: 1px;
+}
+.cf-sub-rating {
+  font-weight: bold;
+  margin-right: 3px;
+}
+.cf-subtime { }
+
+.cf-sidebar-more {
+  margin-top: 10px;
+  text-align: right;
+  font-size: 12px;
+}
+
 /* ── Mobile ─────────────────────────────────────────────────────────── */
-@media (max-width: 760px) {
-  .cf { background: #fff; padding: 12px 10px 50px; }
+@media (max-width: 900px) {
+  .cf { background: #fff; padding: 12px 12px 50px; }
+  .cf-twocol { grid-template-columns: 1fr; }
+  .cf-sidebar { position: static; }
   .cf-profile { grid-template-columns: 1fr; }
   .cf-photo { order: -1; }
   .cf-photo img { width: 140px; }
