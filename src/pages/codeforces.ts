@@ -52,7 +52,7 @@ function render(data: CFData): string {
     <div class="cf">
       <div class="cf-tooltip" id="cf-tip"></div>
       <div class="cf-bar">
-        <span class="cf-tab cf-tab-active">${esc(data.user.handle)}</span>
+        <a class="cf-tab cf-tab-active" href="${PROFILE_URL}" target="_blank" rel="noopener">${esc(data.user.handle)}</a>
         <a class="cf-home" href="#/">← back to résumé</a>
       </div>
       <div class="cf-twocol">
@@ -154,6 +154,7 @@ function renderProfile(user: CFUser): string {
       <div class="cf-profile-info">
         <div class="cf-rank-title" style="color:${color}">${esc(rank)}</div>
         <h1 class="cf-username" style="color:${color}">${esc(user.handle)}</h1>
+        <div class="cf-profile-cflink"><a href="${PROFILE_URL}" target="_blank" rel="noopener">codeforces.com/profile/${esc(user.handle)}</a></div>
         ${place.length ? `<div class="cf-place">${place.join(", ")}</div>` : ""}
         ${user.organization ? `<div class="cf-place">From <a class="cf-link" href="${PROFILE_URL}">${esc(user.organization)}</a></div>` : ""}
 
