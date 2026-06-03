@@ -265,7 +265,7 @@ function heatmap(activity: Record<string, number>): string {
 
   return `
     <div class="cf-heatwrap">
-      <svg class="cf-heat" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Submission activity">
+      <svg class="cf-heat" viewBox="0 0 ${W} ${H}" role="img" aria-label="Submission activity">
         ${monthLabels.join("")}
         ${dayLabels}
         ${cells.join("")}
