@@ -1,271 +1,221 @@
-/* ─── Computer Modern (LaTeX default serif) web font ─────────────────── */
+/* ─── Computer Modern (LaTeX cfr-lm / Latin Modern equivalent) ──────── */
 @import url("https://cdn.jsdelivr.net/gh/aaaakshat/cm-web-fonts@latest/fonts.css");
 
 :root {
-  --cm-serif: "Computer Modern Serif", "Latin Modern Roman", "CMU Serif", Georgia, serif;
+  --cm: "Computer Modern Serif", "Latin Modern Roman", "CMU Serif", Georgia, serif;
+  --ink: #000;
+  --rule: #000;
+  --link: #000;          /* LaTeX \hidelinks — links same colour as text */
+  --link-hover: #1a4d2e; /* subtle hover so they still feel interactive */
 
-  /* PDF-viewer chrome */
-  --vbg: #525659;          /* classic PDF viewer gray */
-  --vbg-2: #44474a;
-  --toolbar: #323639;
-  --toolbar-fg: #e8e8e8;
-  --toolbar-border: #1f2123;
-  --btn-hover: #4a4e51;
-  --accent: #2d6a4f;
-
-  /* Paper / ink */
-  --paper: #ffffff;
-  --ink: #000000;
-  --rule: #000000;
-}
-
-[data-theme="dark"] {
-  --vbg: #1a1a1c;
-  --vbg-2: #141416;
-  --toolbar: #0e0e10;
-  --toolbar-fg: #d8d8d2;
-  --toolbar-border: #000000;
-  --btn-hover: #2a2a2d;
-  --paper: #f4f1ea;   /* warm "paper" even in dark mode keeps the PDF legible */
-  --ink: #161613;
-  --rule: #161613;
+  /* Single responsive scale: behaves like a PDF zoomed to fit the viewport.
+     LaTeX body is 10pt on a 21 cm A4 page → 10pt occupies ~1.67% of the
+     page width. We mirror that: 1.6vw, with a floor for phones and a soft
+     cap so 4K screens don't render the page absurdly large. */
+  font-size: clamp(12px, 1.6vw, 28px);
 }
 
 * { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: #fff; }
 
-html, body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  background: var(--vbg);
+body {
+  font-family: var(--cm);
+  font-size: 1rem;
+  color: var(--ink);
+  line-height: 1.25;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 
-#app {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  height: 100dvh;
+/* ─── Page fills the viewport edge-to-edge — no PDF gutter.
+       Padding mirrors LaTeX \geometry (1.2cm/1.1cm/0.6cm), expressed as
+       viewport-relative so the proportions stay identical at any width. ── */
+.page {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: clamp(8px, 2.85vw, 50px)   /* top    — 0.6 cm */
+           clamp(10px, 5.24vw, 90px)  /* right  — 1.1 cm */
+           clamp(8px, 2.85vw, 50px)   /* bottom — 0.6 cm */
+           clamp(10px, 5.71vw, 100px);/* left   — 1.2 cm */
+  background: #fff;
 }
 
-/* ─── Toolbar (PDF viewer top bar) ───────────────────────────────────── */
-.toolbar {
-  flex: 0 0 auto;
-  height: 48px;
+/* ─── Links: same colour as text, subtle dotted underline on hover ──── */
+.link { color: var(--link); text-decoration: none; border-bottom: 1px dotted transparent; }
+.link:hover { color: var(--link-hover); border-bottom-color: currentColor; }
+
+/* ─── LaTeX wordmark (L^aT_eX) ──────────────────────────────────────── */
+.latex { display: inline-block; }
+.latex-a { display: inline-block; font-size: 0.75em; vertical-align: 0.28em; margin: 0 -0.13em 0 -0.05em; }
+.latex-e { display: inline-block; vertical-align: -0.18em; margin: 0 -0.09em; }
+
+/* ─── HEADER (logo + tabularx) ──────────────────────────────────────── */
+.cv-head {
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-  gap: 8px;
-  padding: 0 14px;
-  background: var(--toolbar);
-  color: var(--toolbar-fg);
-  border-bottom: 1px solid var(--toolbar-border);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  font-size: 13px;
-  user-select: none;
-  z-index: 10;
-}
-.tb-group { display: flex; align-items: center; gap: 8px; }
-.tb-left { justify-content: flex-start; }
-.tb-center { justify-content: center; }
-.tb-right { justify-content: flex-end; }
-.tb-doc {
-  display: inline-flex; align-items: center; gap: 7px;
-  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  opacity: 0.92;
-}
-.tb-doc svg { opacity: 0.8; flex: 0 0 auto; }
-.tb-btn {
-  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-  min-width: 30px; height: 30px; padding: 0 9px;
-  border: none; border-radius: 5px; cursor: pointer;
-  background: transparent; color: var(--toolbar-fg);
-  font: inherit; font-size: 14px; line-height: 1;
-  transition: background 0.12s ease;
-  text-decoration: none;
-}
-.tb-btn:hover { background: var(--btn-hover); }
-.tb-zoom { min-width: 46px; text-align: center; opacity: 0.9; font-variant-numeric: tabular-nums; }
-.tb-fit { font-size: 12.5px; }
-.tb-download {
-  background: var(--accent); color: #fff; padding: 0 12px; font-weight: 500;
-}
-.tb-download:hover { background: #245a42; }
-
-/* ─── Stage (scrollable viewport) ────────────────────────────────────── */
-.stage {
-  flex: 1 1 auto;
-  overflow: auto;
-  background:
-    radial-gradient(120% 80% at 50% 0%, var(--vbg) 0%, var(--vbg-2) 100%);
-  padding: 26px 0 60px;
-  scrollbar-color: #6b6f72 transparent;
-}
-.paper-holder {
-  margin: 0 auto;
-  position: relative;
-  /* width/height set by JS to match the scaled paper */
-}
-
-/* ─── The paper ──────────────────────────────────────────────────────── */
-.paper {
-  position: absolute;
-  top: 0;
-  left: 0;
-  transform-origin: top left;
-  width: 794px;                 /* A4 @96dpi */
-  min-height: 1123px;           /* A4 height */
-  background: var(--paper);
-  color: var(--ink);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45), 0 14px 50px rgba(0, 0, 0, 0.35);
-  padding: 40px 48px 44px;
-  font-family: var(--cm-serif);
-  font-size: 15.2px;            /* ~10.5pt visual */
-  line-height: 1.28;
-  letter-spacing: 0.1px;
-}
-
-.paper a.link { color: inherit; text-decoration: none; border-bottom: 1px solid transparent; }
-.paper a.link:hover { color: var(--accent); border-bottom-color: var(--accent); }
-
-.latex { /* tiny kerning for the LaTeX wordmark */
-  display: inline-block; font-size: 0.92em;
-}
-.latex:first-of-type { transform: translateY(-0.22em) translateX(0.06em); margin: 0 -0.16em; }
-.latex:last-of-type { transform: translateY(0.16em); margin: 0 -0.1em; }
-
-/* ─── Header ─────────────────────────────────────────────────────────── */
-.cv-header {
-  display: flex;
-  justify-content: space-between;
+  grid-template-columns: 5rem 1fr;  /* ~2cm logo + content fills the rest */
   align-items: flex-start;
-  gap: 24px;
-  padding-bottom: 6px;
+  gap: 1rem;
+  padding: 0.1rem 0 0.4rem;
 }
-.cv-name {
-  font-size: 25px;
+.cv-logo img {
+  width: 4.6rem;
+  height: auto;
+  display: block;
+  margin-top: 0.1rem;
+}
+.cv-head.no-logo { grid-template-columns: 1fr; }
+.cv-head.no-logo .cv-logo { display: none; }
+.cv-head-tab {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95em;
+  line-height: 1.32;
+}
+.cv-head-tab td { padding: 0; vertical-align: baseline; }
+.cv-head-tab .hl { text-align: left; padding-right: 0.5rem; }
+.cv-head-tab .hr { text-align: right; white-space: nowrap; }
+.name {
+  font-size: 1.85em;             /* LaTeX \LARGE on 10pt ≈ 17pt */
   font-weight: 700;
-  line-height: 1.1;
-  margin-bottom: 4px;
-}
-.id-line { font-size: 14px; line-height: 1.42; }
-.header-right { text-align: right; }
-.contact-line { font-size: 14px; line-height: 1.42; }
-
-/* ─── Section titles + LaTeX \titlerule ──────────────────────────────── */
-section { margin-top: 9px; }
-.section-title {
-  font-size: 16.5px;
-  font-weight: 700;
-  line-height: 1.1;
-  margin-top: 4px;
-}
-.titlerule {
-  height: 0;
-  border-top: 1.1px solid var(--rule);
-  margin: 2px 0 5px;
+  line-height: 1.05;
+  letter-spacing: 0.2px;
 }
 
-/* ─── Education table ────────────────────────────────────────────────── */
+/* ─── Section titles: \scshape\large + \titlerule ──────────────────── */
+.section {
+  font-variant: small-caps;
+  font-weight: 400;
+  font-size: 1.2em;              /* \large at 10pt ≈ 12pt */
+  letter-spacing: 0.5px;
+  margin: 0.55rem 0 0;
+  padding: 0 0 0.05rem;
+  border-bottom: 0.6px solid var(--rule);
+  line-height: 1.1;
+}
+
+/* ─── Education table ───────────────────────────────────────────────── */
 .edu-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13.6px;
-  margin-top: 2px;
+  font-size: 0.92em;             /* \small */
+  margin-top: 0.3rem;
+  table-layout: fixed;
 }
 .edu-table th,
 .edu-table td {
-  border: 0.8px solid var(--ink);
-  padding: 3px 7px;
+  border: 0.6px solid var(--ink);
+  padding: 0.22em 0.4em;
   text-align: center;
   vertical-align: middle;
 }
 .edu-table th { font-weight: 700; }
-.edu-table .td-left { text-align: left; }
-.edu-table thead th:nth-child(1) { width: 27%; }
-.edu-table thead th:nth-child(2) { width: 37%; }
-.edu-table thead th:nth-child(3) { width: 19%; }
-.edu-table thead th:nth-child(4) { width: 17%; }
+.edu-table th:nth-child(1), .edu-table td:nth-child(1) { width: 24%; }
+.edu-table th:nth-child(2), .edu-table td:nth-child(2) { width: 40%; }
+.edu-table th:nth-child(3), .edu-table td:nth-child(3) { width: 19%; }
+.edu-table th:nth-child(4), .edu-table td:nth-child(4) { width: 17%; }
 
-/* ─── Generic bullet lists ───────────────────────────────────────────── */
-.bullet-list,
-.project-list { list-style: none; margin: 0; padding: 0; }
-
-.item {
-  position: relative;
-  padding-left: 16px;
-  margin: 2px 0;
-  font-size: 14.4px;
-  line-height: 1.32;
+/* ─── Bullet (\renewcommand{\labelitemi}{\tiny$\bullet$}) ───────────── */
+.proj-list,
+.skill-list,
+.por-list {
+  list-style: none;
+  margin: 0.2rem 0 0;
+  padding: 0;
 }
-.item::before {
+.proj-list > li,
+.skill-list > li,
+.por-list > li {
+  position: relative;
+  padding-left: 0.85em;
+  margin: 0.1rem 0;
+}
+.proj-list > li::before,
+.skill-list > li::before,
+.por-list > li::before {
   content: "•";
   position: absolute;
-  left: 2px;
-  top: -0.5px;
+  left: 0.05em;
+  top: -0.05em;
+  font-size: 0.7em;              /* \tiny */
+  line-height: 1.6;
 }
-.item.dated {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 14px;
-}
-.item .item-text { flex: 1 1 auto; }
-.item .item-date { flex: 0 0 auto; white-space: nowrap; font-weight: 700; }
 
-/* ─── Projects ───────────────────────────────────────────────────────── */
-.project {
-  position: relative;
-  padding-left: 16px;
-  margin: 4px 0 5px;
-}
-.project::before {
-  content: "•";
-  position: absolute;
-  left: 2px;
-  top: 0;
-  font-size: 14.4px;
-}
-.proj-head {
-  display: flex;
-  justify-content: space-between;
+/* ─── Projects (\resumeProject) ─────────────────────────────────────── */
+.proj { font-size: 0.94em; margin: 0.1rem 0 0.2rem; }
+.proj-grid {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  column-gap: 1rem;
+  row-gap: 0;
   align-items: baseline;
-  gap: 14px;
-  font-size: 14.6px;
 }
-.proj-title { font-weight: 700; }
-.proj-date { font-weight: 700; white-space: nowrap; flex: 0 0 auto; }
-.proj-sub {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 14px;
-  font-size: 13.8px;
-  margin-top: 0.5px;
-}
-.proj-stack { flex: 1 1 auto; }
-.proj-link { flex: 0 0 auto; white-space: nowrap; }
-
-.sublist { list-style: none; margin: 1px 0 0; padding: 0; }
-.subitem {
-  position: relative;
-  padding-left: 15px;
-  margin: 1px 0;
-  font-size: 14px;
-  line-height: 1.3;
+.pg-title { font-size: 1em; }
+.pg-date  { font-size: 0.86em; white-space: nowrap; }   /* \footnotesize */
+.pg-stack { font-size: 0.86em; }                          /* \footnotesize \textit */
+.pg-link  { font-size: 0.86em; white-space: nowrap; font-style: italic; }
+.pg-link .link { font-style: italic; }
+.proj-bullets {
+  list-style: none;
+  margin: 0.1rem 0 0;
+  padding: 0;
+  font-size: 0.92em;             /* \small inside justify */
   text-align: justify;
+  text-justify: inter-word;
+  hyphens: auto;
 }
-.subitem::before {
+.proj-bullets > li {
+  position: relative;
+  padding-left: 1.05em;
+  margin: 0.05em 0;
+  line-height: 1.3;
+}
+.proj-bullets > li::before {
+  /* LaTeX default labelitemii at this depth renders as a thin dash */
   content: "–";
   position: absolute;
-  left: 1px;
+  left: 0;
   top: 0;
+  font-size: 1em;
 }
 
-/* ─── Responsive toolbar trims ───────────────────────────────────────── */
+/* ─── Skills ─────────────────────────────────────────────────────────── */
+.skill-list { margin-top: 0.2rem; }
+.skill-list > li { font-size: 0.94em; margin: 0.05rem 0; line-height: 1.32; }
+
+/* ─── Positions of Responsibility & Achievements (\resumePOR) ────────── */
+.por-list > li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.94em;
+  line-height: 1.34;
+}
+.por-text { flex: 1 1 auto; }
+.por-date { flex: 0 0 auto; white-space: nowrap; font-size: 0.86em; }
+
+/* ─── Bottom rule (\rule{1.035\textwidth}{0.1mm}) ───────────────────── */
+.bottom-rule {
+  border: none;
+  height: 0;
+  border-top: 0.6px solid var(--ink);
+  margin: 0.6rem -0.4rem 0;
+}
+
+/* ─── Print: behave like the original PDF ───────────────────────────── */
+@media print {
+  :root { font-size: 10pt; }
+  body { background: #fff; }
+  .page { padding: 0.6cm 1.1cm; }
+  .link { color: var(--ink) !important; border-bottom: none !important; }
+}
+
+/* ─── Phones: pull padding in tighter, keep the same proportions ────── */
 @media (max-width: 640px) {
-  .tb-download-text { display: none; }
-  .tb-doc { font-size: 12px; }
-  .toolbar { gap: 4px; padding: 0 8px; }
+  :root { font-size: clamp(11.5px, 3.6vw, 15px); }
+  .page { padding: 0.5rem 0.65rem 0.8rem; }
+  .cv-head { grid-template-columns: 3.6rem 1fr; gap: 0.6rem; }
+  .cv-logo img { width: 3.4rem; }
+  .por-list > li, .proj-grid { flex-wrap: wrap; }
 }
