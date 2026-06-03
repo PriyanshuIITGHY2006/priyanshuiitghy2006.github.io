@@ -8,8 +8,11 @@
   --link: #000;          /* LaTeX \hidelinks — links same colour as text */
   --link-hover: #1a4d2e; /* subtle hover so they still feel interactive */
 
-  /* Single responsive scale: everything else is in em/rem and rides this. */
-  font-size: clamp(13px, 1.05vw, 19px);
+  /* Single responsive scale: behaves like a PDF zoomed to fit the viewport.
+     LaTeX body is 10pt on a 21 cm A4 page → 10pt occupies ~1.67% of the
+     page width. We mirror that: 1.6vw, with a floor for phones and a soft
+     cap so 4K screens don't render the page absurdly large. */
+  font-size: clamp(12px, 1.6vw, 28px);
 }
 
 * { box-sizing: border-box; }
@@ -24,12 +27,17 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-/* ─── Page fills the viewport edge-to-edge — no PDF gutter ──────────── */
+/* ─── Page fills the viewport edge-to-edge — no PDF gutter.
+       Padding mirrors LaTeX \geometry (1.2cm/1.1cm/0.6cm), expressed as
+       viewport-relative so the proportions stay identical at any width. ── */
 .page {
   width: 100%;
   max-width: none;
   margin: 0;
-  padding: 0.7rem 1.2rem 1rem;   /* mirrors LaTeX \geometry (0.6cm/1.2cm) */
+  padding: clamp(8px, 2.85vw, 50px)   /* top    — 0.6 cm */
+           clamp(10px, 5.24vw, 90px)  /* right  — 1.1 cm */
+           clamp(8px, 2.85vw, 50px)   /* bottom — 0.6 cm */
+           clamp(10px, 5.71vw, 100px);/* left   — 1.2 cm */
   background: #fff;
 }
 
