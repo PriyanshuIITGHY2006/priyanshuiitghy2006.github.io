@@ -4,7 +4,6 @@ import {
   rankName,
   CF_HANDLE,
   type CFData,
-  type CFRatingChange,
   type CFUser,
 } from "../lib/codeforces";
 
@@ -21,314 +20,371 @@ export async function mountCodeforces(container: HTMLElement): Promise<void> {
   }
 }
 
-function escape(s: string | undefined | null): string {
+function esc(s: string | undefined | null): string {
   if (!s) return "";
   return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] as string));
 }
 
+// ── Loading / error ─────────────────────────────────────────────────────
 function skeleton(): string {
   return `
-    <div class="cf-page">
-      <a class="cf-back" href="#/">← Back to résumé</a>
-      <div class="cf-loading">
-        <div class="cf-spinner" aria-hidden="true"></div>
-        <p>Loading from Codeforces…</p>
-      </div>
+    <div class="cf">
+      <a class="cf-home" href="#/">← résumé</a>
+      <div class="cf-roundbox cf-msg">Loading from Codeforces…</div>
     </div>`;
 }
 
 function renderError(msg: string): string {
   return `
-    <div class="cf-page">
-      <a class="cf-back" href="#/">← Back to résumé</a>
-      <div class="cf-error">
-        <h2>Couldn't reach Codeforces</h2>
-        <p>${escape(msg)}</p>
-        <p>You can still view the profile directly on
-          <a href="${PROFILE_URL}" target="_blank" rel="noopener">codeforces.com</a>.
-        </p>
+    <div class="cf">
+      <a class="cf-home" href="#/">← résumé</a>
+      <div class="cf-roundbox cf-msg">
+        <b>Couldn't reach Codeforces.</b><br/>${esc(msg)}<br/>
+        <a href="${PROFILE_URL}" target="_blank" rel="noopener">Open the profile on codeforces.com →</a>
       </div>
     </div>`;
 }
 
 function render(data: CFData): string {
   return `
-    <div class="cf-page">
-      <a class="cf-back" href="#/">← Back to résumé</a>
-      ${renderHero(data.user)}
-      ${renderStats(data)}
-      ${renderRatingChart(data.ratings)}
-      ${renderContests(data.ratings)}
-      ${renderProblemDistribution(data.stats.ratingBuckets)}
+    <div class="cf">
+      <div class="cf-bar">
+        <span class="cf-tab cf-tab-active">${esc(data.user.handle)}</span>
+        <a class="cf-home" href="#/">← back to résumé</a>
+      </div>
+      ${renderProfile(data.user)}
+      ${renderActivity(data)}
+      ${renderProblemRatings(data.stats.ratingBuckets)}
       ${renderTags(data.stats.tagCounts)}
-      ${renderFooter(data)}
     </div>`;
 }
 
-// ── Hero: avatar + name + rank badge ────────────────────────────────────
-function renderHero(user: CFUser): string {
-  const name = [user.firstName, user.lastName].filter(Boolean).join(" ") || user.handle;
-  const subParts: string[] = [];
-  if (user.organization) subParts.push(user.organization);
-  if (user.city) subParts.push(user.city);
-  if (user.country) subParts.push(user.country);
-  const sub = subParts.join(" · ");
-  const avatar = user.titlePhoto || user.avatar || "";
+// ── Profile roundbox (info + photo) ─────────────────────────────────────
+function renderProfile(user: CFUser): string {
+  const fullName = [user.firstName, user.lastName].filter(Boolean).join(" ");
   const color = rankColor(user.maxRating);
   const rank = rankName(user.maxRating);
+  const curColor = rankColor(user.rating);
+  const photo = user.titlePhoto || user.avatar || "";
+
+  const place: string[] = [];
+  if (fullName) place.push(`<span class="cf-realname">${esc(fullName)}</span>`);
+  if (user.city) place.push(`<a class="cf-link" href="${PROFILE_URL}">${esc(user.city)}</a>`);
+  if (user.country) place.push(`<a class="cf-link" href="${PROFILE_URL}">${esc(user.country)}</a>`);
+
+  const registered = user.registrationTimeSeconds ? relTime(user.registrationTimeSeconds) : null;
 
   return `
-    <header class="cf-hero">
-      <img class="cf-avatar" src="${escape(avatar)}" alt="" onerror="this.style.display='none'"/>
-      <div class="cf-hero-text">
-        <h1 class="cf-name" style="color:${color}">${escape(name)}</h1>
-        <p class="cf-handle">
-          <a href="${PROFILE_URL}" target="_blank" rel="noopener">@${escape(user.handle)}</a>
-          ${sub ? ` · ${escape(sub)}` : ""}
-        </p>
-        <span class="cf-rank-badge" style="--rank:${color}">
-          <span class="cf-rank-name">${escape(rank)}</span>
-          <span class="cf-rank-sep">·</span>
-          <span class="cf-rank-rating">${user.rating ?? "—"}</span>
-          <span class="cf-rank-max">max ${user.maxRating ?? "—"}</span>
-        </span>
+    <div class="cf-roundbox cf-profile">
+      <div class="cf-profile-info">
+        <div class="cf-rank-title" style="color:${color}">${esc(rank)}</div>
+        <h1 class="cf-username" style="color:${color}">${esc(user.handle)}</h1>
+        ${place.length ? `<div class="cf-place">${place.join(", ")}</div>` : ""}
+        ${user.organization ? `<div class="cf-place">From <a class="cf-link" href="${PROFILE_URL}">${esc(user.organization)}</a></div>` : ""}
+
+        <ul class="cf-props">
+          <li>${icon("rating")}<span>Contest rating: <b style="color:${curColor}">${user.rating ?? "—"}</b>
+            <span class="cf-muted">(max. <b style="color:${color}">${esc(rank.toLowerCase())}</b>, <b style="color:${color}">${user.maxRating ?? "—"}</b>)</span></span></li>
+          <li>${icon("star")}<span>Contribution: <b>${user.contribution ?? 0}</b></span></li>
+          ${
+            user.rank
+              ? `<li>${icon("badge")}<span>Current rank: <b style="color:${curColor}">${esc(user.rank)}</b></span></li>`
+              : ""
+          }
+          ${registered ? `<li>${icon("clock")}<span>Registered: <b>${esc(registered)}</b></span></li>` : ""}
+        </ul>
       </div>
-    </header>`;
+      ${photo ? `<div class="cf-photo"><img src="${esc(photo)}" alt="" onerror="this.parentElement.style.display='none'"/></div>` : ""}
+    </div>`;
 }
 
-// ── Stat grid ───────────────────────────────────────────────────────────
-function renderStats(data: CFData): string {
-  const { user, stats } = data;
-  const ratedYears = data.ratings.length
-    ? new Date(data.ratings[data.ratings.length - 1].ratingUpdateTimeSeconds * 1000).getFullYear() -
-      new Date(data.ratings[0].ratingUpdateTimeSeconds * 1000).getFullYear() +
-      1
-    : 0;
-  const accuracy =
-    stats.totalSubmissions > 0 ? Math.round((stats.acceptedSubmissions / stats.totalSubmissions) * 100) : 0;
+// ── Activity heatmap + the 3-column problems/streak stats ───────────────
+function renderActivity(data: CFData): string {
+  const { activity, stats } = data;
 
-  const cards = [
-    { label: "Current rating", value: String(user.rating ?? "—"), sub: rankName(user.rating), color: rankColor(user.rating) },
-    { label: "Max rating", value: String(user.maxRating ?? "—"), sub: rankName(user.maxRating), color: rankColor(user.maxRating) },
-    { label: "Problems solved", value: String(stats.solvedCount), sub: "Unique problems with an Accepted verdict" },
-    { label: "Contests", value: String(stats.contests), sub: ratedYears ? `Over ${ratedYears} year${ratedYears === 1 ? "" : "s"} of rated play` : "Rated contests" },
-    { label: "Acceptance", value: `${accuracy}%`, sub: `${stats.acceptedSubmissions} of ${stats.totalSubmissions} submissions` },
-    {
-      label: "Hardest solved",
-      value: stats.hardestSolved ? String(stats.hardestSolved.rating) : "—",
-      sub: stats.hardestSolved ? stats.hardestSolved.name : "No rated problem yet",
-      color: stats.hardestSolved ? rankColor(stats.hardestSolved.rating) : undefined,
-      href:
-        stats.hardestSolved && stats.hardestSolved.contestId
-          ? `https://codeforces.com/contest/${stats.hardestSolved.contestId}/problem/${stats.hardestSolved.index}`
-          : undefined,
-    },
-  ];
+  const heat = heatmap(activity);
 
   return `
-    <section class="cf-stats">
-      ${cards
-        .map(
-          (c) => `
-        ${c.href ? `<a class="cf-card" href="${c.href}" target="_blank" rel="noopener">` : `<div class="cf-card">`}
-          <div class="cf-card-label">${escape(c.label)}</div>
-          <div class="cf-card-value" ${c.color ? `style="color:${c.color}"` : ""}>${escape(c.value)}</div>
-          <div class="cf-card-sub">${escape(c.sub)}</div>
-        ${c.href ? `</a>` : `</div>`}
-      `,
-        )
-        .join("")}
-    </section>`;
+    <div class="cf-roundbox cf-activity">
+      ${heat}
+      <div class="cf-actstats">
+        <div class="cf-actcol">
+          <div class="cf-bignum">${stats.solvedCount} problems</div>
+          <div class="cf-actsub">solved for all time</div>
+        </div>
+        <div class="cf-actcol">
+          <div class="cf-bignum">${stats.solvedLastYear} problems</div>
+          <div class="cf-actsub">solved for the last year</div>
+        </div>
+        <div class="cf-actcol">
+          <div class="cf-bignum">${stats.solvedLastMonth} problems</div>
+          <div class="cf-actsub">solved for the last month</div>
+        </div>
+        <div class="cf-actcol">
+          <div class="cf-bignum">${stats.maxStreak} days</div>
+          <div class="cf-actsub">in a row max.</div>
+        </div>
+        <div class="cf-actcol">
+          <div class="cf-bignum">${stats.streakLastYear} days</div>
+          <div class="cf-actsub">in a row for the last year</div>
+        </div>
+        <div class="cf-actcol">
+          <div class="cf-bignum">${stats.streakLastMonth} days</div>
+          <div class="cf-actsub">in a row for the last month</div>
+        </div>
+      </div>
+    </div>`;
 }
 
-// ── Rating-history SVG chart ────────────────────────────────────────────
-function renderRatingChart(ratings: CFRatingChange[]): string {
-  if (ratings.length === 0) {
-    return `
-      <section class="cf-section">
-        <h2 class="cf-section-title">Rating history</h2>
-        <p class="cf-empty">No rated contests yet.</p>
-      </section>`;
+// GitHub/Codeforces-style calendar heatmap of the trailing ~12 months.
+function heatmap(activity: Record<string, number>): string {
+  const CELL = 11;
+  const GAP = 3;
+  const STEP = CELL + GAP;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const end = new Date(today);
+  // Start 52 weeks back, aligned to the start of that week (Sunday).
+  const start = new Date(today);
+  start.setDate(start.getDate() - 7 * 52);
+  start.setDate(start.getDate() - start.getDay());
+
+  const days: { date: Date; key: string; count: number }[] = [];
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    days.push({ date: new Date(d), key, count: activity[key] ?? 0 });
   }
 
-  const W = 1000;
-  const H = 260;
-  const P = { top: 24, right: 16, bottom: 32, left: 44 };
-  const cw = W - P.left - P.right;
-  const ch = H - P.top - P.bottom;
+  const weeks = Math.ceil(days.length / 7);
+  const padLeft = 30; // room for Mon/Wed/Fri labels
+  const padTop = 18; // room for month labels
+  const W = padLeft + weeks * STEP;
+  const H = padTop + 7 * STEP;
 
-  // Pad min/max to nice round numbers.
-  const rs = ratings.map((r) => r.newRating);
-  const minR = Math.floor((Math.min(...rs) - 60) / 100) * 100;
-  const maxR = Math.ceil((Math.max(...rs) + 60) / 100) * 100;
-  const minT = ratings[0].ratingUpdateTimeSeconds;
-  const maxT = ratings[ratings.length - 1].ratingUpdateTimeSeconds;
-  const spanT = maxT - minT || 1;
+  const cells: string[] = [];
+  const monthLabels: string[] = [];
+  let lastMonth = -1;
 
-  const x = (t: number) => P.left + (cw * (t - minT)) / spanT;
-  const y = (r: number) => P.top + ch - (ch * (r - minR)) / (maxR - minR);
+  days.forEach((day, i) => {
+    const col = Math.floor(i / 7);
+    const row = i % 7;
+    const x = padLeft + col * STEP;
+    const y = padTop + row * STEP;
+    cells.push(
+      `<rect x="${x}" y="${y}" width="${CELL}" height="${CELL}" rx="2" fill="${heatColor(day.count)}"><title>${day.key}: ${day.count} submission${day.count === 1 ? "" : "s"}</title></rect>`,
+    );
+    // Month label when a new month appears at the top row of a column.
+    if (row === 0) {
+      const m = day.date.getMonth();
+      if (m !== lastMonth) {
+        lastMonth = m;
+        monthLabels.push(
+          `<text x="${x}" y="${padTop - 6}" class="cf-heat-label">${day.date.toLocaleString("en-US", { month: "short" })}</text>`,
+        );
+      }
+    }
+  });
 
-  // Rank-tier shaded bands so the chart reads like the official CF graph.
-  const bands = [
-    { from: 0, to: 1200, color: "#80808014" },
-    { from: 1200, to: 1400, color: "#00800014" },
-    { from: 1400, to: 1600, color: "#03A89E14" },
-    { from: 1600, to: 1900, color: "#0000FF12" },
-    { from: 1900, to: 2100, color: "#AA00AA12" },
-    { from: 2100, to: 2400, color: "#FF8C0014" },
-    { from: 2400, to: 4000, color: "#FF000012" },
+  const dayLabels = [
+    { row: 1, text: "Mon" },
+    { row: 3, text: "Wed" },
+    { row: 5, text: "Fri" },
   ]
-    .map((b) => {
-      const top = y(Math.min(b.to, maxR));
-      const bottom = y(Math.max(b.from, minR));
-      if (top >= bottom) return "";
-      return `<rect x="${P.left}" y="${top}" width="${cw}" height="${bottom - top}" fill="${b.color}"/>`;
-    })
-    .join("");
-
-  const path =
-    "M " +
-    ratings
-      .map((r) => `${x(r.ratingUpdateTimeSeconds).toFixed(1)} ${y(r.newRating).toFixed(1)}`)
-      .join(" L ");
-
-  const dots = ratings
     .map(
-      (r) =>
-        `<circle cx="${x(r.ratingUpdateTimeSeconds).toFixed(1)}" cy="${y(r.newRating).toFixed(1)}" r="3" fill="${rankColor(r.newRating)}" stroke="#fff" stroke-width="1"><title>${escape(
-          r.contestName,
-        )} — ${r.newRating} (${r.newRating - r.oldRating >= 0 ? "+" : ""}${r.newRating - r.oldRating})</title></circle>`,
+      (d) =>
+        `<text x="0" y="${padTop + d.row * STEP + CELL - 2}" class="cf-heat-label">${d.text}</text>`,
     )
     .join("");
 
-  const ticks = 4;
-  const yLabels = Array.from({ length: ticks + 1 }, (_, i) => {
-    const v = Math.round(minR + ((maxR - minR) * i) / ticks);
-    return `<text x="${P.left - 8}" y="${y(v) + 4}" text-anchor="end" font-size="11" fill="#888">${v}</text>
-            <line x1="${P.left}" x2="${W - P.right}" y1="${y(v)}" y2="${y(v)}" stroke="#eee"/>`;
-  }).join("");
-
-  const firstDate = new Date(minT * 1000).toLocaleDateString("en-IN", { month: "short", year: "numeric" });
-  const lastDate = new Date(maxT * 1000).toLocaleDateString("en-IN", { month: "short", year: "numeric" });
-
   return `
-    <section class="cf-section">
-      <h2 class="cf-section-title">Rating history</h2>
-      <div class="cf-chart-wrap">
-        <svg class="cf-chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Codeforces rating history">
-          ${bands}
-          ${yLabels}
-          <path d="${path}" fill="none" stroke="#1a1a1a" stroke-width="1.4"/>
-          ${dots}
-          <text x="${P.left}" y="${H - 8}" font-size="11" fill="#888">${escape(firstDate)}</text>
-          <text x="${W - P.right}" y="${H - 8}" text-anchor="end" font-size="11" fill="#888">${escape(lastDate)}</text>
-        </svg>
-      </div>
-    </section>`;
+    <div class="cf-heatwrap">
+      <svg class="cf-heat" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Submission activity">
+        ${monthLabels.join("")}
+        ${dayLabels}
+        ${cells.join("")}
+      </svg>
+    </div>`;
 }
 
-// ── Recent contests ─────────────────────────────────────────────────────
-function renderContests(ratings: CFRatingChange[]): string {
-  if (ratings.length === 0) return "";
-  const recent = [...ratings].reverse().slice(0, 20);
-  return `
-    <section class="cf-section">
-      <h2 class="cf-section-title">Recent contests</h2>
-      <div class="cf-contests">
-        <div class="cf-contests-head">
-          <span>Contest</span>
-          <span>Rank</span>
-          <span>Δ</span>
-          <span>Rating</span>
-        </div>
-        ${recent
-          .map((c) => {
-            const delta = c.newRating - c.oldRating;
-            const date = new Date(c.ratingUpdateTimeSeconds * 1000).toLocaleDateString("en-IN", {
-              year: "numeric",
-              month: "short",
-              day: "numeric",
-            });
-            return `
-            <a class="cf-contest" href="https://codeforces.com/contest/${c.contestId}" target="_blank" rel="noopener">
-              <span class="cf-contest-name">
-                <span>${escape(c.contestName)}</span>
-                <span class="cf-contest-date">${escape(date)}</span>
-              </span>
-              <span class="cf-contest-rank">#${c.rank}</span>
-              <span class="cf-delta ${delta >= 0 ? "up" : "down"}">${delta >= 0 ? "+" : ""}${delta}</span>
-              <span class="cf-contest-rating" style="color:${rankColor(c.newRating)}">${c.newRating}</span>
-            </a>`;
-          })
-          .join("")}
-      </div>
-    </section>`;
+function heatColor(count: number): string {
+  if (count <= 0) return "#ebedf0";
+  if (count <= 2) return "#c6e6c6";
+  if (count <= 5) return "#7bc96f";
+  if (count <= 9) return "#42a83c";
+  return "#1d6b1d";
 }
 
-// ── Problems solved, bucketed by difficulty ─────────────────────────────
-function renderProblemDistribution(buckets: Record<string, number>): string {
+// ── Problem Ratings bar chart ───────────────────────────────────────────
+function renderProblemRatings(buckets: Record<string, number>): string {
   const entries = Object.entries(buckets)
     .map(([k, v]) => [parseInt(k, 10), v] as [number, number])
     .sort((a, b) => a[0] - b[0]);
-  if (entries.length === 0) return "";
-  const max = Math.max(...entries.map(([, v]) => v));
+
+  if (entries.length === 0) {
+    return `<div class="cf-roundbox"><h2 class="cf-h2">Problem Ratings</h2><p class="cf-empty">No rated problems solved yet.</p></div>`;
+  }
+
+  // Fill the gap buckets so the x-axis is continuous, like Codeforces.
+  const min = entries[0][0];
+  const max = entries[entries.length - 1][0];
+  const full: [number, number][] = [];
+  for (let r = min; r <= max; r += 100) full.push([r, buckets[String(r)] ?? 0]);
+
+  const W = 920;
+  const H = 360;
+  const P = { top: 20, right: 16, bottom: 34, left: 38 };
+  const cw = W - P.left - P.right;
+  const ch = H - P.top - P.bottom;
+  const maxCount = Math.max(...full.map(([, c]) => c));
+  const yMax = Math.ceil(maxCount / 10) * 10 || 10;
+  const barW = (cw / full.length) * 0.72;
+  const slot = cw / full.length;
+
+  const yTicks = 6;
+  const grid = Array.from({ length: yTicks + 1 }, (_, i) => {
+    const v = Math.round((yMax * i) / yTicks);
+    const y = P.top + ch - (ch * i) / yTicks;
+    return `<line x1="${P.left}" x2="${W - P.right}" y1="${y}" y2="${y}" class="cf-grid"/>
+            <text x="${P.left - 8}" y="${y + 4}" class="cf-axis" text-anchor="end">${v}</text>`;
+  }).join("");
+
+  const bars = full
+    .map(([rating, count], i) => {
+      const h = yMax ? (ch * count) / yMax : 0;
+      const x = P.left + i * slot + (slot - barW) / 2;
+      const y = P.top + ch - h;
+      return `
+        <rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${h.toFixed(1)}"
+              fill="${barColor(rating)}" stroke="${barStroke(rating)}" stroke-width="1">
+          <title>${rating}: ${count} solved</title>
+        </rect>
+        <text x="${(x + barW / 2).toFixed(1)}" y="${H - P.bottom + 16}" class="cf-axis" text-anchor="middle">${rating}</text>`;
+    })
+    .join("");
 
   return `
-    <section class="cf-section">
-      <h2 class="cf-section-title">Solved by difficulty</h2>
-      <div class="cf-dist">
-        ${entries
-          .map(
-            ([bucket, count]) => `
-          <div class="cf-dist-row">
-            <span class="cf-dist-label" style="color:${rankColor(bucket)}">${bucket}</span>
-            <div class="cf-dist-track">
-              <div class="cf-dist-fill" style="width:${((count / max) * 100).toFixed(1)}%;background:${rankColor(bucket)}"></div>
-            </div>
-            <span class="cf-dist-count">${count}</span>
-          </div>`,
-          )
-          .join("")}
+    <div class="cf-roundbox">
+      <h2 class="cf-h2">Problem Ratings</h2>
+      <div class="cf-legend-top"><span class="cf-legend-swatch" style="background:#dddddd;border-color:#bbb"></span>Problems Solved</div>
+      <div class="cf-chartwrap">
+        <svg class="cf-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Problems solved by rating">
+          ${grid}
+          ${bars}
+        </svg>
       </div>
-    </section>`;
+    </div>`;
 }
 
-// ── Tags (top 24) ───────────────────────────────────────────────────────
+// ── Tags Solved donut ───────────────────────────────────────────────────
 function renderTags(tagCounts: Record<string, number>): string {
-  const tags = Object.entries(tagCounts)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 24);
-  if (tags.length === 0) return "";
+  const tags = Object.entries(tagCounts).sort((a, b) => b[1] - a[1]);
+  if (tags.length === 0) {
+    return `<div class="cf-roundbox"><h2 class="cf-h2">Tags Solved</h2><p class="cf-empty">No tagged problems solved yet.</p></div>`;
+  }
+
+  const total = tags.reduce((s, [, c]) => s + c, 0);
+  const cx = 120;
+  const cy = 120;
+  const rO = 110;
+  const rI = 62;
+
+  let angle = -Math.PI / 2;
+  const slices: string[] = [];
+  const legend: string[] = [];
+
+  tags.forEach(([tag, count], i) => {
+    const frac = count / total;
+    const a0 = angle;
+    const a1 = angle + frac * Math.PI * 2;
+    angle = a1;
+    const color = TAG_PALETTE[i % TAG_PALETTE.length];
+    slices.push(`<path d="${donutArc(cx, cy, rO, rI, a0, a1)}" fill="${color}" stroke="#fff" stroke-width="1"><title>${esc(tag)}: ${count}</title></path>`);
+    legend.push(
+      `<li><span class="cf-dot" style="background:${color}"></span><span class="cf-legend-name">${esc(tag)}</span><span class="cf-legend-count">: ${count}</span></li>`,
+    );
+  });
+
   return `
-    <section class="cf-section">
-      <h2 class="cf-section-title">Most-solved tags</h2>
-      <div class="cf-tags">
-        ${tags
-          .map(
-            ([tag, count]) => `
-          <span class="cf-tag">
-            <span>${escape(tag)}</span>
-            <span class="cf-tag-count">${count}</span>
-          </span>`,
-          )
-          .join("")}
+    <div class="cf-roundbox">
+      <h2 class="cf-h2">Tags Solved</h2>
+      <div class="cf-tagsbody">
+        <svg class="cf-donut" viewBox="0 0 240 240" role="img" aria-label="Problems solved by tag">${slices.join("")}</svg>
+        <ul class="cf-taglegend">${legend.join("")}</ul>
       </div>
-    </section>`;
+    </div>`;
 }
 
-// ── Footer ──────────────────────────────────────────────────────────────
-function renderFooter(data: CFData): string {
-  const registered = data.user.registrationTimeSeconds
-    ? new Date(data.user.registrationTimeSeconds * 1000).toLocaleDateString("en-IN", {
-        year: "numeric",
-        month: "long",
-      })
-    : null;
-  return `
-    <footer class="cf-footer">
-      <a class="cf-profile-link" href="${PROFILE_URL}" target="_blank" rel="noopener">
-        View full profile on Codeforces ↗
-      </a>
-      ${registered ? `<span class="cf-registered">Account since ${escape(registered)}</span>` : ""}
-    </footer>`;
+function donutArc(cx: number, cy: number, rO: number, rI: number, a0: number, a1: number): string {
+  // Full circle needs to be drawn as two arcs to avoid a degenerate path.
+  if (a1 - a0 >= Math.PI * 2 - 1e-6) {
+    return (
+      donutArc(cx, cy, rO, rI, a0, a0 + Math.PI) + " " + donutArc(cx, cy, rO, rI, a0 + Math.PI, a1)
+    );
+  }
+  const large = a1 - a0 > Math.PI ? 1 : 0;
+  const x0o = cx + rO * Math.cos(a0), y0o = cy + rO * Math.sin(a0);
+  const x1o = cx + rO * Math.cos(a1), y1o = cy + rO * Math.sin(a1);
+  const x0i = cx + rI * Math.cos(a1), y0i = cy + rI * Math.sin(a1);
+  const x1i = cx + rI * Math.cos(a0), y1i = cy + rI * Math.sin(a0);
+  return `M ${x0o.toFixed(2)} ${y0o.toFixed(2)} A ${rO} ${rO} 0 ${large} 1 ${x1o.toFixed(2)} ${y1o.toFixed(2)} L ${x0i.toFixed(2)} ${y0i.toFixed(2)} A ${rI} ${rI} 0 ${large} 0 ${x1i.toFixed(2)} ${y1i.toFixed(2)} Z`;
+}
+
+// ── Colours ─────────────────────────────────────────────────────────────
+// Bar colours mirror Codeforces' rating tiers (slightly lightened).
+function barColor(rating: number): string {
+  if (rating < 1200) return "#cfcfcf";
+  if (rating < 1400) return "#90ee90";
+  if (rating < 1600) return "#86e3ce";
+  if (rating < 1900) return "#a8a8ff";
+  if (rating < 2100) return "#ff8cff";
+  if (rating < 2400) return "#ffce8c";
+  return "#ff8c8c";
+}
+function barStroke(rating: number): string {
+  if (rating < 1200) return "#9e9e9e";
+  if (rating < 1400) return "#3fbf3f";
+  if (rating < 1600) return "#36b89e";
+  if (rating < 1900) return "#6a6aff";
+  if (rating < 2100) return "#c000c0";
+  if (rating < 2400) return "#e6960a";
+  return "#e23b3b";
+}
+
+const TAG_PALETTE = [
+  "#ff6b6b", "#ff8fb1", "#d98fff", "#9b8cff", "#8c9bff", "#6ec8ff", "#5fd6e0",
+  "#5fe0c0", "#5fe08a", "#9be05f", "#d6e05f", "#e0c25f", "#e0945f", "#ff9d6b",
+  "#ffb3c1", "#e8a0ff", "#b0a0ff", "#a0b8ff", "#a0e0ff", "#a0ffe8", "#b8ffa0",
+  "#ffe0a0", "#ffc0a0", "#ff9999",
+];
+
+// ── Tiny inline icons (muted, Codeforces-ish) ───────────────────────────
+function icon(kind: string): string {
+  const wrap = (inner: string) =>
+    `<svg class="cf-ico" viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">${inner}</svg>`;
+  switch (kind) {
+    case "rating":
+      return wrap('<path fill="#3b78c2" d="M1 13h14v1.5H1zM3 11l3-4 3 2 4-6 1.2.8-4.8 7.2-3-2-2.4 3z"/>');
+    case "star":
+      return wrap('<path fill="#e8b400" d="M8 1l2 4.4 4.8.5-3.6 3.2 1 4.7L8 11.6 3.8 13.8l1-4.7L1.2 5.9 6 5.4z"/>');
+    case "badge":
+      return wrap('<path fill="#7a7a7a" d="M8 1l2 1.6 2.5-.3.6 2.4 2 1.6-1.3 2.1.3 2.5-2.4.6L10 15l-2-1.4L6 15l-1.6-1.4-2.4-.6.3-2.5L1 8.3l2-1.6.6-2.4L6.1 2.6z"/>');
+    case "clock":
+      return wrap('<path fill="#7a7a7a" d="M8 1a7 7 0 100 14A7 7 0 008 1zm0 2a5 5 0 110 10A5 5 0 018 3zm-.8 2v3.4l2.8 1.7.8-1.3-2.1-1.3V5z"/>');
+    default:
+      return wrap("");
+  }
+}
+
+// "10 months ago", "2 years ago" — matches CF's relative registration text.
+function relTime(seconds: number): string {
+  const diff = Date.now() / 1000 - seconds;
+  const months = Math.floor(diff / (30 * 24 * 3600));
+  if (months < 1) {
+    const days = Math.max(1, Math.floor(diff / (24 * 3600)));
+    return `${days} day${days === 1 ? "" : "s"} ago`;
+  }
+  if (months < 12) return `${months} month${months === 1 ? "" : "s"} ago`;
+  const years = Math.floor(months / 12);
+  return `${years} year${years === 1 ? "" : "s"} ago`;
 }

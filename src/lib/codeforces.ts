@@ -60,7 +60,15 @@ export interface CFData {
     languages: Record<string, number>;
     totalSubmissions: number;
     acceptedSubmissions: number;
+    // Codeforces profile-style activity stats
+    solvedLastYear: number;
+    solvedLastMonth: number;
+    maxStreak: number;
+    streakLastYear: number;
+    streakLastMonth: number;
   };
+  /** date "YYYY-MM-DD" → number of submissions that day (for the heatmap). */
+  activity: Record<string, number>;
 }
 
 async function fetchJSON<T>(endpoint: string): Promise<T> {
@@ -108,13 +116,28 @@ export async function loadCodeforces(): Promise<CFData> {
   const tagCounts: Record<string, number> = {};
   const ratingBuckets: Record<string, number> = {};
   const languages: Record<string, number> = {};
+  const activity: Record<string, number> = {};
+  const acDays = new Set<string>(); // distinct days with ≥1 accepted submission
   let acceptedSubmissions = 0;
   let hardestSolved: CFData["stats"]["hardestSolved"] = null;
 
+  const now = Date.now();
+  const YEAR = 365 * 24 * 3600 * 1000;
+  const MONTH = 30 * 24 * 3600 * 1000;
+  const solvedYearKeys = new Set<string>();
+  const solvedMonthKeys = new Set<string>();
+
   for (const s of submissions) {
+    const ms = s.creationTimeSeconds * 1000;
+    const day = isoDay(ms);
+    activity[day] = (activity[day] ?? 0) + 1;
+
     if (s.verdict === "OK") {
       acceptedSubmissions++;
+      acDays.add(day);
       const key = `${s.problem.contestId ?? "G"}-${s.problem.index}`;
+      if (now - ms <= YEAR) solvedYearKeys.add(key);
+      if (now - ms <= MONTH) solvedMonthKeys.add(key);
       if (!solvedKeys.has(key)) {
         solvedKeys.add(key);
         for (const t of s.problem.tags) tagCounts[t] = (tagCounts[t] ?? 0) + 1;
@@ -138,8 +161,14 @@ export async function loadCodeforces(): Promise<CFData> {
   return {
     user,
     ratings,
+    activity,
     stats: {
       solvedCount: solvedKeys.size,
+      solvedLastYear: solvedYearKeys.size,
+      solvedLastMonth: solvedMonthKeys.size,
+      maxStreak: longestStreak(acDays),
+      streakLastYear: longestStreak(acDays, now - YEAR),
+      streakLastMonth: longestStreak(acDays, now - MONTH),
       contests: ratings.length,
       tagCounts,
       ratingBuckets,
@@ -149,6 +178,36 @@ export async function loadCodeforces(): Promise<CFData> {
       acceptedSubmissions,
     },
   };
+}
+
+// Local-time ISO day key ("YYYY-MM-DD").
+function isoDay(ms: number): string {
+  const d = new Date(ms);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+// Longest run of consecutive calendar days present in `days`, optionally
+// only counting days at or after `sinceMs`.
+function longestStreak(days: Set<string>, sinceMs = 0): number {
+  const sinceDay = sinceMs ? isoDay(sinceMs) : "";
+  const sorted = [...days].filter((d) => !sinceDay || d >= sinceDay).sort();
+  let best = 0;
+  let run = 0;
+  let prev: number | null = null;
+  for (const d of sorted) {
+    const t = Date.parse(d + "T00:00:00");
+    if (prev !== null && t - prev === 86400000) {
+      run += 1;
+    } else {
+      run = 1;
+    }
+    prev = t;
+    if (run > best) best = run;
+  }
+  return best;
 }
 
 // Codeforces' official rank colour palette.
