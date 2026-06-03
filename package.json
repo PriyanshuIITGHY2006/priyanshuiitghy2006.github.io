@@ -1,0 +1,20 @@
+{
+  "name": "priyanshu-debnath-portfolio",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Interactive resume-faithful portfolio for Priyanshu Debnath, built with TypeScript + Vite.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview --host"
+  },
+  "devDependencies": {
+    "playwright": "^1.56.1",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.10"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.46.1"
+  }
+}

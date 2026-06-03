@@ -1,0 +1,271 @@
+/* ─── Computer Modern (LaTeX default serif) web font ─────────────────── */
+@import url("https://cdn.jsdelivr.net/gh/aaaakshat/cm-web-fonts@latest/fonts.css");
+
+:root {
+  --cm-serif: "Computer Modern Serif", "Latin Modern Roman", "CMU Serif", Georgia, serif;
+
+  /* PDF-viewer chrome */
+  --vbg: #525659;          /* classic PDF viewer gray */
+  --vbg-2: #44474a;
+  --toolbar: #323639;
+  --toolbar-fg: #e8e8e8;
+  --toolbar-border: #1f2123;
+  --btn-hover: #4a4e51;
+  --accent: #2d6a4f;
+
+  /* Paper / ink */
+  --paper: #ffffff;
+  --ink: #000000;
+  --rule: #000000;
+}
+
+[data-theme="dark"] {
+  --vbg: #1a1a1c;
+  --vbg-2: #141416;
+  --toolbar: #0e0e10;
+  --toolbar-fg: #d8d8d2;
+  --toolbar-border: #000000;
+  --btn-hover: #2a2a2d;
+  --paper: #f4f1ea;   /* warm "paper" even in dark mode keeps the PDF legible */
+  --ink: #161613;
+  --rule: #161613;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--vbg);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+}
+
+/* ─── Toolbar (PDF viewer top bar) ───────────────────────────────────── */
+.toolbar {
+  flex: 0 0 auto;
+  height: 48px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px;
+  background: var(--toolbar);
+  color: var(--toolbar-fg);
+  border-bottom: 1px solid var(--toolbar-border);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 13px;
+  user-select: none;
+  z-index: 10;
+}
+.tb-group { display: flex; align-items: center; gap: 8px; }
+.tb-left { justify-content: flex-start; }
+.tb-center { justify-content: center; }
+.tb-right { justify-content: flex-end; }
+.tb-doc {
+  display: inline-flex; align-items: center; gap: 7px;
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  opacity: 0.92;
+}
+.tb-doc svg { opacity: 0.8; flex: 0 0 auto; }
+.tb-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  min-width: 30px; height: 30px; padding: 0 9px;
+  border: none; border-radius: 5px; cursor: pointer;
+  background: transparent; color: var(--toolbar-fg);
+  font: inherit; font-size: 14px; line-height: 1;
+  transition: background 0.12s ease;
+  text-decoration: none;
+}
+.tb-btn:hover { background: var(--btn-hover); }
+.tb-zoom { min-width: 46px; text-align: center; opacity: 0.9; font-variant-numeric: tabular-nums; }
+.tb-fit { font-size: 12.5px; }
+.tb-download {
+  background: var(--accent); color: #fff; padding: 0 12px; font-weight: 500;
+}
+.tb-download:hover { background: #245a42; }
+
+/* ─── Stage (scrollable viewport) ────────────────────────────────────── */
+.stage {
+  flex: 1 1 auto;
+  overflow: auto;
+  background:
+    radial-gradient(120% 80% at 50% 0%, var(--vbg) 0%, var(--vbg-2) 100%);
+  padding: 26px 0 60px;
+  scrollbar-color: #6b6f72 transparent;
+}
+.paper-holder {
+  margin: 0 auto;
+  position: relative;
+  /* width/height set by JS to match the scaled paper */
+}
+
+/* ─── The paper ──────────────────────────────────────────────────────── */
+.paper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: top left;
+  width: 794px;                 /* A4 @96dpi */
+  min-height: 1123px;           /* A4 height */
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45), 0 14px 50px rgba(0, 0, 0, 0.35);
+  padding: 40px 48px 44px;
+  font-family: var(--cm-serif);
+  font-size: 15.2px;            /* ~10.5pt visual */
+  line-height: 1.28;
+  letter-spacing: 0.1px;
+}
+
+.paper a.link { color: inherit; text-decoration: none; border-bottom: 1px solid transparent; }
+.paper a.link:hover { color: var(--accent); border-bottom-color: var(--accent); }
+
+.latex { /* tiny kerning for the LaTeX wordmark */
+  display: inline-block; font-size: 0.92em;
+}
+.latex:first-of-type { transform: translateY(-0.22em) translateX(0.06em); margin: 0 -0.16em; }
+.latex:last-of-type { transform: translateY(0.16em); margin: 0 -0.1em; }
+
+/* ─── Header ─────────────────────────────────────────────────────────── */
+.cv-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  padding-bottom: 6px;
+}
+.cv-name {
+  font-size: 25px;
+  font-weight: 700;
+  line-height: 1.1;
+  margin-bottom: 4px;
+}
+.id-line { font-size: 14px; line-height: 1.42; }
+.header-right { text-align: right; }
+.contact-line { font-size: 14px; line-height: 1.42; }
+
+/* ─── Section titles + LaTeX \titlerule ──────────────────────────────── */
+section { margin-top: 9px; }
+.section-title {
+  font-size: 16.5px;
+  font-weight: 700;
+  line-height: 1.1;
+  margin-top: 4px;
+}
+.titlerule {
+  height: 0;
+  border-top: 1.1px solid var(--rule);
+  margin: 2px 0 5px;
+}
+
+/* ─── Education table ────────────────────────────────────────────────── */
+.edu-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.6px;
+  margin-top: 2px;
+}
+.edu-table th,
+.edu-table td {
+  border: 0.8px solid var(--ink);
+  padding: 3px 7px;
+  text-align: center;
+  vertical-align: middle;
+}
+.edu-table th { font-weight: 700; }
+.edu-table .td-left { text-align: left; }
+.edu-table thead th:nth-child(1) { width: 27%; }
+.edu-table thead th:nth-child(2) { width: 37%; }
+.edu-table thead th:nth-child(3) { width: 19%; }
+.edu-table thead th:nth-child(4) { width: 17%; }
+
+/* ─── Generic bullet lists ───────────────────────────────────────────── */
+.bullet-list,
+.project-list { list-style: none; margin: 0; padding: 0; }
+
+.item {
+  position: relative;
+  padding-left: 16px;
+  margin: 2px 0;
+  font-size: 14.4px;
+  line-height: 1.32;
+}
+.item::before {
+  content: "•";
+  position: absolute;
+  left: 2px;
+  top: -0.5px;
+}
+.item.dated {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 14px;
+}
+.item .item-text { flex: 1 1 auto; }
+.item .item-date { flex: 0 0 auto; white-space: nowrap; font-weight: 700; }
+
+/* ─── Projects ───────────────────────────────────────────────────────── */
+.project {
+  position: relative;
+  padding-left: 16px;
+  margin: 4px 0 5px;
+}
+.project::before {
+  content: "•";
+  position: absolute;
+  left: 2px;
+  top: 0;
+  font-size: 14.4px;
+}
+.proj-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 14px;
+  font-size: 14.6px;
+}
+.proj-title { font-weight: 700; }
+.proj-date { font-weight: 700; white-space: nowrap; flex: 0 0 auto; }
+.proj-sub {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 14px;
+  font-size: 13.8px;
+  margin-top: 0.5px;
+}
+.proj-stack { flex: 1 1 auto; }
+.proj-link { flex: 0 0 auto; white-space: nowrap; }
+
+.sublist { list-style: none; margin: 1px 0 0; padding: 0; }
+.subitem {
+  position: relative;
+  padding-left: 15px;
+  margin: 1px 0;
+  font-size: 14px;
+  line-height: 1.3;
+  text-align: justify;
+}
+.subitem::before {
+  content: "–";
+  position: absolute;
+  left: 1px;
+  top: 0;
+}
+
+/* ─── Responsive toolbar trims ───────────────────────────────────────── */
+@media (max-width: 640px) {
+  .tb-download-text { display: none; }
+  .tb-doc { font-size: 12px; }
+  .toolbar { gap: 4px; padding: 0 8px; }
+}
