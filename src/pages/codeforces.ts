@@ -5,6 +5,7 @@ import {
   CF_HANDLE,
   type CFData,
   type CFUser,
+  type CFSubmission,
 } from "../lib/codeforces";
 
 const PROFILE_URL = `https://codeforces.com/profile/${CF_HANDLE}`;
@@ -14,6 +15,7 @@ export async function mountCodeforces(container: HTMLElement): Promise<void> {
   try {
     const data = await loadCodeforces();
     container.innerHTML = render(data);
+    initInteractions(container);
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Failed to load";
     container.innerHTML = renderError(msg);
@@ -48,15 +50,88 @@ function renderError(msg: string): string {
 function render(data: CFData): string {
   return `
     <div class="cf">
+      <div class="cf-tooltip" id="cf-tip"></div>
       <div class="cf-bar">
         <span class="cf-tab cf-tab-active">${esc(data.user.handle)}</span>
         <a class="cf-home" href="#/">← back to résumé</a>
       </div>
-      ${renderProfile(data.user)}
-      ${renderActivity(data)}
-      ${renderProblemRatings(data.stats.ratingBuckets)}
-      ${renderTags(data.stats.tagCounts)}
+      <div class="cf-twocol">
+        <div class="cf-main">
+          ${renderProfile(data.user)}
+          ${renderActivity(data)}
+          ${renderProblemRatings(data.stats.ratingBuckets)}
+          ${renderTags(data.stats.tagCounts)}
+        </div>
+        <aside class="cf-sidebar">
+          ${renderSidebar(data.recentSubmissions)}
+        </aside>
+      </div>
     </div>`;
+}
+
+// ── Sidebar: Latest Submissions ─────────────────────────────────────────
+function renderSidebar(submissions: CFSubmission[]): string {
+  if (!submissions || submissions.length === 0) {
+    return `<div class="cf-roundbox"><h2 class="cf-h2">Latest Submissions</h2><p class="cf-empty">No submissions yet.</p></div>`;
+  }
+
+  const rows = submissions.slice(0, 20).map((s) => {
+    const verdict = s.verdict ?? "UNKNOWN";
+    const isOk = verdict === "OK";
+    const verdictClass = isOk ? "cf-verdict-ok" : "cf-verdict-fail";
+    const verdictLabel = isOk ? "AC" : shortVerdict(verdict);
+    const problemUrl = s.problem.contestId
+      ? `https://codeforces.com/contest/${s.problem.contestId}/problem/${s.problem.index}`
+      : `${PROFILE_URL}/submissions`;
+    const lang = shortLang(s.programmingLanguage);
+    const when = relTime(s.creationTimeSeconds);
+    const ratingBadge = s.problem.rating
+      ? `<span class="cf-sub-rating" style="color:${barColor(s.problem.rating)}">${s.problem.rating}</span>`
+      : "";
+    return `
+      <div class="cf-subrow">
+        <span class="cf-verdict ${verdictClass}">${verdictLabel}</span>
+        <div class="cf-subinfo">
+          <a class="cf-subproblem" href="${problemUrl}" target="_blank" rel="noopener">${esc(s.problem.name)}</a>
+          <div class="cf-submeta">${esc(lang)} ${ratingBadge}· <span class="cf-subtime">${when}</span></div>
+        </div>
+      </div>`;
+  }).join("");
+
+  return `
+    <div class="cf-roundbox">
+      <h2 class="cf-h2">Latest Submissions</h2>
+      <div class="cf-sublist">${rows}</div>
+      <div class="cf-sidebar-more"><a href="${PROFILE_URL}" target="_blank" rel="noopener">All submissions →</a></div>
+    </div>`;
+}
+
+function shortVerdict(v: string): string {
+  const map: Record<string, string> = {
+    WRONG_ANSWER: "WA",
+    TIME_LIMIT_EXCEEDED: "TLE",
+    MEMORY_LIMIT_EXCEEDED: "MLE",
+    RUNTIME_ERROR: "RE",
+    COMPILATION_ERROR: "CE",
+    PRESENTATION_ERROR: "PE",
+    IDLENESS_LIMIT_EXCEEDED: "ILE",
+    SKIPPED: "SK",
+    REJECTED: "REJ",
+    FAILED: "FAIL",
+  };
+  return map[v] ?? v.slice(0, 4);
+}
+
+function shortLang(lang: string): string {
+  if (lang.includes("C++")) {
+    if (lang.includes("20")) return "C++20";
+    if (lang.includes("17")) return "C++17";
+    if (lang.includes("14")) return "C++14";
+    return "C++";
+  }
+  if (lang.includes("Python")) return lang.includes("3") ? "Python 3" : "Python";
+  if (lang.includes("Java")) return "Java";
+  return lang.slice(0, 10);
 }
 
 // ── Profile roundbox (info + photo) ─────────────────────────────────────
@@ -86,11 +161,7 @@ function renderProfile(user: CFUser): string {
           <li>${icon("rating")}<span>Contest rating: <b style="color:${curColor}">${user.rating ?? "—"}</b>
             <span class="cf-muted">(max. <b style="color:${color}">${esc(rank.toLowerCase())}</b>, <b style="color:${color}">${user.maxRating ?? "—"}</b>)</span></span></li>
           <li>${icon("star")}<span>Contribution: <b>${user.contribution ?? 0}</b></span></li>
-          ${
-            user.rank
-              ? `<li>${icon("badge")}<span>Current rank: <b style="color:${curColor}">${esc(user.rank)}</b></span></li>`
-              : ""
-          }
+          ${user.rank ? `<li>${icon("badge")}<span>Current rank: <b style="color:${curColor}">${esc(user.rank)}</b></span></li>` : ""}
           ${registered ? `<li>${icon("clock")}<span>Registered: <b>${esc(registered)}</b></span></li>` : ""}
         </ul>
       </div>
@@ -101,7 +172,6 @@ function renderProfile(user: CFUser): string {
 // ── Activity heatmap + the 3-column problems/streak stats ───────────────
 function renderActivity(data: CFData): string {
   const { activity, stats } = data;
-
   const heat = heatmap(activity);
 
   return `
@@ -145,7 +215,6 @@ function heatmap(activity: Record<string, number>): string {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const end = new Date(today);
-  // Start 52 weeks back, aligned to the start of that week (Sunday).
   const start = new Date(today);
   start.setDate(start.getDate() - 7 * 52);
   start.setDate(start.getDate() - start.getDay());
@@ -157,8 +226,8 @@ function heatmap(activity: Record<string, number>): string {
   }
 
   const weeks = Math.ceil(days.length / 7);
-  const padLeft = 30; // room for Mon/Wed/Fri labels
-  const padTop = 18; // room for month labels
+  const padLeft = 30;
+  const padTop = 18;
   const W = padLeft + weeks * STEP;
   const H = padTop + 7 * STEP;
 
@@ -172,9 +241,8 @@ function heatmap(activity: Record<string, number>): string {
     const x = padLeft + col * STEP;
     const y = padTop + row * STEP;
     cells.push(
-      `<rect x="${x}" y="${y}" width="${CELL}" height="${CELL}" rx="2" fill="${heatColor(day.count)}"><title>${day.key}: ${day.count} submission${day.count === 1 ? "" : "s"}</title></rect>`,
+      `<rect x="${x}" y="${y}" width="${CELL}" height="${CELL}" rx="2" fill="${heatColor(day.count)}" class="cf-heat-cell" data-date="${day.key}" data-count="${day.count}"/>`,
     );
-    // Month label when a new month appears at the top row of a column.
     if (row === 0) {
       const m = day.date.getMonth();
       if (m !== lastMonth) {
@@ -191,10 +259,7 @@ function heatmap(activity: Record<string, number>): string {
     { row: 3, text: "Wed" },
     { row: 5, text: "Fri" },
   ]
-    .map(
-      (d) =>
-        `<text x="0" y="${padTop + d.row * STEP + CELL - 2}" class="cf-heat-label">${d.text}</text>`,
-    )
+    .map((d) => `<text x="0" y="${padTop + d.row * STEP + CELL - 2}" class="cf-heat-label">${d.text}</text>`)
     .join("");
 
   return `
@@ -225,7 +290,6 @@ function renderProblemRatings(buckets: Record<string, number>): string {
     return `<div class="cf-roundbox"><h2 class="cf-h2">Problem Ratings</h2><p class="cf-empty">No rated problems solved yet.</p></div>`;
   }
 
-  // Fill the gap buckets so the x-axis is continuous, like Codeforces.
   const min = entries[0][0];
   const max = entries[entries.length - 1][0];
   const full: [number, number][] = [];
@@ -255,10 +319,11 @@ function renderProblemRatings(buckets: Record<string, number>): string {
       const x = P.left + i * slot + (slot - barW) / 2;
       const y = P.top + ch - h;
       return `
-        <rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${h.toFixed(1)}"
-              fill="${barColor(rating)}" stroke="${barStroke(rating)}" stroke-width="1">
-          <title>${rating}: ${count} solved</title>
-        </rect>
+        <rect class="cf-bar-rect"
+              x="${x.toFixed(1)}" y="${y.toFixed(1)}"
+              width="${barW.toFixed(1)}" height="${h.toFixed(1)}"
+              fill="${barColor(rating)}" stroke="${barStroke(rating)}" stroke-width="1"
+              data-rating="${rating}" data-count="${count}"/>
         <text x="${(x + barW / 2).toFixed(1)}" y="${H - P.bottom + 16}" class="cf-axis" text-anchor="middle">${rating}</text>`;
     })
     .join("");
@@ -299,7 +364,12 @@ function renderTags(tagCounts: Record<string, number>): string {
     const a1 = angle + frac * Math.PI * 2;
     angle = a1;
     const color = TAG_PALETTE[i % TAG_PALETTE.length];
-    slices.push(`<path d="${donutArc(cx, cy, rO, rI, a0, a1)}" fill="${color}" stroke="#fff" stroke-width="1"><title>${esc(tag)}: ${count}</title></path>`);
+    slices.push(
+      `<path class="cf-donut-slice"
+            d="${donutArc(cx, cy, rO, rI, a0, a1)}"
+            fill="${color}" stroke="#fff" stroke-width="1.5"
+            data-tag="${esc(tag)}" data-count="${count}"/>`,
+    );
     legend.push(
       `<li><span class="cf-dot" style="background:${color}"></span><span class="cf-legend-name">${esc(tag)}</span><span class="cf-legend-count">: ${count}</span></li>`,
     );
@@ -316,7 +386,6 @@ function renderTags(tagCounts: Record<string, number>): string {
 }
 
 function donutArc(cx: number, cy: number, rO: number, rI: number, a0: number, a1: number): string {
-  // Full circle needs to be drawn as two arcs to avoid a degenerate path.
   if (a1 - a0 >= Math.PI * 2 - 1e-6) {
     return (
       donutArc(cx, cy, rO, rI, a0, a0 + Math.PI) + " " + donutArc(cx, cy, rO, rI, a0 + Math.PI, a1)
@@ -330,8 +399,63 @@ function donutArc(cx: number, cy: number, rO: number, rI: number, a0: number, a1
   return `M ${x0o.toFixed(2)} ${y0o.toFixed(2)} A ${rO} ${rO} 0 ${large} 1 ${x1o.toFixed(2)} ${y1o.toFixed(2)} L ${x0i.toFixed(2)} ${y0i.toFixed(2)} A ${rI} ${rI} 0 ${large} 0 ${x1i.toFixed(2)} ${y1i.toFixed(2)} Z`;
 }
 
+// ── Chart interactivity ──────────────────────────────────────────────────
+function initInteractions(root: HTMLElement): void {
+  const tipEl = root.querySelector<HTMLElement>("#cf-tip");
+  if (!tipEl) return;
+  const tip: HTMLElement = tipEl;
+
+  function showTip(e: MouseEvent, html: string): void {
+    tip.innerHTML = html;
+    tip.classList.add("cf-tip-visible");
+    moveTip(e);
+  }
+
+  function moveTip(e: MouseEvent): void {
+    const x = e.clientX + 14;
+    const y = e.clientY - 10;
+    tip.style.left = `${Math.min(x, window.innerWidth - 170)}px`;
+    tip.style.top = `${y}px`;
+  }
+
+  function hideTip(): void {
+    tip.classList.remove("cf-tip-visible");
+  }
+
+  // Bar chart hover
+  root.querySelectorAll<SVGRectElement>(".cf-bar-rect").forEach((rect) => {
+    const rating = rect.dataset.rating ?? "";
+    const count = rect.dataset.count ?? "0";
+    rect.addEventListener("mouseover", (e) =>
+      showTip(e as MouseEvent, `<b>${rating}</b><br/>Problems Solved: <b>${count}</b>`));
+    rect.addEventListener("mousemove", (e) => moveTip(e as MouseEvent));
+    rect.addEventListener("mouseout", hideTip);
+  });
+
+  // Donut slice hover
+  root.querySelectorAll<SVGPathElement>(".cf-donut-slice").forEach((path) => {
+    const tag = path.dataset.tag ?? "";
+    const count = path.dataset.count ?? "0";
+    path.addEventListener("mouseover", (e) =>
+      showTip(e as MouseEvent, `<b>${tag}</b>: ${count}`));
+    path.addEventListener("mousemove", (e) => moveTip(e as MouseEvent));
+    path.addEventListener("mouseout", hideTip);
+  });
+
+  // Heatmap cell hover
+  root.querySelectorAll<SVGRectElement>(".cf-heat-cell").forEach((cell) => {
+    const date = cell.dataset.date ?? "";
+    const count = cell.dataset.count ?? "0";
+    const label = count === "0"
+      ? `${date}: no submissions`
+      : `${date}: <b>${count}</b> submission${count === "1" ? "" : "s"}`;
+    cell.addEventListener("mouseover", (e) => showTip(e as MouseEvent, label));
+    cell.addEventListener("mousemove", (e) => moveTip(e as MouseEvent));
+    cell.addEventListener("mouseout", hideTip);
+  });
+}
+
 // ── Colours ─────────────────────────────────────────────────────────────
-// Bar colours mirror Codeforces' rating tiers (slightly lightened).
 function barColor(rating: number): string {
   if (rating < 1200) return "#cfcfcf";
   if (rating < 1400) return "#90ee90";
@@ -358,7 +482,7 @@ const TAG_PALETTE = [
   "#ffe0a0", "#ffc0a0", "#ff9999",
 ];
 
-// ── Tiny inline icons (muted, Codeforces-ish) ───────────────────────────
+// ── Tiny inline icons ────────────────────────────────────────────────────
 function icon(kind: string): string {
   const wrap = (inner: string) =>
     `<svg class="cf-ico" viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">${inner}</svg>`;
@@ -376,7 +500,7 @@ function icon(kind: string): string {
   }
 }
 
-// "10 months ago", "2 years ago" — matches CF's relative registration text.
+// "10 months ago", "2 years ago"
 function relTime(seconds: number): string {
   const diff = Date.now() / 1000 - seconds;
   const months = Math.floor(diff / (30 * 24 * 3600));

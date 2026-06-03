@@ -69,6 +69,8 @@ export interface CFData {
   };
   /** date "YYYY-MM-DD" → number of submissions that day (for the heatmap). */
   activity: Record<string, number>;
+  /** Most recent submissions for the sidebar (up to 20). */
+  recentSubmissions: CFSubmission[];
 }
 
 async function fetchJSON<T>(endpoint: string): Promise<T> {
@@ -162,6 +164,7 @@ export async function loadCodeforces(): Promise<CFData> {
     user,
     ratings,
     activity,
+    recentSubmissions: submissions.slice(0, 20),
     stats: {
       solvedCount: solvedKeys.size,
       solvedLastYear: solvedYearKeys.size,
