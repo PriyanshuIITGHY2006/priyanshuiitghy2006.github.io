@@ -1,8 +1,8 @@
 import type { ResumeData } from "../types";
 import { LINKS } from "./links";
 
-// Faithful transcription of the LaTeX résumé (IIT Guwahati).
-// Inline <b> markup mirrors the bold emphasis in the compiled PDF.
+// Faithful transcription of the IITG LaTeX résumé.
+// Inline <b>/<i> markup mirrors the bold/italic emphasis in the compiled PDF.
 export const resume: ResumeData = {
   name: "Priyanshu Debnath",
   identity: [
@@ -47,16 +47,22 @@ export const resume: ResumeData = {
     },
   ],
 
+  // Real repo URLs taken from the user's LaTeX source.
   projects: [
     {
       id: "bdh-echr",
       title: "BDH-ECHR: Post-Transformer Interpretable Legal AI",
       date: "Jan. 2026 – Feb. 2026",
       stack: "Python, PyTorch, Dragon Hatchling, Hebbian Learning",
-      link: { text: "Github", href: LINKS.github, external: true, detail: "bdh-echr" },
+      link: {
+        text: "Github",
+        href: "https://github.com/PriyanshuIITGHY2006",
+        external: true,
+        detail: "bdh-echr",
+      },
       bullets: [
-        "Applied Dragon Hatchling post-transformer to multi-label ECHR classification; <b>Micro-F1 = 0.7716</b>, beating BERT-base (<b>+13.2 pts</b>) and LegalBERT (<b>+5.2 pts</b>) at <b>5.4× fewer parameters</b> (20.4M vs. 110M)",
-        "<b>First</b> neuron→concept monosemanticity audit: 218 neurons mapped to 477 legal concepts; 3,584-token hierarchical chunking (7× BERT); per-doc sparsity 0.305%, 16× below BDH target",
+        "Applied Dragon Hatchling post-transformer to multi-label ECHR classification; <b>Micro-F1 = 0.7716</b>, beating BERT-base (+13.2 pts) and LegalBERT (+5.2 pts) at <b>5.4× fewer parameters</b> (20.4M vs. 110M)",
+        "First <b>neuron→concept monosemanticity audit</b>: 218 neurons mapped to 477 legal concepts; 3,584-token hierarchical chunking (7× BERT); per-doc sparsity 0.305%, 16× below BDH target",
       ],
     },
     {
@@ -64,9 +70,14 @@ export const resume: ResumeData = {
       title: "Prag-Dristi: Assam Flood Forecasting Engine",
       date: "Apr. 2026 – Present",
       stack: "Python, PyTorch, LSTM, Bahdanau Attention, FastAPI, Streamlit",
-      link: { text: "Github", href: LINKS.github, external: true, detail: "prag-dristi" },
+      link: {
+        text: "Github",
+        href: "https://github.com/PriyanshuIITGHY2006/Prag-Dristi",
+        external: true,
+        detail: "prag-dristi",
+      },
       bullets: [
-        "LSTM Encoder-Decoder with Bahdanau Attention for 7-day Brahmaputra discharge forecasting on 23 yrs of ERA5/GloFAS data; flood-weighted MSE handles <8% class imbalance",
+        "<b>LSTM Encoder-Decoder with Bahdanau Attention</b> for 7-day Brahmaputra discharge forecasting on 23 yrs of ERA5/GloFAS data; flood-weighted MSE handles &lt;8% class imbalance",
         "Achieved <b>NSE = 0.924, KGE = 0.920, POD = 0.651</b> on unseen years; deployed via FastAPI backend and Streamlit dashboard for real-time monitoring",
       ],
     },
@@ -75,9 +86,14 @@ export const resume: ResumeData = {
       title: "MemoryOS: Persistent Memory Framework for Stateless LLMs",
       date: "Feb. 2026 – Present",
       stack: "Python, Neo4j, ChromaDB, FastAPI, Groq LLaMA-3.3-70B",
-      link: { text: "Github", href: LINKS.github, external: true, detail: "memoryos" },
+      link: {
+        text: "Github",
+        href: "https://github.com/PriyanshuIITGHY2006/Memory-Os",
+        external: true,
+        detail: "memoryos",
+      },
       bullets: [
-        "Three-tier memory system (Neo4j graph, ChromaDB vectors, active buffer) with automatic entity resolution; sustains <b>4,000+ turns</b> at constant <b>≈350 tokens/turn</b>, <b>99.8% token savings</b> vs. linear history",
+        "Three-tier memory system (Neo4j graph, ChromaDB vectors, active buffer) with automatic entity resolution; sustains <b>4,000+ turns</b> at constant ≈350 tokens/turn, <b>99.8% token savings</b> vs. linear history",
       ],
     },
     {
@@ -85,7 +101,12 @@ export const resume: ResumeData = {
       title: "SpeakX Aurora: Self-Learning Notification Orchestrator",
       date: "Jan. 2026 – Feb. 2026",
       stack: "Python, UMAP, Scikit-learn, Groq LLaMA-3.3-70B, LangChain",
-      link: { text: "Github", href: LINKS.github, external: true, detail: "speakx-aurora" },
+      link: {
+        text: "Github",
+        href: "https://github.com/PriyanshuIITGHY2006",
+        external: true,
+        detail: "speakx-aurora",
+      },
       bullets: [
         "Domain-agnostic ML pipeline (Kriti 2026): <b>UMAP + Agglomerative Clustering</b> for MECE segmentation, Octalysis-driven bilingual (EN/HI) templates, self-learning loop that suppresses low-CTR variants and auto-tunes timing/frequency",
       ],
@@ -95,7 +116,12 @@ export const resume: ResumeData = {
       title: "Minimum-Variance Portfolio Optimizer",
       date: "Dec. 2025 – Present",
       stack: "Python, NumPy, yfinance, PyPortfolioOpt, Modern Portfolio Theory",
-      link: { text: "Github", href: LINKS.github, external: true, detail: "min-variance" },
+      link: {
+        text: "Github",
+        href: "https://github.com/PriyanshuIITGHY2006/min-var-portfolio",
+        external: true,
+        detail: "min-variance",
+      },
       bullets: [
         "Quantitative pipeline for lowest-risk long-only portfolios; <b>Ledoit-Wolf shrinkage</b> and nearest-PSD correction for covariance stability; no-short-selling constraints with weight normalization",
       ],
@@ -105,9 +131,14 @@ export const resume: ResumeData = {
       title: "Kelly Criterion for Fixed-Limit Games",
       date: "Dec. 2025 – Jan. 2026",
       stack: "Python, Game Theory, Stochastic Modeling",
-      link: { text: "LinkedIn", href: LINKS.linkedin, external: true, detail: "kelly-criterion" },
+      link: {
+        text: "LinkedIn",
+        href: LINKS.linkedin,
+        external: true,
+        detail: "kelly-criterion",
+      },
       bullets: [
-        "Derived the <b>Stochastic Gate</b>: converts optimal Kelly fraction f* into a Kelly Frequency for fixed-bet games; Python engine matches the optimal geometric growth curve under hard bet-size constraints",
+        "Derived the <b>Stochastic Gate</b>: converts optimal Kelly fraction <i>f*</i> into a Kelly Frequency for fixed-bet games; Python engine matches the optimal geometric growth curve under hard bet-size constraints",
       ],
     },
     {
@@ -115,7 +146,12 @@ export const resume: ResumeData = {
       title: "Automated Competitive Programming Archive",
       date: "Apr. 2026 – Present",
       stack: "Python, Codeforces REST API, Markdown Automation",
-      link: { text: "Github", href: LINKS.github, external: true, detail: "cp-archive" },
+      link: {
+        text: "Github",
+        href: "https://github.com/PriyanshuIITGHY2006/codeforces-solutions",
+        external: true,
+        detail: "cp-archive",
+      },
       bullets: [
         "Python archiver integrating the Codeforces REST API to catalogue Accepted C++ submissions; auto-generated Markdown README of <b>250+ problems</b> by rating (800–2400) and algorithmic tag distributions",
       ],
@@ -125,12 +161,14 @@ export const resume: ResumeData = {
   skills: [
     { label: "Programming", items: "C++, Python, C" },
     {
-      label: "Libraries & Tools",
-      items: "PyTorch, NumPy, Pandas, Scikit-learn, UMAP, yfinance, PyPortfolioOpt, LangChain, FastAPI, Streamlit, Neo4j, ChromaDB, Git, L<span class=\"latex\">a</span>T<span class=\"latex\">e</span>X",
+      label: "Libraries &amp; Tools",
+      items:
+        'PyTorch, NumPy, Pandas, Scikit-learn, UMAP, yfinance, PyPortfolioOpt, LangChain, FastAPI, Streamlit, Neo4j, ChromaDB, Git, <span class="latex">L<span class="latex-a">a</span>T<span class="latex-e">e</span>X</span>',
     },
     {
       label: "Key Concepts",
-      items: "Deep Learning, Transformers, LSTM & Attention, Stochastic Calculus, Modern Portfolio Theory, DSA, Game Theory, Risk Modeling",
+      items:
+        "Deep Learning, Transformers, LSTM &amp; Attention, Stochastic Calculus, Modern Portfolio Theory, DSA, Game Theory, Risk Modeling",
     },
   ],
 
@@ -140,7 +178,7 @@ export const resume: ResumeData = {
       date: "Jan. 2026 - Present",
     },
     {
-      html: "<b>Associate,</b> Consulting & Analytics Club, IIT Guwahati",
+      html: "<b>Associate,</b> Consulting &amp; Analytics Club, IIT Guwahati",
       date: "Dec. 2025 - Present",
     },
   ],
@@ -148,12 +186,12 @@ export const resume: ResumeData = {
   achievements: [
     {
       id: "jee-advanced",
-      html: "<b>JEE Advanced 2025,</b> All India Rank <b>1941</b> | Top 1% among 1.5 Lakh+ candidates",
+      html: "<b>JEE Advanced 2025,</b> All India Rank 1941 | Top 1% among 1.5 Lakh+ candidates",
       date: "2025",
     },
     {
       id: "jee-main",
-      html: "<b>JEE Main 2025,</b> All India Rank <b>4738</b> | 99.69 percentile",
+      html: "<b>JEE Main 2025,</b> All India Rank 4738 | 99.69 percentile",
       date: "2025",
     },
     {

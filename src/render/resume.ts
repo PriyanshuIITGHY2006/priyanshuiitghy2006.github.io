@@ -1,4 +1,4 @@
-import type { ResumeData, RichLine, Project } from "../types";
+import type { ResumeData, RichLine, Project, Position, Achievement } from "../types";
 
 // Render a RichLine (array of plain/linked fragments) to HTML.
 function richLine(line: RichLine): string {
@@ -12,130 +12,141 @@ function richLine(line: RichLine): string {
     .join("");
 }
 
-// Only escapes plain-text fragments. Bullet/achievement strings intentionally
-// allow trusted inline markup authored in resume.ts.
+// Escapes plain-text fragments only. Bullet/achievement/skill strings
+// intentionally allow trusted inline markup authored in resume.ts.
 function escapeText(s: string): string {
   return s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c] as string));
 }
 
-function projectHTML(p: Project): string {
-  const link = p.link
-    ? `<a class="link proj-link" data-detail="${p.link.detail ?? p.id}" href="${p.link.href}"${
-        p.link.external ? ' target="_blank" rel="noopener"' : ""
-      }>${escapeText(p.link.text)}</a>`
-    : "";
-  const bullets = p.bullets
-    .map((b) => `<li class="subitem">${b}</li>`)
+function sectionTitle(title: string): string {
+  // Mirrors \titleformat{\section}{\scshape\raggedright\large}{}{0em}{}[\titlerule]
+  return `<h2 class="section">${title}</h2>`;
+}
+
+// ── Header (LaTeX: \parbox{logo} \parbox{tabularx{name & phone \\ ...}}) ──
+function header(data: ResumeData): string {
+  const rows: { left: string; right: string; nameRow?: boolean }[] = [
+    {
+      left: `<span class="name">${escapeText(data.name)}</span>`,
+      right: richLine(data.contact[0]),
+      nameRow: true,
+    },
+    { left: escapeText(data.identity[0]), right: richLine(data.contact[1]) },
+    { left: escapeText(data.identity[1]), right: richLine(data.contact[2]) },
+    { left: escapeText(data.identity[2]), right: richLine(data.contact[3]) },
+    { left: escapeText(data.identity[3]), right: richLine(data.contact[4]) },
+  ];
+  const trs = rows
+    .map(
+      (r) =>
+        `<tr${r.nameRow ? ' class="name-row"' : ""}><td class="hl">${r.left}</td><td class="hr">${r.right}</td></tr>`
+    )
     .join("");
   return `
-    <li class="project" data-project="${p.id}">
-      <div class="proj-head">
-        <span class="proj-title">${escapeText(p.title)}</span>
-        <span class="proj-date">${escapeText(p.date)}</span>
+    <header class="cv-head">
+      <div class="cv-logo">
+        <img src="iitg_logo.jpg" alt="IIT Guwahati"
+             onerror="this.closest('.cv-head').classList.add('no-logo')"/>
       </div>
-      <div class="proj-sub">
-        <span class="proj-stack">${escapeText(p.stack)}</span>
-        ${link}
-      </div>
-      <ul class="sublist">${bullets}</ul>
-    </li>`;
-}
-
-function sectionTitle(title: string): string {
-  return `<div class="section-title">${title}</div><div class="titlerule"></div>`;
-}
-
-export function renderResume(data: ResumeData): string {
-  // ── Header ──────────────────────────────────────────────────────────
-  const identity = data.identity.map((l) => `<div class="id-line">${escapeText(l)}</div>`).join("");
-  const contact = data.contact.map((l) => `<div class="contact-line">${richLine(l)}</div>`).join("");
-
-  const header = `
-    <header class="cv-header">
-      <div class="header-left">
-        <div class="cv-name">${escapeText(data.name)}</div>
-        ${identity}
-      </div>
-      <div class="header-right">${contact}</div>
+      <table class="cv-head-tab"><tbody>${trs}</tbody></table>
     </header>`;
+}
 
-  // ── Education ───────────────────────────────────────────────────────
-  const eduRows = data.education
+// ── Education table (LaTeX: |c|C|c|c| — col 2 wraps, others centered) ──
+function education(data: ResumeData): string {
+  const rows = data.education
     .map(
       (r) => `
       <tr>
-        <td class="td-left">${escapeText(r.degree)}</td>
-        <td class="td-left">${escapeText(r.institute)}</td>
+        <td>${escapeText(r.degree)}</td>
+        <td class="td-wrap">${escapeText(r.institute)}</td>
         <td>${escapeText(r.score)}</td>
         <td>${escapeText(r.year)}</td>
       </tr>`
     )
     .join("");
-  const education = `
-    <section>
-      ${sectionTitle("Education")}
-      <table class="edu-table">
-        <thead>
-          <tr>
-            <th>Degree/Certificate</th>
-            <th>Institute/Board</th>
-            <th>CGPA/Percentage</th>
-            <th>Year</th>
-          </tr>
-        </thead>
-        <tbody>${eduRows}</tbody>
-      </table>
-    </section>`;
+  return `
+    ${sectionTitle("Education")}
+    <table class="edu-table">
+      <thead>
+        <tr>
+          <th>Degree/Certificate</th>
+          <th>Institute/Board</th>
+          <th>CGPA/Percentage</th>
+          <th>Year</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
 
-  // ── Projects ────────────────────────────────────────────────────────
-  const projects = `
-    <section>
-      ${sectionTitle("Projects")}
-      <ul class="project-list">${data.projects.map(projectHTML).join("")}</ul>
-    </section>`;
+// ── \resumeProject: 2-row tabular* (title|date / italic stack|italic link) ──
+function project(p: Project): string {
+  const link = p.link
+    ? `<a class="link proj-link" data-detail="${p.link.detail ?? p.id}" href="${p.link.href}"${
+        p.link.external ? ' target="_blank" rel="noopener"' : ""
+      }>${escapeText(p.link.text)}</a>`
+    : "";
+  const bullets = p.bullets.map((b) => `<li>${b}</li>`).join("");
+  return `
+    <li class="proj" data-project="${p.id}">
+      <div class="proj-grid">
+        <div class="pg-title"><b>${escapeText(p.title)}</b></div>
+        <div class="pg-date"><i>${escapeText(p.date)}</i></div>
+        <div class="pg-stack"><i>${escapeText(p.stack)}</i></div>
+        <div class="pg-link">${link}</div>
+      </div>
+      <ul class="proj-bullets">${bullets}</ul>
+    </li>`;
+}
 
-  // ── Technical Skills ────────────────────────────────────────────────
-  const skills = `
-    <section>
-      ${sectionTitle("Technical Skills")}
-      <ul class="bullet-list">
-        ${data.skills
-          .map((s) => `<li class="item"><b>${escapeText(s.label)}:</b> ${s.items}</li>`)
-          .join("")}
-      </ul>
-    </section>`;
+function projects(data: ResumeData): string {
+  return `
+    ${sectionTitle("Projects")}
+    <ul class="proj-list">${data.projects.map(project).join("")}</ul>`;
+}
 
-  // ── Positions of Responsibility ─────────────────────────────────────
-  const positions = `
-    <section>
-      ${sectionTitle("Positions of Responsibility")}
-      <ul class="bullet-list">
-        ${data.positions
-          .map(
-            (p) =>
-              `<li class="item dated"><span class="item-text">${p.html}</span><span class="item-date">${escapeText(
-                p.date
-              )}</span></li>`
-          )
-          .join("")}
-      </ul>
-    </section>`;
+// ── \resumeSubItem: \textbf{label}: items ──
+function skills(data: ResumeData): string {
+  const items = data.skills
+    .map((s) => `<li><b>${s.label}</b>: ${s.items}</li>`)
+    .join("");
+  return `
+    ${sectionTitle("Technical Skills")}
+    <ul class="skill-list">${items}</ul>`;
+}
 
-  // ── Achievements ────────────────────────────────────────────────────
-  const achievements = `
-    <section>
-      ${sectionTitle("Achievements")}
-      <ul class="bullet-list">
-        ${data.achievements
-          .map(
-            (a) =>
-              `<li class="item dated" data-achievement="${a.id}"><span class="item-text">${a.html}</span><span class="item-date">${escapeText(
-                a.date
-              )}</span></li>`
-          )
-          .join("")}
-      </ul>
-    </section>`;
+// ── \resumePOR: \textbf{title}, rest | italic small date ──
+function porLine(p: Position | Achievement, dataAttr = ""): string {
+  return `
+    <li${dataAttr}>
+      <span class="por-text">${p.html}</span>
+      <span class="por-date"><i>${escapeText(p.date)}</i></span>
+    </li>`;
+}
 
-  return header + education + projects + skills + positions + achievements;
+function positions(data: ResumeData): string {
+  return `
+    ${sectionTitle("Positions of Responsibility")}
+    <ul class="por-list">${data.positions.map((p) => porLine(p)).join("")}</ul>`;
+}
+
+function achievements(data: ResumeData): string {
+  return `
+    ${sectionTitle("Achievements")}
+    <ul class="por-list">${data.achievements
+      .map((a) => porLine(a, ` data-achievement="${a.id}"`))
+      .join("")}</ul>`;
+}
+
+export function renderResume(data: ResumeData): string {
+  return (
+    header(data) +
+    education(data) +
+    projects(data) +
+    skills(data) +
+    positions(data) +
+    achievements(data) +
+    `<hr class="bottom-rule"/>`
+  );
 }
