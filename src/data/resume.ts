@@ -196,10 +196,14 @@ export const resume: ResumeData = {
     },
     {
       id: "codeforces",
+      // The rating and solved count are placeholders — main.ts swaps them
+      // with live data fetched from the Codeforces API on page load.
       html:
         "<b>Competitive Programming,</b> " +
-        `<a class="link" data-detail="codeforces" href="${LINKS.codeforces}" target="_blank" rel="noopener">Codeforces Specialist (Max 1473)</a>` +
-        " | CodeChef 2-Star | 250+ problems solved",
+        '<a class="link" data-detail="codeforces" href="#/codeforces">' +
+        '<span data-cf="title">Codeforces Specialist (Max 1473)</span>' +
+        "</a>" +
+        ' | CodeChef 2-Star | <span data-cf="solved">250+</span> problems solved',
       date: "2025-Present",
     },
   ],
