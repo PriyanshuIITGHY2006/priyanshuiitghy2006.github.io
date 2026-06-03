@@ -1,0 +1,344 @@
+/* ─── Codeforces detail page ─────────────────────────────────────────
+   Deliberately distinct from the LaTeX résumé: modern sans-serif,
+   generous whitespace, soft cards. Loads Inter for body copy. */
+
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
+
+.cf-page {
+  --bg: #ffffff;
+  --ink: #0e0e0e;
+  --ink-2: #404040;
+  --ink-3: #6b7280;
+  --ink-4: #9ca3af;
+  --line: #eaeaea;
+  --line-2: #f3f4f6;
+  --surface: #fafafa;
+  --accent: #1a1a1a;
+
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--ink);
+  background: var(--bg);
+
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 5rem;
+  letter-spacing: -0.005em;
+}
+
+.cf-page * { box-sizing: border-box; }
+.cf-page a { color: inherit; text-decoration: none; }
+
+/* ── Back link ──────────────────────────────────────────────────────── */
+.cf-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.88rem;
+  color: var(--ink-3);
+  padding: 0.4rem 0;
+  margin-bottom: 1.25rem;
+}
+.cf-back:hover { color: var(--ink); }
+
+/* ── Loading / error ────────────────────────────────────────────────── */
+.cf-loading, .cf-error {
+  text-align: center;
+  padding: 4rem 1rem;
+  color: var(--ink-3);
+}
+.cf-loading p { margin: 1rem 0 0; font-size: 0.9rem; }
+.cf-spinner {
+  width: 28px; height: 28px;
+  border: 2px solid var(--line);
+  border-top-color: var(--ink);
+  border-radius: 50%;
+  margin: 0 auto;
+  animation: cf-spin 0.8s linear infinite;
+}
+@keyframes cf-spin { to { transform: rotate(360deg); } }
+.cf-error h2 { font-size: 1.2rem; font-weight: 600; margin: 0 0 0.5rem; color: var(--ink); }
+.cf-error a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+
+/* ── Hero ───────────────────────────────────────────────────────────── */
+.cf-hero {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 1.5rem;
+  align-items: center;
+  padding: 1.25rem 0 2rem;
+  border-bottom: 1px solid var(--line);
+}
+.cf-avatar {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: var(--line-2);
+  object-fit: cover;
+  display: block;
+}
+.cf-name {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+}
+.cf-handle {
+  margin: 0.25rem 0 0.8rem;
+  font-size: 0.92rem;
+  color: var(--ink-3);
+}
+.cf-handle a {
+  color: var(--ink-2);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--line);
+}
+.cf-handle a:hover { text-decoration-color: var(--ink-3); }
+
+.cf-rank-badge {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--rank, var(--ink));
+  background: color-mix(in srgb, var(--rank, var(--ink)) 11%, transparent);
+  border: 1px solid color-mix(in srgb, var(--rank, var(--ink)) 22%, transparent);
+}
+.cf-rank-name { font-weight: 600; }
+.cf-rank-sep { opacity: 0.5; }
+.cf-rank-rating { font-variant-numeric: tabular-nums; font-weight: 600; }
+.cf-rank-max { font-size: 0.78rem; opacity: 0.75; font-variant-numeric: tabular-nums; }
+
+/* ── Stat cards ─────────────────────────────────────────────────────── */
+.cf-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.85rem;
+  margin: 1.75rem 0 0;
+}
+.cf-card {
+  display: block;
+  padding: 1.1rem 1.25rem 1.2rem;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--bg);
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+a.cf-card { cursor: pointer; }
+a.cf-card:hover { border-color: var(--ink-4); transform: translateY(-1px); }
+.cf-card-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-3);
+  font-weight: 500;
+}
+.cf-card-value {
+  font-size: 1.85rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0.4rem 0 0.2rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.cf-card-sub {
+  font-size: 0.82rem;
+  color: var(--ink-3);
+  line-height: 1.4;
+}
+
+/* ── Section ────────────────────────────────────────────────────────── */
+.cf-section { margin-top: 2.5rem; }
+.cf-section-title {
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink-3);
+  margin: 0 0 0.85rem;
+}
+.cf-empty {
+  padding: 1.5rem;
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  text-align: center;
+  color: var(--ink-3);
+  font-size: 0.9rem;
+}
+
+/* ── Rating chart ───────────────────────────────────────────────────── */
+.cf-chart-wrap {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 0.5rem 0.25rem 0;
+  background: var(--bg);
+  overflow: hidden;
+}
+.cf-chart {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* ── Contests table ─────────────────────────────────────────────────── */
+.cf-contests {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--bg);
+}
+.cf-contests-head,
+.cf-contest {
+  display: grid;
+  grid-template-columns: 1fr 70px 80px 80px;
+  gap: 1rem;
+  padding: 0.7rem 1.2rem;
+  align-items: center;
+  font-size: 0.9rem;
+  border-bottom: 1px solid var(--line-2);
+}
+.cf-contests-head {
+  background: var(--surface);
+  color: var(--ink-3);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 500;
+}
+.cf-contests-head > span:not(:first-child) { text-align: right; }
+.cf-contest:last-child { border-bottom: none; }
+.cf-contest:hover { background: var(--surface); }
+.cf-contest-name {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+.cf-contest-name > span:first-child {
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cf-contest-date { font-size: 0.78rem; color: var(--ink-4); }
+.cf-contest-rank { text-align: right; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.cf-contest-rating { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+.cf-delta {
+  text-align: right;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.85rem;
+}
+.cf-delta.up { color: #15803d; }
+.cf-delta.down { color: #b91c1c; }
+
+/* ── Difficulty distribution ────────────────────────────────────────── */
+.cf-dist {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 1rem 1.2rem;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.cf-dist-row {
+  display: grid;
+  grid-template-columns: 50px 1fr 40px;
+  gap: 0.85rem;
+  align-items: center;
+}
+.cf-dist-label {
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  text-align: right;
+}
+.cf-dist-track {
+  height: 14px;
+  background: var(--line-2);
+  border-radius: 7px;
+  overflow: hidden;
+}
+.cf-dist-fill {
+  height: 100%;
+  border-radius: 7px;
+  transition: width 0.4s ease-out;
+}
+.cf-dist-count {
+  font-size: 0.85rem;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* ── Tags ───────────────────────────────────────────────────────────── */
+.cf-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+.cf-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.7rem 0.35rem 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 0.83rem;
+  background: var(--bg);
+}
+.cf-tag-count {
+  background: var(--surface);
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Footer ─────────────────────────────────────────────────────────── */
+.cf-footer {
+  margin-top: 3rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+}
+.cf-profile-link {
+  color: var(--ink);
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-color: var(--line);
+}
+.cf-profile-link:hover { text-decoration-color: var(--ink-3); }
+.cf-registered { color: var(--ink-3); }
+
+/* ── Mobile ─────────────────────────────────────────────────────────── */
+@media (max-width: 720px) {
+  .cf-page { font-size: 14px; padding: 1.25rem 1rem 4rem; }
+  .cf-hero { grid-template-columns: 72px 1fr; gap: 1rem; }
+  .cf-avatar { width: 72px; height: 72px; }
+  .cf-name { font-size: 1.45rem; }
+  .cf-contests-head, .cf-contest {
+    grid-template-columns: 1fr 60px 60px;
+    padding: 0.6rem 0.9rem;
+    font-size: 0.85rem;
+  }
+  .cf-contest-rating { display: none; }
+  .cf-contests-head > span:nth-child(4) { display: none; }
+  .cf-stats { grid-template-columns: repeat(2, 1fr); }
+  .cf-card-value { font-size: 1.5rem; }
+}
