@@ -291,6 +291,9 @@ body {
   transition: background 0.12s ease, border-color 0.12s ease;
 }
 .pj-link:hover { background: #f3f3f5; border-color: #999; color: var(--link-hover); }
+.pj-links { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.pj-verify { border-color: #2c5e2e; color: #2c5e2e; }
+.pj-verify:hover { background: #e8f0e6; border-color: #2c5e2e; color: #1e431f; }
 
 @media (max-width: 640px) {
   .pj { grid-template-columns: 1.8rem 1fr; gap: 0.4rem; }

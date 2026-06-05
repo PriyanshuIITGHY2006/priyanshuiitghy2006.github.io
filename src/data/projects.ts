@@ -10,6 +10,8 @@ export interface DetailedProject {
   stack: string[];
   github?: string;
   link?: { label: string; href: string };
+  /** Gallery image id for a "Verify" deep-link (#/gallery?img=<id>). */
+  verifyImg?: string;
   /** One-line "what it is". */
   tagline: string;
   /** Detailed understanding — rendered as paragraphs. */
@@ -63,6 +65,7 @@ export const PROJECTS: DetailedProject[] = [
     date: "Apr 2026",
     stack: ["C++", "Parameterized Algorithms", "Max-Flow", "Local Search"],
     github: "https://github.com/PriyanshuIITGHY2006/Hackathon-Squad",
+    verifyImg: "hackathon-squad",
     tagline:
       "A high-performance C++ solver for the NP-hard Maximum Weight Independent Set problem, built for a hackathon and engineered to return strong answers under a hard time limit.",
     detail: [

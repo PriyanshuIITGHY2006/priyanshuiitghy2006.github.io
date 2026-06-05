@@ -62,4 +62,12 @@ export const GALLERY: GalleryItem[] = [
     date: "2025–Present",
     description: "CodeChef rating profile.",
   },
+  {
+    id: "hackathon-squad",
+    title: "Hackathon Squad — Priyanshu Debnath",
+    category: "Project Screenshots",
+    src: "gallery/hackathon-squad.jpg",
+    date: "Apr 2026",
+    description: "Proof image for the Hackathon-Squad project.",
+  },
 ];
