@@ -18,8 +18,21 @@ function escapeText(s: string): string {
   return s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c] as string));
 }
 
-function sectionTitle(title: string): string {
+// Each résumé section links to its own standalone page (hash route).
+export const SECTION_ROUTES: Record<string, string> = {
+  Education: "/education",
+  Projects: "/projects",
+  "Technical Skills": "/skills",
+  "Positions of Responsibility": "/positions",
+  Achievements: "/achievements",
+};
+
+function sectionTitle(title: string, linked = true): string {
   // Mirrors \titleformat{\section}{\scshape\raggedright\large}{}{0em}{}[\titlerule]
+  const route = SECTION_ROUTES[title];
+  if (linked && route) {
+    return `<h2 class="section"><a class="section-link" href="#${route}">${title}<span class="section-arrow" aria-hidden="true">→</span></a></h2>`;
+  }
   return `<h2 class="section">${title}</h2>`;
 }
 
@@ -53,7 +66,7 @@ function header(data: ResumeData): string {
 }
 
 // ── Education table (LaTeX: |c|C|c|c| — col 2 wraps, others centered) ──
-function education(data: ResumeData): string {
+export function education(data: ResumeData, linked = true): string {
   const rows = data.education
     .map(
       (r) => `
@@ -66,7 +79,7 @@ function education(data: ResumeData): string {
     )
     .join("");
   return `
-    ${sectionTitle("Education")}
+    ${sectionTitle("Education", linked)}
     <table class="edu-table">
       <thead>
         <tr>
@@ -100,19 +113,19 @@ function project(p: Project): string {
     </li>`;
 }
 
-function projects(data: ResumeData): string {
+export function projects(data: ResumeData, linked = true): string {
   return `
-    ${sectionTitle("Projects")}
+    ${sectionTitle("Projects", linked)}
     <ul class="proj-list">${data.projects.map(project).join("")}</ul>`;
 }
 
 // ── \resumeSubItem: \textbf{label}: items ──
-function skills(data: ResumeData): string {
+export function skills(data: ResumeData, linked = true): string {
   const items = data.skills
     .map((s) => `<li><b>${s.label}</b>: ${s.items}</li>`)
     .join("");
   return `
-    ${sectionTitle("Technical Skills")}
+    ${sectionTitle("Technical Skills", linked)}
     <ul class="skill-list">${items}</ul>`;
 }
 
@@ -125,18 +138,41 @@ function porLine(p: Position | Achievement, dataAttr = ""): string {
     </li>`;
 }
 
-function positions(data: ResumeData): string {
+export function positions(data: ResumeData, linked = true): string {
   return `
-    ${sectionTitle("Positions of Responsibility")}
+    ${sectionTitle("Positions of Responsibility", linked)}
     <ul class="por-list">${data.positions.map((p) => porLine(p)).join("")}</ul>`;
 }
 
-function achievements(data: ResumeData): string {
+export function achievements(data: ResumeData, linked = true): string {
   return `
-    ${sectionTitle("Achievements")}
+    ${sectionTitle("Achievements", linked)}
     <ul class="por-list">${data.achievements
       .map((a) => porLine(a, ` data-achievement="${a.id}"`))
       .join("")}</ul>`;
+}
+
+// ── Single-section renderer (used by the standalone section pages) ──────
+export type SectionKey =
+  | "education"
+  | "projects"
+  | "skills"
+  | "positions"
+  | "achievements";
+
+export function renderSection(key: SectionKey, data: ResumeData): string {
+  switch (key) {
+    case "education":
+      return education(data, false);
+    case "projects":
+      return projects(data, false);
+    case "skills":
+      return skills(data, false);
+    case "positions":
+      return positions(data, false);
+    case "achievements":
+      return achievements(data, false);
+  }
 }
 
 export function renderResume(data: ResumeData): string {

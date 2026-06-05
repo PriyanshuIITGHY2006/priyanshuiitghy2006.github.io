@@ -4,6 +4,7 @@ import { resume } from "./data/resume";
 import { renderResume } from "./render/resume";
 import { mountCodeforces } from "./pages/codeforces";
 import { mountAdmin } from "./pages/admin";
+import { mountSection } from "./pages/section";
 import { loadCodeforces, rankName } from "./lib/codeforces";
 import { loadResumeFromDB } from "./lib/supabase";
 import { route, start } from "./lib/router";
@@ -38,6 +39,28 @@ route("/", () => {
     .catch(() => {
       // DB unreachable — static version already shown
     });
+});
+
+// ─── Section detail pages (one per résumé heading) ──────────────────────
+route("/education", () => {
+  app.innerHTML = "";
+  mountSection(app, "education");
+});
+route("/projects", () => {
+  app.innerHTML = "";
+  mountSection(app, "projects");
+});
+route("/skills", () => {
+  app.innerHTML = "";
+  mountSection(app, "skills");
+});
+route("/positions", () => {
+  app.innerHTML = "";
+  mountSection(app, "positions");
+});
+route("/achievements", () => {
+  app.innerHTML = "";
+  mountSection(app, "achievements");
 });
 
 // ─── Codeforces detail ──────────────────────────────────────────────────
