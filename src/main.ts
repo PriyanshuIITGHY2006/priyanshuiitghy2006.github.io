@@ -5,6 +5,7 @@ import { renderResume } from "./render/resume";
 import { mountCodeforces } from "./pages/codeforces";
 import { mountAdmin } from "./pages/admin";
 import { mountSection } from "./pages/section";
+import { mountEducation } from "./pages/education";
 import { loadCodeforces, rankName } from "./lib/codeforces";
 import { loadResumeFromDB } from "./lib/supabase";
 import { route, start } from "./lib/router";
@@ -44,7 +45,7 @@ route("/", () => {
 // ─── Section detail pages (one per résumé heading) ──────────────────────
 route("/education", () => {
   app.innerHTML = "";
-  mountSection(app, "education");
+  mountEducation(app);
 });
 route("/projects", () => {
   app.innerHTML = "";

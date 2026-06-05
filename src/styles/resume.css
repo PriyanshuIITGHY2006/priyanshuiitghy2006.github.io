@@ -142,6 +142,109 @@ body {
 }
 .section-body .section { font-size: 1.5em; }
 
+/* ─── Elaborated Education page ─────────────────────────────────────── */
+.edu-page { max-width: 56rem; margin: 0 auto; }
+.edu-sub { margin-top: 1.6rem; }
+.edu-note { font-size: 0.86em; color: #555; font-style: italic; margin: 0.35rem 0 0.7rem; }
+
+.edu-entries { list-style: none; margin: 0.6rem 0 0; padding: 0; display: grid; gap: 0.7rem; }
+.edu-entry {
+  border: 0.6px solid #d8d8d8;
+  border-left: 3px solid var(--ink);
+  border-radius: 4px;
+  padding: 0.7rem 0.9rem;
+  background: #fcfcfc;
+}
+.edu-entry-head { display: flex; align-items: baseline; justify-content: space-between; gap: 0.8rem; flex-wrap: wrap; }
+.edu-degree { font-size: 1.04em; font-weight: 700; margin: 0; }
+.edu-tag {
+  font-size: 0.72em; font-style: normal; letter-spacing: 0.4px;
+  text-transform: uppercase; color: #555;
+  border: 0.6px solid #ccc; border-radius: 999px; padding: 0.05em 0.6em;
+  white-space: nowrap;
+}
+.edu-institute { font-size: 0.95em; margin-top: 0.1rem; }
+.edu-facts { display: flex; gap: 1.2rem; margin-top: 0.35rem; flex-wrap: wrap; }
+.edu-fact { font-size: 0.88em; }
+.edu-fact > span { color: #777; margin-right: 0.35em; font-size: 0.86em; text-transform: uppercase; letter-spacing: 0.4px; }
+.edu-blurb { font-size: 0.9em; line-height: 1.45; margin: 0.5rem 0 0; text-align: justify; color: #222; }
+
+/* ─── Read-only grade card (faithful HTML reproduction) ─────────────── */
+.gradecard {
+  position: relative;
+  border: 1px solid #bdbdbd;
+  border-radius: 5px;
+  padding: 1rem 1.1rem 0.7rem;
+  background:
+    linear-gradient(135deg, #ffffff 0%, #fbfbfd 100%);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+  overflow: hidden;
+  -webkit-user-select: text;
+  user-select: text;
+}
+.gc-watermark {
+  position: absolute; top: 42%; left: 50%;
+  transform: translate(-50%, -50%) rotate(-24deg);
+  font-size: 2.1em; font-weight: 800; letter-spacing: 3px;
+  color: rgba(0,0,0,0.035); white-space: nowrap; pointer-events: none;
+  text-transform: uppercase;
+}
+.gc-head { display: flex; align-items: center; gap: 0.8rem; border-bottom: 1.5px solid var(--ink); padding-bottom: 0.5rem; }
+.gc-logo img { width: 2.6rem; height: auto; display: block; }
+.gc-inst { font-size: 1.05em; font-weight: 700; letter-spacing: 0.3px; }
+.gc-sub { font-size: 0.85em; color: #444; margin-top: 0.1rem; }
+.gc-meta {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 0.15rem 1.4rem;
+  font-size: 0.82em; margin: 0.6rem 0 0.4rem;
+}
+.gc-meta > div { display: flex; gap: 0.4em; }
+.gc-meta span { color: #777; min-width: 6.2em; }
+
+.gc-sems { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 0.4rem; }
+.gc-sem-title { font-size: 0.82em; font-weight: 700; margin: 0 0 0.25rem; color: #333; }
+.gc-table { width: 100%; border-collapse: collapse; font-size: 0.78em; }
+.gc-table th, .gc-table td { border: 0.5px solid #d5d5d5; padding: 0.16em 0.4em; text-align: left; }
+.gc-table thead th { background: #f1f1f4; font-weight: 700; font-size: 0.95em; }
+.gc-code { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; white-space: nowrap; color: #333; }
+.gc-cr, .gc-gr { text-align: center !important; white-space: nowrap; }
+.gc-table tfoot td { background: #fafafa; font-weight: 600; font-size: 0.95em; }
+.gc-foot { text-align: right !important; color: #555; }
+.gc-spi { text-align: center !important; font-weight: 700; }
+
+.grade {
+  display: inline-block; min-width: 1.9em; text-align: center;
+  font-weight: 700; font-size: 0.92em; padding: 0.02em 0.3em; border-radius: 3px;
+  background: #e8f0e6; color: #2c5e2e;
+}
+.grade-pp { background: #eee; color: #555; }
+
+.gc-summary { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; margin-top: 0.7rem; flex-wrap: wrap; }
+.gc-cpi { border-collapse: collapse; font-size: 0.8em; }
+.gc-cpi th, .gc-cpi td { border: 0.5px solid #d5d5d5; padding: 0.18em 0.7em; text-align: center; }
+.gc-cpi thead th { background: #f1f1f4; }
+.gc-cpi tbody th { background: #fafafa; text-align: left; }
+.gc-status { vertical-align: middle; color: #a06a00; font-style: italic; }
+.gc-legend { font-size: 0.74em; color: #555; display: flex; flex-wrap: wrap; gap: 0.1rem 0.7rem; align-items: center; }
+.gc-leg-label { text-transform: uppercase; letter-spacing: 0.4px; color: #888; margin-right: 0.2rem; }
+.gc-leg-item b { color: #2c5e2e; }
+.gc-foot-row { display: flex; justify-content: space-between; font-size: 0.74em; color: #777; margin-top: 0.7rem; border-top: 0.5px solid #ddd; padding-top: 0.35rem; }
+
+/* ─── Curriculum (L-T-P-C) ──────────────────────────────────────────── */
+.cur-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 0.5rem; }
+.cur-title { font-size: 0.9em; font-weight: 700; margin: 0 0 0.3rem; }
+.cur-table { width: 100%; border-collapse: collapse; font-size: 0.8em; }
+.cur-table th, .cur-table td { border: 0.5px solid #d5d5d5; padding: 0.18em 0.4em; text-align: center; }
+.cur-table thead th { background: #f1f1f4; font-weight: 700; }
+.cur-name { text-align: left !important; }
+.cur-c { font-weight: 700; }
+.cur-table tfoot td { background: #fafafa; font-weight: 700; }
+.cur-foot { text-align: right !important; color: #555; }
+
+@media (max-width: 720px) {
+  .gc-sems, .cur-grid, .gc-meta { grid-template-columns: 1fr; }
+  .gc-watermark { font-size: 1.4em; }
+}
+
 /* ─── Education table ───────────────────────────────────────────────── */
 .edu-table {
   width: 100%;
