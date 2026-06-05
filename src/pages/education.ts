@@ -3,6 +3,7 @@ import { resume } from "../data/resume";
 import { loadResumeFromDB } from "../lib/supabase";
 import {
   TRANSCRIPT,
+  MINOR,
   GRADE_POINTS,
   type CourseGrade,
   type TranscriptSemester,
@@ -125,10 +126,34 @@ function gradeCard(): string {
     </section>`;
 }
 
+function minorCourses(): string {
+  const rows = MINOR.courses
+    .map(
+      (c) => `
+        <tr>
+          <td class="gc-code">${esc(c.code)}</td>
+          <td class="gc-name">${esc(c.name)}</td>
+          <td class="mn-sess">${esc(c.session)}</td>
+          <td class="gc-gr">${gradeBadge(c.grade)}</td>
+        </tr>`
+    )
+    .join("");
+  return `
+    <div class="edu-minor">
+      <table class="gc-table mn-table">
+        <thead>
+          <tr><th>Code</th><th>Course</th><th>Session</th><th>Gr.</th></tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
+
 function eduEntries(data: ResumeData): string {
   return data.education
     .map((r) => {
       const e = ELABORATION[r.degree];
+      const isMinor = /minor/i.test(r.degree);
       return `
         <li class="edu-entry">
           <div class="edu-entry-head">
@@ -141,6 +166,7 @@ function eduEntries(data: ResumeData): string {
             <span class="edu-fact"><span>Year</span>${esc(r.year)}</span>
           </div>
           ${e ? `<p class="edu-blurb">${e.blurb}</p>` : ""}
+          ${isMinor ? minorCourses() : ""}
         </li>`;
     })
     .join("");

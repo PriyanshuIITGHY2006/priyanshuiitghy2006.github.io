@@ -168,6 +168,9 @@ body {
 .edu-fact { font-size: 0.88em; }
 .edu-fact > span { color: #777; margin-right: 0.35em; font-size: 0.86em; text-transform: uppercase; letter-spacing: 0.4px; }
 .edu-blurb { font-size: 0.9em; line-height: 1.45; margin: 0.5rem 0 0; text-align: justify; color: #222; }
+.edu-minor { margin-top: 0.6rem; }
+.mn-table { font-size: 0.8em; }
+.mn-sess { white-space: nowrap; color: #444; }
 
 /* ─── Read-only grade card (faithful HTML reproduction) ─────────────── */
 .gradecard {

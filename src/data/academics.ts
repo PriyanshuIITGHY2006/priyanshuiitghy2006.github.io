@@ -81,6 +81,26 @@ export const TRANSCRIPT: Transcript = {
   issued: "27.05.2026",
 };
 
+// ─── Minor in Mathematics ──────────────────────────────────────────────
+export interface MinorCourse {
+  code: string;
+  name: string;
+  session: string;
+  grade: string;
+}
+
+export const MINOR: {
+  title: string;
+  cgpa: string;
+  courses: MinorCourse[];
+} = {
+  title: "Minor in Mathematics",
+  cgpa: "9.00",
+  courses: [
+    { code: "MA1092M", name: "Modern Algebra", session: "Jan–May 2026", grade: "AB" },
+  ],
+};
+
 // Grade → point value (IITG 10-point scale). Used only for the legend.
 export const GRADE_POINTS: Record<string, string> = {
   AS: "10",
