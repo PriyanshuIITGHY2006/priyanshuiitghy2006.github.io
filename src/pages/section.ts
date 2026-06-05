@@ -21,6 +21,11 @@ function page(key: SectionKey, data: ResumeData): string {
       </nav>
       <div class="section-body">
         ${renderSection(key, data)}
+        ${
+          key === "achievements"
+            ? `<p class="section-more"><a class="section-back" href="#/gallery">View certificates &amp; screenshots in the Gallery →</a></p>`
+            : ""
+        }
       </div>
     </article>`;
 }

@@ -7,6 +7,7 @@ import { mountAdmin } from "./pages/admin";
 import { mountSection } from "./pages/section";
 import { mountEducation } from "./pages/education";
 import { mountProjects } from "./pages/projects";
+import { mountGallery } from "./pages/gallery";
 import { loadCodeforces, rankName } from "./lib/codeforces";
 import { loadResumeFromDB } from "./lib/supabase";
 import { route, start } from "./lib/router";
@@ -51,6 +52,10 @@ route("/education", () => {
 route("/projects", () => {
   app.innerHTML = "";
   mountProjects(app);
+});
+route("/gallery", (params) => {
+  app.innerHTML = "";
+  mountGallery(app, params.get("img"));
 });
 route("/skills", () => {
   app.innerHTML = "";
