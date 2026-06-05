@@ -50,22 +50,6 @@ export const resume: ResumeData = {
   // Real repo URLs taken from the user's LaTeX source.
   projects: [
     {
-      id: "bdh-echr",
-      title: "BDH-ECHR: Post-Transformer Interpretable Legal AI",
-      date: "Jan. 2026 – Feb. 2026",
-      stack: "Python, PyTorch, Dragon Hatchling, Hebbian Learning",
-      link: {
-        text: "Github",
-        href: "https://github.com/PriyanshuIITGHY2006",
-        external: true,
-        detail: "bdh-echr",
-      },
-      bullets: [
-        "Applied Dragon Hatchling post-transformer to multi-label ECHR classification; <b>Micro-F1 = 0.7716</b>, beating BERT-base (+13.2 pts) and LegalBERT (+5.2 pts) at <b>5.4× fewer parameters</b> (20.4M vs. 110M)",
-        "First <b>neuron→concept monosemanticity audit</b>: 218 neurons mapped to 477 legal concepts; 3,584-token hierarchical chunking (7× BERT); per-doc sparsity 0.305%, 16× below BDH target",
-      ],
-    },
-    {
       id: "prag-dristi",
       title: "Prag-Dristi: Assam Flood Forecasting Engine",
       date: "Apr. 2026 – Present",
@@ -94,21 +78,6 @@ export const resume: ResumeData = {
       },
       bullets: [
         "Three-tier memory system (Neo4j graph, ChromaDB vectors, active buffer) with automatic entity resolution; sustains <b>4,000+ turns</b> at constant ≈350 tokens/turn, <b>99.8% token savings</b> vs. linear history",
-      ],
-    },
-    {
-      id: "speakx-aurora",
-      title: "SpeakX Aurora: Self-Learning Notification Orchestrator",
-      date: "Jan. 2026 – Feb. 2026",
-      stack: "Python, UMAP, Scikit-learn, Groq LLaMA-3.3-70B, LangChain",
-      link: {
-        text: "Github",
-        href: "https://github.com/PriyanshuIITGHY2006",
-        external: true,
-        detail: "speakx-aurora",
-      },
-      bullets: [
-        "Domain-agnostic ML pipeline (Kriti 2026): <b>UMAP + Agglomerative Clustering</b> for MECE segmentation, Octalysis-driven bilingual (EN/HI) templates, self-learning loop that suppresses low-CTR variants and auto-tunes timing/frequency",
       ],
     },
     {
