@@ -81,6 +81,22 @@ export const resume: ResumeData = {
       ],
     },
     {
+      id: "hackathon-squad",
+      title: "Hackathon-Squad: Maximum Weight Independent Set Solver",
+      date: "Apr. 2026",
+      stack: "C++, Parameterized Algorithms, Max-Flow, Local Search",
+      link: {
+        text: "Github",
+        href: "https://github.com/PriyanshuIITGHY2006/Hackathon-Squad",
+        external: true,
+        detail: "hackathon-squad",
+      },
+      bullets: [
+        "Three-phase <b>C++</b> solver for the NP-hard <b>Maximum Weight Independent Set</b>: kernelization reduction rules, <b>Nemhauser–Trotter</b> LP reduction via <b>Dinic max-flow</b>, and hybrid exact tree-DP / <b>Iterated Local Search</b> (PROBE 1→k swap)",
+        "Anytime design with SIGTERM/SIGINT guards under a 290s limit; <b>23/23 valid</b> benchmark solutions, beating expected values on <b>8 cases</b> with zero invalid outputs",
+      ],
+    },
+    {
       id: "min-variance",
       title: "Minimum-Variance Portfolio Optimizer",
       date: "Dec. 2025 – Present",
