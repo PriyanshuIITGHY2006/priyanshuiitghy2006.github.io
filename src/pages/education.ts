@@ -3,11 +3,9 @@ import { resume } from "../data/resume";
 import { loadResumeFromDB } from "../lib/supabase";
 import {
   TRANSCRIPT,
-  CURRICULUM,
   GRADE_POINTS,
   type CourseGrade,
   type TranscriptSemester,
-  type CurriculumSemester,
 } from "../data/academics";
 
 function esc(s: string): string {
@@ -87,9 +85,8 @@ function gradeCard(): string {
     .map(([g, p]) => `<span class="gc-leg-item"><b>${g}</b> ${p}</span>`)
     .join("");
   return `
-    <section class="gradecard" role="img"
-             aria-label="IIT Guwahati Bachelor of Technology Grade Card for Priyanshu Debnath, read only">
-      <div class="gc-watermark" aria-hidden="true">PROVISIONAL · READ-ONLY</div>
+    <section class="gradecard"
+             aria-label="IIT Guwahati Bachelor of Technology Grade Card for Priyanshu Debnath">
       <header class="gc-head">
         <div class="gc-logo">
           <img src="iitg_logo.jpg" alt=""
@@ -125,39 +122,7 @@ function gradeCard(): string {
         </table>
         <div class="gc-legend"><span class="gc-leg-label">Grade points</span>${legend}</div>
       </div>
-
-      <footer class="gc-foot-row">
-        <span>Issued ${esc(t.issued)}</span>
-        <span>Assistant Registrar (Academic)</span>
-      </footer>
     </section>`;
-}
-
-function curriculumSemester(s: CurriculumSemester): string {
-  const rows = s.courses
-    .map(
-      (c) => `
-        <tr>
-          <td class="cur-name">${esc(c.name)}</td>
-          <td>${c.l}</td><td>${c.t}</td><td>${c.p}</td><td class="cur-c">${c.c}</td>
-        </tr>`
-    )
-    .join("");
-  return `
-    <div class="cur-sem">
-      <h4 class="cur-title">${esc(s.label)}</h4>
-      <table class="cur-table">
-        <thead><tr><th>Course</th><th>L</th><th>T</th><th>P</th><th>C</th></tr></thead>
-        <tbody>${rows}</tbody>
-        <tfoot>
-          <tr>
-            <td class="cur-foot">Subtotal</td>
-            <td>${s.subtotal.l}</td><td>${s.subtotal.t}</td>
-            <td>${s.subtotal.p}</td><td class="cur-c">${s.subtotal.c}</td>
-          </tr>
-        </tfoot>
-      </table>
-    </div>`;
 }
 
 function eduEntries(data: ResumeData): string {
@@ -194,17 +159,7 @@ function pageHtml(data: ResumeData): string {
         <ul class="edu-entries">${eduEntries(data)}</ul>
 
         <h2 class="section edu-sub">Official Grade Card</h2>
-        <p class="edu-note">
-          Faithful, read-only reproduction of the IIT Guwahati provisional grade card —
-          no file to download, no editing.
-        </p>
         ${gradeCard()}
-
-        <h2 class="section edu-sub">Courses &amp; Curriculum — up to Semester II</h2>
-        <p class="edu-note">
-          Official EEE programme structure (L = Lecture, T = Tutorial, P = Practical, C = Credit hours).
-        </p>
-        <div class="cur-grid">${CURRICULUM.map(curriculumSemester).join("")}</div>
       </div>
     </article>`;
 }
