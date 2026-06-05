@@ -30,13 +30,13 @@ export const resume: ResumeData = {
     {
       degree: "B.Tech. Major",
       institute: "Indian Institute of Technology, Guwahati",
-      score: "9.68 (Current)",
+      score: "9.52 (Current)",
       year: "2025-Present",
     },
     {
       degree: "B.Tech. Minor (Mathematics)",
       institute: "Indian Institute of Technology, Guwahati",
-      score: "Ongoing",
+      score: "9.00 (Current)",
       year: "2026-Present",
     },
     {
@@ -49,22 +49,6 @@ export const resume: ResumeData = {
 
   // Real repo URLs taken from the user's LaTeX source.
   projects: [
-    {
-      id: "bdh-echr",
-      title: "BDH-ECHR: Post-Transformer Interpretable Legal AI",
-      date: "Jan. 2026 – Feb. 2026",
-      stack: "Python, PyTorch, Dragon Hatchling, Hebbian Learning",
-      link: {
-        text: "Github",
-        href: "https://github.com/PriyanshuIITGHY2006",
-        external: true,
-        detail: "bdh-echr",
-      },
-      bullets: [
-        "Applied Dragon Hatchling post-transformer to multi-label ECHR classification; <b>Micro-F1 = 0.7716</b>, beating BERT-base (+13.2 pts) and LegalBERT (+5.2 pts) at <b>5.4× fewer parameters</b> (20.4M vs. 110M)",
-        "First <b>neuron→concept monosemanticity audit</b>: 218 neurons mapped to 477 legal concepts; 3,584-token hierarchical chunking (7× BERT); per-doc sparsity 0.305%, 16× below BDH target",
-      ],
-    },
     {
       id: "prag-dristi",
       title: "Prag-Dristi: Assam Flood Forecasting Engine",
@@ -97,18 +81,19 @@ export const resume: ResumeData = {
       ],
     },
     {
-      id: "speakx-aurora",
-      title: "SpeakX Aurora: Self-Learning Notification Orchestrator",
-      date: "Jan. 2026 – Feb. 2026",
-      stack: "Python, UMAP, Scikit-learn, Groq LLaMA-3.3-70B, LangChain",
+      id: "hackathon-squad",
+      title: "Hackathon-Squad: Maximum Weight Independent Set Solver",
+      date: "Apr. 2026",
+      stack: "C++, Parameterized Algorithms, Max-Flow, Local Search",
       link: {
         text: "Github",
-        href: "https://github.com/PriyanshuIITGHY2006",
+        href: "https://github.com/PriyanshuIITGHY2006/Hackathon-Squad",
         external: true,
-        detail: "speakx-aurora",
+        detail: "hackathon-squad",
       },
       bullets: [
-        "Domain-agnostic ML pipeline (Kriti 2026): <b>UMAP + Agglomerative Clustering</b> for MECE segmentation, Octalysis-driven bilingual (EN/HI) templates, self-learning loop that suppresses low-CTR variants and auto-tunes timing/frequency",
+        "Three-phase <b>C++</b> solver for the NP-hard <b>Maximum Weight Independent Set</b>: kernelization reduction rules, <b>Nemhauser–Trotter</b> LP reduction via <b>Dinic max-flow</b>, and hybrid exact tree-DP / <b>Iterated Local Search</b> (PROBE 1→k swap)",
+        "Anytime design with SIGTERM/SIGINT guards under a 290s limit; <b>23/23 valid</b> benchmark solutions, beating expected values on <b>8 cases</b> with zero invalid outputs",
       ],
     },
     {
