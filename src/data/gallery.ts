@@ -66,7 +66,8 @@ export const GALLERY: GalleryItem[] = [
     id: "hackathon-squad",
     title: "Hackathon Squad — Priyanshu Debnath",
     category: "Project Screenshots",
-    src: "gallery/hackathon-squad.jpg",
+    // File uploaded with spaces in its name — URL-encode for the browser.
+    src: "gallery/Priyanshu%20Debnath.Hackathon%20Squad.png",
     date: "Apr 2026",
     description: "Proof image for the Hackathon-Squad project.",
   },
