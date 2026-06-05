@@ -30,7 +30,7 @@ export const resume: ResumeData = {
     {
       degree: "B.Tech. Major",
       institute: "Indian Institute of Technology, Guwahati",
-      score: "9.68 (Current)",
+      score: "9.52 (Current)",
       year: "2025-Present",
     },
     {
