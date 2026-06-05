@@ -8,6 +8,7 @@ import { mountSection } from "./pages/section";
 import { mountEducation } from "./pages/education";
 import { mountProjects } from "./pages/projects";
 import { mountGallery } from "./pages/gallery";
+import { mountAchievements } from "./pages/achievements";
 import { loadCodeforces, rankName } from "./lib/codeforces";
 import { loadResumeFromDB } from "./lib/supabase";
 import { route, start } from "./lib/router";
@@ -67,7 +68,7 @@ route("/positions", () => {
 });
 route("/achievements", () => {
   app.innerHTML = "";
-  mountSection(app, "achievements");
+  mountAchievements(app);
 });
 
 // ─── Codeforces detail ──────────────────────────────────────────────────

@@ -19,6 +19,20 @@ export interface GalleryItem {
 
 export const GALLERY: GalleryItem[] = [
   {
+    id: "kriti-2026",
+    title: "Kriti 2026 — Gold Medal (AI Challenge)",
+    src: "gallery/kriti.pdf",
+    date: "2026",
+    description: "Certificate of Achievement — Technical Board, Students' Gymkhana, IIT Guwahati.",
+  },
+  {
+    id: "ams-derive-2026",
+    title: "AMS Derive 2026 — PRIOR Round, Rank 199",
+    src: "gallery/ams-derive.pdf",
+    date: "2026",
+    description: "Official PRIOR Round rank — Algorithms & Mathematics Society (partners: Jane Street, QRT).",
+  },
+  {
     id: "hackathon-squad",
     title: "Hackathon Squad — Priyanshu Debnath",
     // File uploaded with spaces in its name — URL-encode for the browser.
