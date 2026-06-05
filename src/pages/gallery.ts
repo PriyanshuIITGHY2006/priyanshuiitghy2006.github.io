@@ -1,9 +1,5 @@
 import { resume } from "../data/resume";
-import {
-  GALLERY,
-  GALLERY_CATEGORIES,
-  type GalleryItem,
-} from "../data/gallery";
+import { GALLERY, type GalleryItem } from "../data/gallery";
 
 function esc(s: string): string {
   return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] as string));
@@ -28,20 +24,9 @@ function card(item: GalleryItem): string {
     </button>`;
 }
 
-function categorySection(cat: string): string {
-  const items = GALLERY.filter((g) => g.category === cat);
-  if (!items.length) return "";
-  return `
-    <section class="gl-section">
-      <h3 class="gl-cat">${esc(cat)} <span class="gl-count">${items.length}</span></h3>
-      <div class="gl-grid">${items.map(card).join("")}</div>
-    </section>`;
-}
-
 function pageHtml(): string {
-  const sections = GALLERY_CATEGORIES.map(categorySection).join("");
   const body = GALLERY.length
-    ? sections
+    ? `<div class="gl-grid">${GALLERY.map(card).join("")}</div>`
     : `<p class="gl-empty">No images yet — drop files into <code>public/gallery/</code> and list them in <code>src/data/gallery.ts</code>.</p>`;
   return `
     <article class="page section-page gallery-page">
