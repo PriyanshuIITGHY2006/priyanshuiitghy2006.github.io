@@ -1,26 +1,23 @@
 import { resume } from "../data/resume";
-import {
-  GALLERY,
-  GALLERY_CATEGORIES,
-  type GalleryItem,
-} from "../data/gallery";
+import { GALLERY, type GalleryItem } from "../data/gallery";
 
 function esc(s: string): string {
   return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] as string));
 }
 
-// onerror placeholder: swap a broken/missing image for an "awaiting upload" tile.
-const ONERR =
-  "this.classList.add('gl-img-missing');this.removeAttribute('src');" +
-  "this.onerror=null;";
+function isPdf(src: string): boolean {
+  return /\.pdf(\?|#|$)/i.test(src);
+}
 
 function card(item: GalleryItem): string {
+  const thumb = isPdf(item.src)
+    ? `<span class="gl-thumb gl-thumb-pdf"><span class="gl-pdf-badge">PDF</span></span>`
+    : `<span class="gl-thumb">
+         <img src="${esc(item.src)}" alt="${esc(item.title)}" loading="lazy"/>
+       </span>`;
   return `
     <button class="gl-card" data-img="${esc(item.id)}" title="${esc(item.title)}">
-      <span class="gl-thumb">
-        <img src="${esc(item.src)}" alt="${esc(item.title)}" loading="lazy" onerror="${ONERR}"/>
-        <span class="gl-thumb-ph" aria-hidden="true">Awaiting upload</span>
-      </span>
+      ${thumb}
       <span class="gl-meta">
         <span class="gl-card-title">${esc(item.title)}</span>
         ${item.date ? `<span class="gl-card-date">${esc(item.date)}</span>` : ""}
@@ -28,21 +25,10 @@ function card(item: GalleryItem): string {
     </button>`;
 }
 
-function categorySection(cat: string): string {
-  const items = GALLERY.filter((g) => g.category === cat);
-  if (!items.length) return "";
-  return `
-    <section class="gl-section">
-      <h3 class="gl-cat">${esc(cat)} <span class="gl-count">${items.length}</span></h3>
-      <div class="gl-grid">${items.map(card).join("")}</div>
-    </section>`;
-}
-
 function pageHtml(): string {
-  const sections = GALLERY_CATEGORIES.map(categorySection).join("");
   const body = GALLERY.length
-    ? sections
-    : `<p class="gl-empty">No images yet — drop files into <code>public/gallery/</code> and list them in <code>src/data/gallery.ts</code>.</p>`;
+    ? `<div class="gl-grid">${GALLERY.map(card).join("")}</div>`
+    : `<p class="gl-empty">No files yet — drop images or PDFs into <code>public/gallery/</code> and list them in <code>src/data/gallery.ts</code>.</p>`;
   return `
     <article class="page section-page gallery-page">
       <nav class="section-nav">
@@ -52,8 +38,8 @@ function pageHtml(): string {
       <div class="section-body">
         <h2 class="section">Gallery</h2>
         <p class="edu-note">
-          Certificates, achievement scorecards and project screenshots.
-          Click any image to view it full-screen — each has a shareable link.
+          Certificates, achievement scorecards and project screenshots — images and PDFs.
+          Click any item to view it full-screen; each has a shareable link.
         </p>
         ${body}
       </div>
@@ -64,7 +50,7 @@ function pageHtml(): string {
         <button class="gl-lb-nav gl-lb-prev" data-prev aria-label="Previous">‹</button>
         <button class="gl-lb-nav gl-lb-next" data-next aria-label="Next">›</button>
         <figure class="gl-lb-figure">
-          <img class="gl-lb-img" id="gl-lb-img" alt=""/>
+          <div class="gl-lb-media" id="gl-lb-media"></div>
           <figcaption class="gl-lb-cap">
             <span class="gl-lb-title" id="gl-lb-title"></span>
             <span class="gl-lb-desc" id="gl-lb-desc"></span>
@@ -84,7 +70,7 @@ export function mountGallery(container: HTMLElement, initialImg?: string | null)
   container.innerHTML = pageHtml();
 
   const lb = container.querySelector<HTMLElement>("#gl-lightbox")!;
-  const img = container.querySelector<HTMLImageElement>("#gl-lb-img")!;
+  const media = container.querySelector<HTMLElement>("#gl-lb-media")!;
   const titleEl = container.querySelector<HTMLElement>("#gl-lb-title")!;
   const descEl = container.querySelector<HTMLElement>("#gl-lb-desc")!;
   const original = container.querySelector<HTMLAnchorElement>("#gl-lb-original")!;
@@ -101,9 +87,13 @@ export function mountGallery(container: HTMLElement, initialImg?: string | null)
     const item = GALLERY[index];
     if (!item) return;
     current = index;
-    img.src = item.src;
-    img.alt = item.title;
-    img.classList.remove("gl-zoom", "gl-img-missing");
+    if (isPdf(item.src)) {
+      media.innerHTML = `<iframe class="gl-lb-pdf" src="${esc(item.src)}#view=FitH" title="${esc(item.title)}"></iframe>`;
+    } else {
+      media.innerHTML = `<img class="gl-lb-img" src="${esc(item.src)}" alt="${esc(item.title)}"/>`;
+      const im = media.querySelector<HTMLImageElement>("img");
+      im?.addEventListener("click", () => im.classList.toggle("gl-zoom"));
+    }
     titleEl.textContent = item.title;
     descEl.textContent = item.description ?? "";
     original.href = item.src;
@@ -114,6 +104,7 @@ export function mountGallery(container: HTMLElement, initialImg?: string | null)
 
   function close(): void {
     lb.hidden = true;
+    media.innerHTML = "";
     document.body.style.overflow = "";
     current = -1;
     setUrl(null);
@@ -124,7 +115,6 @@ export function mountGallery(container: HTMLElement, initialImg?: string | null)
     open((current + delta + GALLERY.length) % GALLERY.length);
   };
 
-  // Card clicks → open
   container.querySelectorAll<HTMLElement>(".gl-card").forEach((el) => {
     el.addEventListener("click", () => {
       const id = el.getAttribute("data-img");
@@ -133,13 +123,11 @@ export function mountGallery(container: HTMLElement, initialImg?: string | null)
     });
   });
 
-  // Lightbox controls
   lb.querySelectorAll<HTMLElement>("[data-close]").forEach((el) =>
     el.addEventListener("click", close)
   );
   lb.querySelector<HTMLElement>("[data-prev]")?.addEventListener("click", () => step(-1));
   lb.querySelector<HTMLElement>("[data-next]")?.addEventListener("click", () => step(1));
-  img.addEventListener("click", () => img.classList.toggle("gl-zoom"));
 
   copyBtn.addEventListener("click", async () => {
     const item = GALLERY[current];
@@ -164,7 +152,7 @@ export function mountGallery(container: HTMLElement, initialImg?: string | null)
   };
   document.addEventListener("keydown", keyHandler);
 
-  // Deep-link: open the requested image immediately
+  // Deep-link: open the requested file immediately
   if (initialImg) {
     const idx = GALLERY.findIndex((g) => g.id === initialImg);
     if (idx >= 0) open(idx);

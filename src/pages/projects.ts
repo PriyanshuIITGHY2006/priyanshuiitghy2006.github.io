@@ -10,13 +10,16 @@ function chips(stack: string[]): string {
 }
 
 function linkBtn(p: DetailedProject): string {
+  const parts: string[] = [];
   if (p.github) {
-    return `<a class="pj-link" href="${p.github}" target="_blank" rel="noopener">View on GitHub ↗</a>`;
+    parts.push(`<a class="pj-link" href="${p.github}" target="_blank" rel="noopener">View on GitHub ↗</a>`);
+  } else if (p.link) {
+    parts.push(`<a class="pj-link" href="${p.link.href}" target="_blank" rel="noopener">${esc(p.link.label)} ↗</a>`);
   }
-  if (p.link) {
-    return `<a class="pj-link" href="${p.link.href}" target="_blank" rel="noopener">${esc(p.link.label)} ↗</a>`;
+  if (p.verifyImg) {
+    parts.push(`<a class="pj-link pj-verify" href="#/gallery?img=${encodeURIComponent(p.verifyImg)}">Verify ✓</a>`);
   }
-  return "";
+  return parts.length ? `<div class="pj-links">${parts.join("")}</div>` : "";
 }
 
 function projectBlock(p: DetailedProject, n: number): string {

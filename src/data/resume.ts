@@ -170,6 +170,16 @@ export const resume: ResumeData = {
 
   achievements: [
     {
+      id: "kriti-2026",
+      html: "<b>Kriti 2026,</b> Gold Medal — Artificial Intelligence Challenge, IIT Guwahati",
+      date: "2026",
+    },
+    {
+      id: "ams-derive-2026",
+      html: "<b>AMS Derive 2026,</b> Rank 199 — PRIOR Round (Algorithms &amp; Mathematics Society)",
+      date: "2026",
+    },
+    {
       id: "jee-advanced",
       html: "<b>JEE Advanced 2025,</b> All India Rank 1941 | Top 1% among 1.5 Lakh+ candidates",
       date: "2025",
