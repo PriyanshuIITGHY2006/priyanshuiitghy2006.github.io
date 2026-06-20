@@ -65,6 +65,7 @@ function pageHtml(): string {
 }
 
 let keyHandler: ((e: KeyboardEvent) => void) | null = null;
+let hashChangeHandler: (() => void) | null = null;
 
 export function mountGallery(container: HTMLElement, initialImg?: string | null): void {
   container.innerHTML = pageHtml();
@@ -151,6 +152,11 @@ export function mountGallery(container: HTMLElement, initialImg?: string | null)
     else if (e.key === "ArrowRight") step(1);
   };
   document.addEventListener("keydown", keyHandler);
+
+  // Reset overflow whenever the user navigates away via any hash link
+  if (hashChangeHandler) window.removeEventListener("hashchange", hashChangeHandler);
+  hashChangeHandler = () => { document.body.style.overflow = ""; };
+  window.addEventListener("hashchange", hashChangeHandler);
 
   // Deep-link: open the requested file immediately
   if (initialImg) {

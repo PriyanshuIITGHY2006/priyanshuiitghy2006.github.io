@@ -22,7 +22,7 @@ export const ACHIEVEMENTS: DetailedAchievement[] = [
     id: "kriti-2026",
     title: "Kriti 2026 — Gold Medal, Artificial Intelligence Challenge",
     date: "Jun 2026",
-    tags: ["🥇 Gold Medal", "AI Challenge", "Kriti 2026"],
+    tags: ["Gold Medal", "AI Challenge", "Kriti 2026"],
     blurb:
       "Won the <b>Gold medal</b> in the <b>Artificial Intelligence Challenge</b> at " +
       "Kriti 2026 — IIT Guwahati's flagship inter-hostel technical championship — as " +
