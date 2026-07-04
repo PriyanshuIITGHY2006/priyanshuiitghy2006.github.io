@@ -48,7 +48,7 @@ function renderLogin(container: HTMLElement): void {
 }
 
 // ── Main panel ───────────────────────────────────────────────────────────────
-type Tab = "projects" | "achievements" | "skills" | "positions";
+type Tab = "projects" | "achievements" | "skills" | "positions" | "comments";
 
 let currentTab: Tab = "projects";
 
@@ -68,6 +68,8 @@ function renderPanel(container: HTMLElement): void {
           <button data-tab="achievements" class="${currentTab === "achievements" ? "active" : ""}">Achievements</button>
           <button data-tab="skills"       class="${currentTab === "skills"       ? "active" : ""}">Skills</button>
           <button data-tab="positions"    class="${currentTab === "positions"    ? "active" : ""}">Positions</button>
+          <button data-tab="comments"     class="${currentTab === "comments"     ? "active" : ""}">Blog Comments</button>
+        </div>
         </div>
         <div id="admin-content"><p class="admin-loading">Loading…</p></div>
       </div>
@@ -98,6 +100,7 @@ function loadTab(container: HTMLElement): void {
     case "achievements": void renderAchievements(content); break;
     case "skills":       void renderSkills(content);       break;
     case "positions":    void renderPositions(content);    break;
+    case "comments":     void renderComments(content);     break;
   }
 }
 
@@ -449,6 +452,73 @@ async function renderPositions(el: HTMLElement): Promise<void> {
       if (!confirm("Delete this position?")) return;
       await supabase.from("positions").delete().eq("id", Number(btn.dataset.posDel));
       void renderPositions(el);
+    });
+  });
+}
+interface AdminBlogComment {
+  id: number;
+  slug: string;
+  name: string;
+  message: string;
+  approved: boolean;
+  created_at: string;
+}
+
+async function renderComments(el: HTMLElement): Promise<void> {
+  const { data: rows } = await supabase
+    .from("blog_comments")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  const comments = (rows as AdminBlogComment[]) ?? [];
+  const pending = comments.filter((c) => !c.approved);
+  const approved = comments.filter((c) => c.approved);
+
+  function commentRow(c: AdminBlogComment): string {
+    return `
+      <tr>
+        <td style="white-space:nowrap">${esc(c.slug)}</td>
+        <td style="white-space:nowrap">${esc(c.name)}</td>
+        <td class="truncate">${esc(c.message)}</td>
+        <td style="white-space:nowrap">${esc(c.created_at.slice(0, 10))}</td>
+        <td style="white-space:nowrap">
+          ${c.approved
+            ? `<button class="admin-btn" data-comment-unapprove="${c.id}">Unpublish</button>`
+            : `<button class="admin-btn admin-btn-primary" data-comment-approve="${c.id}">Approve</button>`}
+          <button class="admin-btn admin-btn-danger" data-comment-del="${c.id}">Delete</button>
+        </td>
+      </tr>`;
+  }
+
+  el.innerHTML = `
+    <h3>Pending review (${pending.length})</h3>
+    <table class="admin-table">
+      <thead><tr><th>Post</th><th>Name</th><th>Comment</th><th>Date</th><th>Actions</th></tr></thead>
+      <tbody>${pending.length ? pending.map(commentRow).join("") : `<tr><td colspan="5">Nothing pending.</td></tr>`}</tbody>
+    </table>
+    <h3 style="margin-top:24px">Published (${approved.length})</h3>
+    <table class="admin-table">
+      <thead><tr><th>Post</th><th>Name</th><th>Comment</th><th>Date</th><th>Actions</th></tr></thead>
+      <tbody>${approved.length ? approved.map(commentRow).join("") : `<tr><td colspan="5">None yet.</td></tr>`}</tbody>
+    </table>`;
+
+  el.querySelectorAll<HTMLButtonElement>("[data-comment-approve]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      await supabase.from("blog_comments").update({ approved: true }).eq("id", Number(btn.dataset.commentApprove));
+      void renderComments(el);
+    });
+  });
+  el.querySelectorAll<HTMLButtonElement>("[data-comment-unapprove]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      await supabase.from("blog_comments").update({ approved: false }).eq("id", Number(btn.dataset.commentUnapprove));
+      void renderComments(el);
+    });
+  });
+  el.querySelectorAll<HTMLButtonElement>("[data-comment-del]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      if (!confirm("Delete this comment?")) return;
+      await supabase.from("blog_comments").delete().eq("id", Number(btn.dataset.commentDel));
+      void renderComments(el);
     });
   });
 }
