@@ -2,7 +2,7 @@
 title: Stack, Heap, and the Registers That Finally Made Sense
 date: 2026-07-04
 tags: C++, Systems, Memory, Beginner
-cover: blogs/stack-heap-registers/cover.jpeg
+cover: blogs/stack-heap-registers/cover.jpg
 excerpt: Hi, it's my first blog. I went looking for proof that the stack and heap actually exist, and found it.
 ---
 
