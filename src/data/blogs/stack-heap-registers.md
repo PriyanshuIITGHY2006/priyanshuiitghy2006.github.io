@@ -24,7 +24,7 @@ All of it made sense on paper. Stack good, fast, small. Heap flexible, slower, m
 
 But I wanted proof. Not analogies. Actual proof that these two things exist as separate places in memory, right now.
 
-So I wrote something small on purpose:
+So I wrote something :
 
 ```cpp
 #include <iostream>
@@ -57,25 +57,24 @@ I ran it, and while it sat there waiting, I opened **VMMap** (a free tool from S
 This is the exact physical layout of the address space Windows built for this one program. Here's what stood out.
 
 **The free space is enormous.**
-There's a row labeled `Free`, sitting at roughly 128 terabytes. My machine does not have 128 TB of RAM. Nowhere close. This is virtual memory, laid bare. The OS hands every program a huge, clean, fake blueprint. The program has no idea it's fake.
+There's a row labeled `Free`, sitting at roughly 128 terabytes. My machine does not have 128 TB of RAM. Nowhere close. This is virtual memory, laid bare. The OS hands every program a huge, clean, fake blueprint (or atleast that's what I think)..
 
 **The heap is small, on purpose.**
 I asked for `new int[50000]`. That's 50,000 integers. The heap section in VMMap was only around 3.7 MB. The OS didn't round up to something huge. It gave me close to exactly what I asked for, no more.
 
 **The stack has a hard ceiling.**
-The stack section showed 2,048 KB. Exactly 2 MB. Fixed. That's the whole budget for local variables and every nested function call on that thread. Blow through it, and the program dies with a stack overflow, no negotiation.
+The stack section showed 2,048 KB. Exactly 2 MB. Fixed. That's the whole budget for local variables and every nested function call on that thread. Blow through it, and the program dies with a stack overflow.
 
 **Reserved and used are two different things.**
-The stack's `Size` column said 2,048 KB. The `Committed` column right next to it said 32 KB. Windows reserved 2 MB but only actually wired up 32 KB of real RAM behind it. My program only used one small local variable, so that's all it got. The rest of that 2 MB is a promise, not a fact, until something actually needs it.
+The stack's `Size` column said 2,048 KB. The `Committed` column right next to it said 32 KB. Windows reserved 2 MB but only actually wired up 32 KB of real RAM behind it. My program only used one small local variable, so that's all it got. The rest of that 2 MB is not a fact, until something actually needs it.
 
 **Every address is right there.**
-Scroll to the bottom table and there's a line for `Thread Stack`, with a real hex address next to it, something like `00000005C2C00...`. That's the literal top of the stack for that thread. It's not a diagram anymore. It's a real number, on a real running process, on my machine.
+Scroll to the bottom table and there's a line for `Thread Stack`, with a real hex address next to it, something like `00000005C2C00...`. That's the literal top of the stack for that thread. It's a real number, on a real running process, on my machine.
 
-Reading about the stack and heap is one thing. Watching the OS admit, in a table, that it lied about having 128 TB of memory, is a completely different feeling.
 
 ## Okay, but what's actually going on
 
-VMMap shows the result. It doesn't explain the mechanism. So here's the mechanism, as I understand it now.
+VMMap shows the result. So here's the mechanism, as I understand it now.
 
 ### Registers, quickly
 
@@ -95,7 +94,7 @@ x86-64 has 16 general-purpose registers. A few have jobs by convention:
 - **`rip`** — instruction pointer. The address of what runs next.
 - **`rflags`** — status bits, set after comparisons and math. This is what `if` and loops read to decide where to jump.
 
-On Linux and macOS, function arguments go into `rdi`, `rsi`, `rdx`, `rcx`, `r8`, `r9`, in that order, for the first six. Anything past six spills onto the stack. The return value comes back in `rax`.
+On Linux and macOS, function arguments go into `rdi`, `rsi`, `rdx`, `rcx`, `r8`, `r9`, in that order, for the first six. Anything past six spills onto the stack. The return value comes back in `rax`. That's why your function with more than six arguements is slow, jokes on you!
 
 There's also a split between registers a function can freely trash (`rax`, `rcx`, `rdx`, `rsi`, `rdi`, `r8`–`r11`) and ones it has to save and restore if it touches them (`rbx`, `rbp`, `r12`–`r15`, `rsp`). That split is the only reason two functions, written by two different people, can call each other without stepping on each other's data.
 
@@ -103,7 +102,7 @@ There's also a split between registers a function can freely trash (`rax`, `rcx`
 
 The stack is a region of memory managed by one register: `rsp`.
 
-It only grows and shrinks from one end. Last thing added, first thing removed. Because of that rule, nothing needs bookkeeping. `rsp` always knows exactly where the top is.
+It only grows and shrinks from one end. (LIFO) Last thing added, first thing removed. Because of that rule, nothing needs bookkeeping. `rsp` always knows exactly where the top is.
 
 Growing it means subtracting from `rsp`. Shrinking it means adding back. One instruction. `sub rsp, 32`. That's the entire cost.
 
@@ -127,6 +126,8 @@ Here's what actually happens when `square(6)` runs:
 4. `result` lands at `[rbp - 4]`.
 5. The answer moves into `rax`.
 6. Epilogue: `mov rsp, rbp`, `pop rbp`, `ret`.
+
+(you can see this yourself deassembling your code)
 
 The second `square` returns, that slot is done. The bits might still physically sit there for a while, but `rsp` has already moved past them. The program won't touch that memory as valid again. This is exactly why returning a pointer to a local variable breaks — the address is real, the lease on it just expired.
 
@@ -153,7 +154,7 @@ Neither of those hands you physical RAM right away. They reserve address space a
 
 On top of that, the allocator keeps its own records. Every chunk it hands out carries a small hidden header just before your pointer, noting its size. Free chunks get sorted into size buckets so searching is fast. When something is freed, neighboring free chunks get merged, to fight fragmentation.
 
-All that searching, merging, and bookkeeping is why heap allocation costs more than stack allocation. In multi-threaded programs it costs even more, since the heap is usually shared across threads and needs locking. The stack needs none of that — each thread already owns its own.
+All that searching, merging, and bookkeeping is why heap allocation costs more than stack allocation. If you want to know how it works, there is something called Bit Scan Forward. I don't know in details tho. In multi-threaded programs it costs even more, since the heap is usually shared across threads and needs locking. The stack needs none of that — each thread already owns its own.
 
 ```cpp
 struct Player {
@@ -225,7 +226,7 @@ gdb ./your_program
 # Debug -> Windows -> Registers
 ```
 
-None of this is required to understand the theory. But theory and watching it happen live are two different levels of believing something.
+None of this is required to understand the theory. But I had to write a blog, so you better read it (Implicit threat).
 
 ## Closing
 
