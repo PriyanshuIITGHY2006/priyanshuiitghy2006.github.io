@@ -157,6 +157,7 @@
 @media (max-width: 640px) {
   .blog-post-title { font-size: 1.35em; }
 }
+
 /* ─── Engagement: views, like button, comments ───────────────────────── */
 .blog-engagement { margin-top: 2rem; border-top: 0.6px solid #ddd; padding-top: 1.2rem; }
 .blog-engagement-bar {
@@ -203,3 +204,7 @@
 
 .blog-comment-form { max-width: 34rem; }
 .blog-comment-note { font-size: 0.76em; color: #888; margin: 0; }
+
+/* ─── KaTeX math ──────────────────────────────────────────────────────── */
+.blog-content .katex-display { overflow-x: auto; overflow-y: hidden; padding: 0.2rem 0; margin: 0.9rem 0; }
+.blog-content .katex { font-size: 1.05em; }
