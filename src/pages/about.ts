@@ -26,12 +26,10 @@ function pageHtml(): string {
             and quantitative trading strategies.
           </p>
           <p>
-            I compete on Codeforces as a Specialist, and spend a good deal of time on
-            the other side of the table too — setting problems and organising rounds
-            for <b>Mathematics Melee</b>, IIT Guwahati's mathematics competition, through
-            Polygon (the Mathematics Society). I'm also a Deputy Coordinator of the
-            Competitive Programming module at the Coding Club, and a Quant Associate
-            at the Finance and Economics Club.
+            I compete on Codeforces as an Expert (anyways, it doesn't matter provided 
+            the amount of folks cheat nowadays) , and spend a good deal of time on
+            the other side of the table too — exploring c++ in depth and touching some
+            grass.
           </p>
           <p>
             This site doubles as an interactive résumé and a place to write about
