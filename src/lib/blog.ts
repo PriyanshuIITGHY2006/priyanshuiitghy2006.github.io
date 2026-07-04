@@ -130,7 +130,7 @@ renderer.code = ({ text, lang }: Tokens.Code): string => {
 };
 
 marked.use({ renderer, breaks: false, gfm: true });
-marked.use(markedKatex({ throwOnError: false }));
+marked.use(markedKatex({ throwOnError: false, nonStandard: true }));
 
 export function renderMarkdown(md: string): string {
   const html = marked.parse(md, { async: false }) as string;
