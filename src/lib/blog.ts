@@ -1,4 +1,5 @@
 import { marked, type Tokens } from "marked";
+import markedKatex from "marked-katex-extension";
 import DOMPurify from "dompurify";
 import hljs from "highlight.js/lib/core";
 
@@ -129,12 +130,17 @@ renderer.code = ({ text, lang }: Tokens.Code): string => {
 };
 
 marked.use({ renderer, breaks: false, gfm: true });
+marked.use(markedKatex({ throwOnError: false }));
 
 export function renderMarkdown(md: string): string {
   const html = marked.parse(md, { async: false }) as string;
   return DOMPurify.sanitize(html, {
     ADD_TAGS: ["span"],
     ADD_ATTR: ["target", "rel", "class"],
+    // KaTeX renders to a mix of HTML, MathML, and SVG (for radicals, etc.) —
+    // these profiles let that markup through while DOMPurify still strips
+    // scripts, event handlers, and anything unsafe.
+    USE_PROFILES: { html: true, svg: true, svgFilters: true, mathMl: true },
   });
 }
 
