@@ -1,4 +1,5 @@
 import "../styles/blog.css";
+import "katex/dist/katex.min.css";
 import { resume } from "../data/resume";
 import { getPost, formatBlogDate, renderMarkdown } from "../lib/blog";
 import {
