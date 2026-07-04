@@ -19,6 +19,8 @@ export const resume: ResumeData = {
       { text: "Github", href: LINKS.github, external: true, detail: "github" },
       { text: " | " },
       { text: "Website", href: LINKS.website, external: true, detail: "website" },
+      { text: " | " },
+      { text: "Blog", href: "#/blogs", detail: "blog" },
     ],
     [{ text: "linkedin.com/in/priyanshu-debnath-3a81711b3", href: LINKS.linkedin, external: true, detail: "linkedin" }],
   ],

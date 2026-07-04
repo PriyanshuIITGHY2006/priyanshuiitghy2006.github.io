@@ -40,7 +40,7 @@ function sectionTitle(title: string, linked = true): string {
 function header(data: ResumeData): string {
   const rows: { left: string; right: string; nameRow?: boolean }[] = [
     {
-      left: `<span class="name">${escapeText(data.name)}</span>`,
+      left: `<a class="link name-link" href="#/about" data-detail="about"><span class="name">${escapeText(data.name)}</span></a>`,
       right: richLine(data.contact[0]),
       nameRow: true,
     },

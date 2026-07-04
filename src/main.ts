@@ -1,5 +1,6 @@
 import "./styles/resume.css";
 import "./styles/codeforces.css";
+import "./styles/about.css";
 import { resume } from "./data/resume";
 import { renderResume } from "./render/resume";
 import { mountCodeforces } from "./pages/codeforces";
@@ -9,6 +10,7 @@ import { mountEducation } from "./pages/education";
 import { mountProjects } from "./pages/projects";
 import { mountGallery } from "./pages/gallery";
 import { mountAchievements } from "./pages/achievements";
+import { mountAbout } from "./pages/about";
 import { loadCodeforces, rankName } from "./lib/codeforces";
 import { loadResumeFromDB } from "./lib/supabase";
 import { route, start } from "./lib/router";
@@ -69,6 +71,24 @@ route("/positions", () => {
 route("/achievements", () => {
   app.innerHTML = "";
   mountAchievements(app);
+});
+
+// ─── About page (clickable name in the header links here) ──────────────
+route("/about", () => {
+  app.innerHTML = "";
+  mountAbout(app);
+});
+
+// ─── Blog (code-split: Markdown/highlighting deps only load when visited) ──
+route("/blogs", async () => {
+  app.innerHTML = "";
+  const { mountBlogs } = await import("./pages/blogs");
+  mountBlogs(app);
+});
+route("/blog", async (params) => {
+  app.innerHTML = "";
+  const { mountBlogPost } = await import("./pages/blog-post");
+  mountBlogPost(app, params.get("slug"));
 });
 
 // ─── Codeforces detail ──────────────────────────────────────────────────

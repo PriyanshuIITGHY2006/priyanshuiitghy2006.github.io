@@ -1,0 +1,102 @@
+/* ─── About page ─────────────────────────────────────────────────────── */
+.about-page { max-width: 52rem; margin: 0 auto; }
+
+.about-intro p {
+  font-size: 0.95em;
+  line-height: 1.6;
+  margin: 0.7rem 0;
+  text-align: justify;
+  color: #222;
+}
+
+.about-sub { margin-top: 1.5rem; }
+
+.about-links { margin-top: 0.7rem; }
+
+.about-contact-direct {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.2rem;
+  margin: 0.7rem 0 1.1rem;
+  font-size: 0.92em;
+}
+
+/* ─── Clickable name in the résumé header ───────────────────────────── */
+.name-link {
+  border-bottom-color: transparent;
+  display: inline-block;
+}
+.name-link:hover .name,
+.name-link:focus-visible .name {
+  color: var(--link-hover);
+}
+.name-link:hover,
+.name-link:focus-visible {
+  border-bottom-color: currentColor;
+}
+
+/* ─── Contact form (Formspree) ───────────────────────────────────────── */
+.contact-form {
+  max-width: 34rem;
+  margin-top: 0.3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+.contact-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.7rem;
+}
+.contact-form label {
+  display: block;
+  font-size: 0.78em;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #666;
+  margin-bottom: 0.25rem;
+}
+.contact-form input,
+.contact-form textarea {
+  width: 100%;
+  font-family: var(--cm);
+  font-size: 0.95em;
+  color: var(--ink);
+  border: 0.6px solid #ccc;
+  border-radius: 4px;
+  padding: 0.45em 0.6em;
+  background: #fff;
+}
+.contact-form textarea { min-height: 7rem; resize: vertical; }
+.contact-form input:focus,
+.contact-form textarea:focus {
+  outline: none;
+  border-color: #888;
+}
+.contact-actions { margin-top: 0.1rem; }
+.contact-submit {
+  background: #fff;
+  cursor: pointer;
+}
+.contact-submit:disabled { opacity: 0.6; cursor: default; }
+
+.contact-status {
+  font-size: 0.86em;
+  border-radius: 4px;
+  padding: 0.5em 0.7em;
+  border: 0.6px solid transparent;
+}
+.contact-status-ok {
+  background: #e8f0e6;
+  color: #2c5e2e;
+  border-color: #b9d3b5;
+}
+.contact-status-err {
+  background: #fbeaea;
+  color: #a03030;
+  border-color: #e3b8b8;
+}
+
+@media (max-width: 560px) {
+  .contact-row { grid-template-columns: 1fr; }
+}
