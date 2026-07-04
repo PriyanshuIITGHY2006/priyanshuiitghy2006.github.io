@@ -98,27 +98,27 @@ Rule 5 is the one doing the real work. It doesn't force every path to be the *sa
 
 ### The proof that height stays $O(\log n)$
 
-Define $bh(x)$ as the black-height of node $x$: the number of black nodes from $x$ down to a null leaf (not counting $x$ itself).
+Define $\text{bh}(x)$ as the black-height of node $x$: the number of black nodes from $x$ down to a null leaf (not counting $x$ itself).
 
-**Lemma.** A subtree rooted at $x$ contains at least $2^{bh(x)} - 1$ internal nodes.
+**Lemma.** A subtree rooted at $x$ contains at least $2^{\text{bh}(x)} - 1$ internal nodes.
 
 *Proof, by induction on subtree height.*
 
-Base case: $x$ is a null leaf. $bh(x) = 0$, subtree contains $2^0 - 1 = 0$ nodes. True.
+Base case: $x$ is a null leaf. $\text{bh}(x) = 0$, subtree contains $2^0 - 1 = 0$ nodes. True.
 
-Inductive step: each child of $x$ has black-height either $bh(x)$ (if the child is red) or $bh(x) - 1$ (if the child is black). Either way, by the inductive hypothesis each child's subtree has at least $2^{bh(x)-1} - 1$ nodes, so:
+Inductive step: each child of $x$ has black-height either $\text{bh}(x)$ (if the child is red) or $\text{bh}(x) - 1$ (if the child is black). Either way, by the inductive hypothesis each child's subtree has at least $2^{\text{bh}(x)-1} - 1$ nodes, so:
 
-$$\text{size}(x) \ge 2\left(2^{bh(x)-1} - 1\right) + 1 = 2^{bh(x)} - 1$$
+$$\text{size}(x) \ge 2\left(2^{\text{bh}(x)-1} - 1\right) + 1 = 2^{\text{bh}(x)} - 1$$
 
 $\blacksquare$
 
 Now, because rule 4 forbids two reds in a row, at least half the nodes on any root-to-leaf path are black, so if $h$ is the tree's height:
 
-$$bh(\text{root}) \ge h/2$$
+$$\text{bh}(\text{root}) \ge h/2$$
 
 Plugging into the Lemma with $n$ = total nodes:
 
-$$n \ge 2^{bh(\text{root})} - 1 \ge 2^{h/2} - 1$$
+$$n \ge 2^{\text{bh}(\text{root})} - 1 \ge 2^{h/2} - 1$$
 
 $$h \le 2\log_2(n+1)$$
 
@@ -247,7 +247,7 @@ int order_of_key(int q) {
 }
 ```
 
-**Correctness, by induction on the walk.** If $q > x{\to}key$, then every node in $x$'s left subtree is $< x{\to}key < q$ (that's $size(left)$ matches), and $x$ itself is also $< q$ (+1 more) — so we add exactly $size(left)+1$ and recurse right, where any remaining smaller-than-$q$ elements must live. If $q \le x{\to}key$, then $x$ and its whole right subtree are $\ge q$, contributing nothing, and we recurse left. Both branches preserve the invariant "count so far is exactly correct for everything already visited," so by induction the final count is exact. $\blacksquare$
+**Correctness, by induction on the walk.** If $q > x{\to}\text{key}$, then every node in $x$'s left subtree is $< x{\to}\text{key} < q$ (that's $\text{size}(left)$ matches), and $x$ itself is also $< q$ (+1 more) — so we add exactly $\text{size}(left)+1$ and recurse right, where any remaining smaller-than-$q$ elements must live. If $q \le x{\to}\text{key}$, then $x$ and its whole right subtree are $\ge q$, contributing nothing, and we recurse left. Both branches preserve the invariant "count so far is exactly correct for everything already visited," so by induction the final count is exact. $\blacksquare$
 
 **`find_by_order(k)`** — the $k$-th smallest element:
 
@@ -295,11 +295,11 @@ Let's count every single operation exactly, for $n = 2000$ (the worst case, sinc
 
 Total tree operations:
 
-$$T_{total} = 2n^2 \;(\text{prodTree}) + (n^2 + n)\;(\text{aTree}) = 3n^2 + n$$
+$$T_{\text{total}} = 2n^2 \;(\text{prodTree}) + (n^2 + n)\;(\text{aTree}) = 3n^2 + n$$
 
 For $n = 2000$, $n^2 = 4{,}000{,}000$:
 
-$$T_{total} = 3(4{,}000{,}000) + 2000 = 12{,}002{,}000 \text{ tree operations}$$
+$$T_{\text{total}} = 3(4{,}000{,}000) + 2000 = 12{,}002{,}000 \text{ tree operations}$$
 
 Twelve million operations isn't a large number on its own — modern CPUs execute billions of instructions per second. The important question is what each of these operations actually costs on real hardware, not just in theory.
 
@@ -307,11 +307,11 @@ Twelve million operations isn't a large number on its own — modern CPUs execut
 
 prodTree grows up to $n^2 = 4{,}000{,}000$ entries:
 
-$$h_{prodTree} \le 2\log_2(4{,}000{,}001) \approx 2 \times 21.93 \approx 43.9 \rightarrow \textbf{44 pointer hops}$$
+$$h_{\text{prodTree}} \le 2\log_2(4{,}000{,}001) \approx 2 \times 21.93 \approx 43.9 \rightarrow \textbf{44 pointer hops}$$
 
 aTree grows up to $n = 2000$ entries:
 
-$$h_{aTree} \le 2\log_2(2001) \approx 2 \times 10.97 \approx 21.9 \rightarrow \textbf{22 pointer hops}$$
+$$h_{\text{aTree}} \le 2\log_2(2001) \approx 2 \times 10.97 \approx 21.9 \rightarrow \textbf{22 pointer hops}$$
 
 Total pointer traversal steps across the whole run:
 
@@ -426,7 +426,7 @@ This submission passed:
 
 ## Part 6 — Why the Fenwick tree passes: same math, different constant
 
-The Fenwick tree does the *same number* of "logical steps" as the PBDS tree — for $n=2000$, tree height was $\approx 44$ for the big structure and $\approx 22$ for the small one, and a Fenwick tree over the same number of elements needs the same $\lceil \log_2(\text{size}) \rceil$ iterations per `add`/`query`, since each step strips off the lowest set bit. The total operation count $T_{total} = 3n^2+n \approx 12$ million and total "step" count $\approx 4.4 \times 10^8$ are essentially identical to before.
+The Fenwick tree does the *same number* of "logical steps" as the PBDS tree — for $n=2000$, tree height was $\approx 44$ for the big structure and $\approx 22$ for the small one, and a Fenwick tree over the same number of elements needs the same $\lceil \log_2(\text{size}) \rceil$ iterations per `add`/`query`, since each step strips off the lowest set bit. The total operation count $T_{\text{total}} = 3n^2+n \approx 12$ million and total "step" count $\approx 4.4 \times 10^8$ are essentially identical to before.
 
 The difference is entirely in what each step *costs*, physically.
 
