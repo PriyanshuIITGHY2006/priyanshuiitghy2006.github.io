@@ -1,6 +1,6 @@
 import "../styles/blog.css";
 import { resume } from "../data/resume";
-import { BLOG_POSTS, formatBlogDate, type BlogPost } from "../lib/blog";
+import { BLOG_POSTS, formatBlogDate, estimateReadingMinutes, type BlogPost } from "../lib/blog";
 import { SCROLL_TOP_BUTTON_HTML, initScrollTopButton } from "../lib/scroll-top";
 
 function esc(s: string): string {
@@ -22,7 +22,7 @@ function card(p: BlogPost): string {
     <a class="blog-card" href="#/blog?slug=${encodeURIComponent(p.slug)}">
       ${thumb}
       <div class="blog-card-body">
-        ${p.date ? `<div class="blog-card-date">${esc(formatBlogDate(p.date))}</div>` : ""}
+        ${p.date ? `<div class="blog-card-date">${esc(formatBlogDate(p.date))} · ${estimateReadingMinutes(p.rawBody)} min read</div>` : ""}
         <h3 class="blog-card-title">${esc(p.title)}</h3>
         ${p.excerpt ? `<p class="blog-card-excerpt">${esc(p.excerpt)}</p>` : ""}
         ${tagChips(p.tags)}
