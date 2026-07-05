@@ -226,11 +226,7 @@ void rotateLeft(Node* x) {
 ```
 
 **Why nothing above $y$ needs updating:** a rotation doesn't add or remove any nodes from the tree — it just reshuffles which nodes are whose children. Every node outside $\{x, y, \text{the subtree that moved}\}$ still has exactly the same descendants it had before. Since `size` is purely a function of a node's current children, only $x$ and $y$ can possibly have a new size, and $y$ must be recomputed *after* $x$ because $y$'s children now include the corrected $x$.
-:::
 
-check it's uses here.
-:::youtube https://www.youtube.com/watch?v=IWyIwLFucU4
-:::
 ### The two payoff operations
 
 **`order_of_key(q)`** — count of elements strictly less than $q$:
@@ -269,8 +265,11 @@ Node* find_by_order(int k) {
 ```
 
 Both run in time proportional to the height of the tree, which we already proved is $O(\log n)$. So on paper, this gives a fully indexable, rank-queryable balanced BST at $O(\log n)$ per operation.
-
-## Part 5 — Counting exactly how many operations my code did
+:::
+check it's uses here.
+:::youtube https://www.youtube.com/watch?v=IWyIwLFucU4
+:::
+:::spoiler Part 5 — Counting exactly how many operations my code did
 
 Here's the structure of the hot loop in my first (TLE'd) solution:
 
@@ -427,8 +426,8 @@ This submission passed:
 ![Accepted submission](blogs/pbds-vs-fenwick-cache-tle/accepted.png)
 
 3625 ms, inside the 4000 ms limit. The algorithmic complexity didn't change from the first attempt, so the difference has to come from somewhere else.
-
-## Part 6 — Why the Fenwick tree passes: same math, different constant
+:::
+:::spoiler Part 6 — Why the Fenwick tree passes: same math, different constant
 
 The Fenwick tree does the *same number* of "logical steps" as the PBDS tree — for $n=2000$, tree height was $\approx 44$ for the big structure and $\approx 22$ for the small one, and a Fenwick tree over the same number of elements needs the same $\lceil \log_2(\text{size}) \rceil$ iterations per `add`/`query`, since each step strips off the lowest set bit. The total operation count $T_{\text{total}} = 3n^2+n \approx 12$ million and total "step" count $\approx 4.4 \times 10^8$ are essentially identical to before.
 
@@ -448,7 +447,7 @@ $$4.4 \times 10^8 \text{ steps} \times 2\text{ns} \approx 0.88 \text{ seconds}$$
 That's roughly 50x faster than the ~44 second PBDS estimate, for the same number of logical steps. It also removes the other overhead the tree had: no `new` call on every insert (the vector for each Fenwick tree is allocated exactly once, up front), no red-black rebalancing, no rotations, no recoloring, no extra `size` bookkeeping through parent pointers.
 
 The actual submission ran in 3625 ms rather than my rough 0.88s estimate — real code always carries extra constant factor from the modular arithmetic, the `lower_bound` binary searches for coordinate compression, and I/O — but it lands in the same universe as the estimate, and critically, on the correct side of the 4-second wall, instead of ~10x over it.
-
+:::
 ## Summary
 
 Both solutions are $O(n^2 \log n)$. Both perform roughly the same number of logical tree steps. The difference between the TLE and the accepted run came down to where the data physically lives in memory:
