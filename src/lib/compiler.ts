@@ -28,6 +28,7 @@ export function runCode(
 
   return new Promise((resolve, reject) => {
     // Connect to the WebSocket server using your Widget key
+    console.log("Using key:", key);
     const socket = io("wss://api.onlinecompiler.io", {
       auth: { token: key },
       transports: ["websocket"] // Force websockets to avoid CORS polling
