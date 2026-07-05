@@ -107,10 +107,42 @@ export function getPost(slug: string | null): BlogPost | undefined {
 
 // ─── Markdown → sanitized, syntax-highlighted HTML ──────────────────────────
 
+// Fenced blocks tagged "runnable" (e.g. ```cpp runnable) get a Run button.
+// The source text is kept in this registry, keyed by a generated id, rather
+// than serialized into an HTML attribute — that avoids any escaping issues
+// with quotes/angle brackets inside real source code.
+export interface RunnableBlock {
+  code: string;
+  languageId: number;
+  languageLabel: string;
+}
+export const runnableBlocks = new Map<string, RunnableBlock>();
+let runnableCounter = 0;
+
+export function getRunnableBlock(id: string): RunnableBlock | undefined {
+  return runnableBlocks.get(id);
+}
+
+// Judge0 CE's stable language ids (see https://ce.judge0.com/languages/ to
+// confirm/extend). Only languages listed here get a Run button.
+const JUDGE0_LANGUAGE_IDS: Record<string, number> = {
+  cpp: 54,
+  "c++": 54,
+  c: 50,
+  python: 71,
+  py: 71,
+  java: 62,
+  javascript: 63,
+  js: 63,
+};
+
 const renderer = new marked.Renderer();
 
 renderer.code = ({ text, lang }: Tokens.Code): string => {
-  const language = (lang || "").trim().split(/\s+/)[0];
+  const parts = (lang || "").trim().split(/\s+/);
+  const language = parts[0] || "";
+  const isRunnable = parts.slice(1).includes("runnable");
+
   let highlighted: string;
   let usedLang = language;
   try {
@@ -126,17 +158,115 @@ renderer.code = ({ text, lang }: Tokens.Code): string => {
     usedLang = "";
   }
   const langLabel = usedLang ? `<span class="blog-code-lang">${usedLang}</span>` : "";
-  return `<div class="blog-code-block">${langLabel}<pre><code class="hljs${usedLang ? ` language-${usedLang}` : ""}">${highlighted}</code></pre></div>`;
+
+  let runPanel = "";
+  const judge0Id = JUDGE0_LANGUAGE_IDS[language];
+  if (isRunnable && judge0Id) {
+    const id = `run-${++runnableCounter}`;
+    runnableBlocks.set(id, { code: text, languageId: judge0Id, languageLabel: usedLang || language });
+    runPanel = `
+      <div class="blog-run-panel" data-run-id="${id}">
+        <div class="blog-run-controls">
+          <button type="button" class="blog-run-btn" data-run-action="run">Run &#9654;</button>
+          <span class="blog-run-status"></span>
+        </div>
+        <details class="blog-run-stdin">
+          <summary>stdin (optional)</summary>
+          <textarea class="blog-run-stdin-input" rows="3" placeholder="Input for the program, if any"></textarea>
+        </details>
+        <pre class="blog-run-output" hidden></pre>
+      </div>`;
+  }
+
+  return `<div class="blog-code-block">${langLabel}<pre><code class="hljs${usedLang ? ` language-${usedLang}` : ""}">${highlighted}</code></pre></div>${runPanel}`;
 };
 
-marked.use({ renderer, breaks: false, gfm: true });
+// ─── Editorial-style spoiler / hint blocks ──────────────────────────────────
+// :::spoiler Hint 1
+// Markdown content, rendered as usual, hidden behind a native <details>.
+// :::
+interface SpoilerToken extends Tokens.Generic {
+  type: "spoiler";
+  title: string;
+  text: string;
+  tokens: Tokens.Generic[];
+}
+
+const spoilerExtension = {
+  name: "spoiler",
+  level: "block" as const,
+  start(src: string): number | undefined {
+    const idx = src.indexOf(":::spoiler");
+    return idx === -1 ? undefined : idx;
+  },
+  tokenizer(this: { lexer: { blockTokens: (s: string, t: Tokens.Generic[]) => void } }, src: string) {
+    const match = /^:::spoiler([^\n]*)\n([\s\S]*?)\n:::(?:\n|$)/.exec(src);
+    if (!match) return undefined;
+    const token: SpoilerToken = {
+      type: "spoiler",
+      raw: match[0],
+      title: match[1].trim() || "Hint",
+      text: match[2],
+      tokens: [],
+    };
+    this.lexer.blockTokens(token.text, token.tokens);
+    return token;
+  },
+  renderer(this: { parser: { parse: (t: Tokens.Generic[]) => string } }, token: Tokens.Generic): string {
+    const t = token as SpoilerToken;
+    const body = this.parser.parse(t.tokens);
+    return `<details class="blog-spoiler"><summary>${t.title}</summary><div class="blog-spoiler-body">${body}</div></details>`;
+  },
+};
+
+// ─── Video embeds ────────────────────────────────────────────────────────────
+// :::youtube dQw4w9WgXcQ         (or a full youtube.com/youtu.be URL)
+// :::
+interface VideoToken extends Tokens.Generic {
+  type: "youtube";
+  videoId: string;
+}
+
+function extractYouTubeId(input: string): string {
+  const trimmed = input.trim();
+  const m = trimmed.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([\w-]{6,})/);
+  return m ? m[1] : trimmed;
+}
+
+const youtubeExtension = {
+  name: "youtube",
+  level: "block" as const,
+  start(src: string): number | undefined {
+    const idx = src.indexOf(":::youtube");
+    return idx === -1 ? undefined : idx;
+  },
+  tokenizer(src: string) {
+    const match = /^:::youtube[ \t]+(\S+)[ \t]*\n?:::(?:\n|$)/.exec(src);
+    if (!match) return undefined;
+    const token: VideoToken = { type: "youtube", raw: match[0], videoId: extractYouTubeId(match[1]) };
+    return token;
+  },
+  renderer(token: Tokens.Generic): string {
+    const t = token as VideoToken;
+    return `<div class="blog-video-embed"><iframe src="https://www.youtube-nocookie.com/embed/${t.videoId}" title="Embedded video" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>`;
+  },
+};
+
+marked.use({ renderer, breaks: false, gfm: true, extensions: [spoilerExtension, youtubeExtension] });
 marked.use(markedKatex({ throwOnError: false, nonStandard: true }));
 
 export function renderMarkdown(md: string): string {
   const html = marked.parse(md, { async: false }) as string;
   return DOMPurify.sanitize(html, {
-    ADD_TAGS: ["span"],
-    ADD_ATTR: ["target", "rel", "class"],
+    // This content is authored solely by the site owner via files in
+    // src/data/blogs/ — never from user input (comments go through esc(),
+    // not this function) — so allowing iframe embeds here is safe.
+    ADD_TAGS: ["span", "iframe", "button", "textarea", "details", "summary"],
+    ADD_ATTR: [
+      "target", "rel", "class",
+      "src", "title", "loading", "referrerpolicy", "allow", "allowfullscreen", "frameborder",
+      "rows", "placeholder", "hidden", "type", "open",
+    ],
     // KaTeX renders to a mix of HTML, MathML, and SVG (for radicals, etc.) —
     // these profiles let that markup through while DOMPurify still strips
     // scripts, event handlers, and anything unsafe.
@@ -149,4 +279,15 @@ export function formatBlogDate(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
   return d.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+}
+
+/** Rough reading time, similar to Medium's estimate (~200 words/minute). */
+export function estimateReadingMinutes(markdown: string): number {
+  const words = markdown
+    .replace(/```[\s\S]*?```/g, " ")
+    .replace(/:::[a-z]+[^\n]*\n[\s\S]*?\n:::/g, " ")
+    .replace(/[#>*_`~-]/g, " ")
+    .split(/\s+/)
+    .filter(Boolean).length;
+  return Math.max(1, Math.round(words / 200));
 }
