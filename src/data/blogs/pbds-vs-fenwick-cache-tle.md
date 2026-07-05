@@ -348,7 +348,7 @@ Estimated total: ~44 seconds. The actual time limit is 4 seconds — roughly 11x
 In practice not every single hop costs the full 100 ns — the top few levels of an actively-used tree tend to stay in L2/L3 cache, which is why the real run finished in some large but finite time rather than a literal 44 seconds before Codeforces terminated it. But the order of magnitude, tens of seconds needed versus 4 allowed, is enough to explain the failure on its own.
 
 The algorithmic complexity, $O(n^2 \log n)$, was completely correct. The problem was that the constant hidden inside that $\log n$ was roughly **100x larger** than it needed to be, purely because of how the data was laid out in memory.
-
+:::
 ## Attempt #2: swap the tree for a flat array
 
 The fix keeps the exact same math — same comparisons, same accumulation logic — and only changes the data structure. Instead of a Red-Black tree of heap nodes, I use coordinate compression plus a **Fenwick tree** (Binary Indexed Tree) backed by one contiguous `vector<int>`.
@@ -426,7 +426,7 @@ This submission passed:
 ![Accepted submission](blogs/pbds-vs-fenwick-cache-tle/accepted.png)
 
 3625 ms, inside the 4000 ms limit. The algorithmic complexity didn't change from the first attempt, so the difference has to come from somewhere else.
-:::
+
 :::spoiler Part 6 — Why the Fenwick tree passes: same math, different constant
 
 The Fenwick tree does the *same number* of "logical steps" as the PBDS tree — for $n=2000$, tree height was $\approx 44$ for the big structure and $\approx 22$ for the small one, and a Fenwick tree over the same number of elements needs the same $\lceil \log_2(\text{size}) \rceil$ iterations per `add`/`query`, since each step strips off the lowest set bit. The total operation count $T_{\text{total}} = 3n^2+n \approx 12$ million and total "step" count $\approx 4.4 \times 10^8$ are essentially identical to before.
