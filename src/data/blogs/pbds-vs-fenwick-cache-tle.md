@@ -227,6 +227,10 @@ void rotateLeft(Node* x) {
 
 **Why nothing above $y$ needs updating:** a rotation doesn't add or remove any nodes from the tree — it just reshuffles which nodes are whose children. Every node outside $\{x, y, \text{the subtree that moved}\}$ still has exactly the same descendants it had before. Since `size` is purely a function of a node's current children, only $x$ and $y$ can possibly have a new size, and $y$ must be recomputed *after* $x$ because $y$'s children now include the corrected $x$.
 :::
+
+check it's uses here.
+:::youtube https://www.youtube.com/watch?v=IWyIwLFucU4
+:::
 ### The two payoff operations
 
 **`order_of_key(q)`** — count of elements strictly less than $q$:
