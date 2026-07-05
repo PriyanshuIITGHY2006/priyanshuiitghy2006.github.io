@@ -145,8 +145,7 @@ If the new node's parent is black, nothing broke — done. If the parent is also
 ```
 
 It's three pointer reassignments — $O(1)$ work — but it locally reshuffles the shape of the tree. A right rotation is the mirror image. Depending on whether the violation is a "straight line" or a "zig-zag," you need one rotation plus a recolor, or two rotations plus a recolor.
-:::
-:::spoiler A worked example
+## A worked example
 
 Insert `10, 20, 30, 15, 5` one at a time.
 
