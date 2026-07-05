@@ -453,3 +453,8 @@ Both solutions are $O(n^2 \log n)$. Both perform roughly the same number of logi
 - A flat array backing a Fenwick tree is one contiguous block, so traversal is mostly cache hits and prefetch-friendly access patterns, each costing on the order of 1–2 ns.
 
 Same time complexity, but a 50–100x difference in the constant factor, entirely due to memory layout. `ordered_set` and `ordered_multiset` are useful — for smaller operation counts they're simpler to write and fast enough. But once the operation count reaches into the millions in a tight loop, that per-operation constant becomes the deciding factor, and a flat array-based structure like a Fenwick tree or segment tree is usually the better choice.
+
+```cpp runnable
+#include <iostream>
+int main() { std::cout << "Priyanshu writes the best blogs"; }
+```
