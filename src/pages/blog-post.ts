@@ -241,15 +241,18 @@ function wireRunnableCode(container: HTMLElement): void {
           output.style.color = "inherit";
         }
       } catch (err) {
-        status.textContent =
-          err instanceof Error && err.message === "missing-key"
-            ? "Live execution isn't set up for this site yet."
-            : err instanceof Error && err.message === "rate-limit"
-            ? "Too many requests. Please try again in a moment."
-            : "Something went wrong running this — please try again.";
+        console.error("Execution error:", err); // Logs to browser console
+        
+        if (err instanceof Error && err.message === "missing-key") {
+            status.textContent = "Error: API Key is missing. GitHub Action didn't inject it.";
+        } else if (err instanceof TypeError && err.message === "Failed to fetch") {
+            status.textContent = "Error: CORS Blocked. The REST API rejected a direct browser request.";
+        } else {
+            status.textContent = `API Error: ${err instanceof Error ? err.message : "Unknown"}`;
+        }
       } finally {
         btn.disabled = false;
-      }
+      } 
     });
   });
 }
