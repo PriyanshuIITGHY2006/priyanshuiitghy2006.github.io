@@ -2,7 +2,9 @@ import "../styles/blog.css";
 import "katex/dist/katex.min.css";
 import { resume } from "../data/resume";
 import { getPost, formatBlogDate, renderMarkdown, estimateReadingMinutes, getRunnableBlock } from "../lib/blog";
-import { runOnJudge0 } from "../lib/judge0";
+// Replace Judge0 import:
+// import { runOnJudge0 } from "../lib/judge0";
+import { runCode } from "../lib/compiler";
 import {
   getBlogStats,
   recordView,
@@ -218,19 +220,32 @@ function wireRunnableCode(container: HTMLElement): void {
       btn.disabled = true;
       status.textContent = "Running…";
       output.hidden = true;
+      output.classList.remove("blog-run-error"); // optional: clear previous error styles
 
       try {
-        const result = await runOnJudge0(block.languageId, block.code, stdinInput?.value ?? "");
-        const sections = [result.compile_output, result.stdout, result.stderr]
+        const result = await runCode(block.compilerId, block.code, stdinInput?.value ?? "");
+        
+        // OnlineCompiler combines stdout and stderr into output/error fields
+        const sections = [result.output, result.error]
           .map((s) => (s ?? "").trim())
           .filter(Boolean);
-        output.textContent = sections.length ? sections.join("\n\n") : `(no output — ${result.status.description})`;
+          
+        output.textContent = sections.length ? sections.join("\n\n") : "(no output)";
         output.hidden = false;
-        status.textContent = result.status.description;
+        
+        if (result.status === "error") {
+          status.textContent = `Error (Exit Code: ${result.exit_code})`;
+          output.style.color = "#ff6b6b"; // optional visual feedback for errors
+        } else {
+          status.textContent = `Finished in ${result.time}s`;
+          output.style.color = "inherit";
+        }
       } catch (err) {
         status.textContent =
           err instanceof Error && err.message === "missing-key"
             ? "Live execution isn't set up for this site yet."
+            : err instanceof Error && err.message === "rate-limit"
+            ? "Too many requests. Please try again in a moment."
             : "Something went wrong running this — please try again.";
       } finally {
         btn.disabled = false;
