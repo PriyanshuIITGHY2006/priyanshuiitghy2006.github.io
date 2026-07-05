@@ -56,7 +56,7 @@ Two attempts, both failing on the same test. At that point I didn't think much, 
 
 To understand where the time was going, it helps to understand what `ordered_multiset` actually is under the hood. So let's build up a Red-Black tree from the basics.
 
-::: Part 1 — Why a plain BST isn't enough
+:::spoiler Part 1 — Why a plain BST isn't enough
 
 A Binary Search Tree is a tree where, for every node, everything in the left subtree is smaller and everything in the right subtree is bigger.
 
@@ -84,7 +84,7 @@ But if you insert values in sorted order — 1, 2, 3, 4, 5 — the tree degenera
 
 Now height equals $n$, not $\log n$, and every operation costs $O(n)$. This is the reason self-balancing trees exist: they force the height to stay logarithmic regardless of insertion order.
 :::
-::: Part 2 — The Red-Black invariants
+:::spoiler Part 2 — The Red-Black invariants
 
 A Red-Black tree colors every node red or black and enforces five rules:
 
@@ -96,7 +96,7 @@ A Red-Black tree colors every node red or black and enforces five rules:
 
 Rule 5 is the one doing the real work. It doesn't force every path to be the *same length* — it forces the number of *black* nodes on every path to match. Combined with rule 4 (reds can't stack), this caps how much longer any path can be than any other: at most a factor of 2.
 :::
-::: The proof that height stays $O(\log n)$
+:::spoiler The proof that height stays $O(\log n)$
 
 Define $\text{bh}(x)$ as the black-height of node $x$: the number of black nodes from $x$ down to a null leaf (not counting $x$ itself).
 
@@ -124,7 +124,7 @@ $$h \le 2\log_2(n+1)$$
 
 That's the guarantee. However you insert data, height never exceeds roughly twice $\log_2 n$.
 :::
-::: Part 3 — Fixing violations: rotations
+:::spoiler Part 3 — Fixing violations: rotations
 
 When you insert a new node, it always starts **red** (inserting black would instantly break rule 5 on one path; inserting red might break rule 4, which is locally repairable).
 
@@ -146,7 +146,7 @@ If the new node's parent is black, nothing broke — done. If the parent is also
 
 It's three pointer reassignments — $O(1)$ work — but it locally reshuffles the shape of the tree. A right rotation is the mirror image. Depending on whether the violation is a "straight line" or a "zig-zag," you need one rotation plus a recolor, or two rotations plus a recolor.
 :::
-::: A worked example
+:::spoiler A worked example
 
 Insert `10, 20, 30, 15, 5` one at a time.
 
@@ -197,7 +197,7 @@ Insert `10, 20, 30, 15, 5` one at a time.
 
 Tree is balanced, all 5 rules hold.
 :::
-::: Part 4 — Turning it into an order-statistics tree
+:::spoiler Part 4 — Turning it into an order-statistics tree
 
 A plain `std::set` is a Red-Black tree, but it can't answer "how many elements are smaller than $x$?" or "what's the $k$-th smallest element?" in $O(\log n)$ — because a node in a plain RB tree only knows its own key and its children's pointers. It has no idea how many descendants it has.
 
