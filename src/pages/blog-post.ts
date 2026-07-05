@@ -10,6 +10,7 @@ import {
   submitComment,
   type BlogComment,
 } from "../lib/blog-engagement";
+import { SCROLL_TOP_BUTTON_HTML, initScrollTopButton } from "../lib/scroll-top";
 
 function esc(s: string): string {
   return s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c] as string));
@@ -106,6 +107,7 @@ function pageHtml(slug: string | null): string {
           <a class="pj-link" href="#/blogs">← All posts</a>
         </div>
       </div>
+      ${SCROLL_TOP_BUTTON_HTML}
     </article>`;
 }
 
@@ -119,6 +121,7 @@ export function mountBlogPost(container: HTMLElement, slug: string | null): void
   void loadEngagement(container, post.slug);
   wireLikeButton(container, post.slug);
   wireCommentForm(container, post.slug);
+  initScrollTopButton(container);
 }
 
 async function loadEngagement(container: HTMLElement, slug: string): Promise<void> {
