@@ -1,7 +1,8 @@
 import "../styles/blog.css";
 import "katex/dist/katex.min.css";
 import { resume } from "../data/resume";
-import { getPost, formatBlogDate, renderMarkdown } from "../lib/blog";
+import { getPost, formatBlogDate, renderMarkdown, estimateReadingMinutes, getRunnableBlock } from "../lib/blog";
+import { runOnJudge0 } from "../lib/judge0";
 import {
   getBlogStats,
   recordView,
@@ -97,6 +98,7 @@ function pageHtml(slug: string | null): string {
           <h1 class="blog-post-title">${esc(post.title)}</h1>
           <div class="blog-post-meta">
             ${post.date ? `<span class="blog-post-date">${esc(formatBlogDate(post.date))}</span>` : ""}
+            <span class="blog-post-read-time">${estimateReadingMinutes(post.rawBody)} min read</span>
             ${tags}
           </div>
         </header>
@@ -121,6 +123,7 @@ export function mountBlogPost(container: HTMLElement, slug: string | null): void
   void loadEngagement(container, post.slug);
   wireLikeButton(container, post.slug);
   wireCommentForm(container, post.slug);
+  wireRunnableCode(container);
   initScrollTopButton(container);
 }
 
@@ -196,5 +199,42 @@ function wireCommentForm(container: HTMLElement, slug: string): void {
     } finally {
       submitBtn.disabled = false;
     }
+  });
+}
+
+function wireRunnableCode(container: HTMLElement): void {
+  container.querySelectorAll<HTMLElement>(".blog-run-panel").forEach((panel) => {
+    const id = panel.dataset.runId;
+    const btn = panel.querySelector<HTMLButtonElement>('[data-run-action="run"]');
+    const status = panel.querySelector<HTMLElement>(".blog-run-status");
+    const stdinInput = panel.querySelector<HTMLTextAreaElement>(".blog-run-stdin-input");
+    const output = panel.querySelector<HTMLElement>(".blog-run-output");
+    if (!id || !btn || !status || !output) return;
+
+    btn.addEventListener("click", async () => {
+      const block = getRunnableBlock(id);
+      if (!block) return;
+
+      btn.disabled = true;
+      status.textContent = "Running…";
+      output.hidden = true;
+
+      try {
+        const result = await runOnJudge0(block.languageId, block.code, stdinInput?.value ?? "");
+        const sections = [result.compile_output, result.stdout, result.stderr]
+          .map((s) => (s ?? "").trim())
+          .filter(Boolean);
+        output.textContent = sections.length ? sections.join("\n\n") : `(no output — ${result.status.description})`;
+        output.hidden = false;
+        status.textContent = result.status.description;
+      } catch (err) {
+        status.textContent =
+          err instanceof Error && err.message === "missing-key"
+            ? "Live execution isn't set up for this site yet."
+            : "Something went wrong running this — please try again.";
+      } finally {
+        btn.disabled = false;
+      }
+    });
   });
 }
