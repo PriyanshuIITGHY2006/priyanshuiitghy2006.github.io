@@ -17,6 +17,8 @@ Not just using `new` and `delete` like a normal person. I wanted to know what th
 I read some of the usual stuff first. Blog posts. Docs. A couple of CppCon talks:
 
 - [How to Write a Custom Allocator — Bob Steagall, CppCon 2017](https://www.youtube.com/watch?v=kSWfushlvB8)
+:::youtube [https://www.youtube.com/watch?v=dQw4w9WgXcQ](https://www.youtube.com/watch?v=kSWfushlvB8)
+:::
 - [An Allocator is a Handle to a Heap — Arthur O'Dwyer, CppCon 2018](https://www.youtube.com/watch?v=IejdKidUwIg)
 - [How to Write a Heap Memory Profiler — Milian Wolff, CppCon 2019](https://www.youtube.com/watch?v=YB0QoWI-g8E)
 
