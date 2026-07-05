@@ -1,7 +1,14 @@
 import "../styles/blog.css";
 import "katex/dist/katex.min.css";
 import { resume } from "../data/resume";
-import { getPost, formatBlogDate, renderMarkdown, estimateReadingMinutes, getRunnableBlock } from "../lib/blog";
+import { 
+  getPost, 
+  formatBlogDate, 
+  renderMarkdown, 
+  estimateReadingMinutes, 
+  getRunnableBlock,
+  BLOG_POSTS 
+} from "../lib/blog";
 // Replace Judge0 import:
 // import { runOnJudge0 } from "../lib/judge0";
 import { runCode } from "../lib/compiler";
@@ -107,7 +114,8 @@ function pageHtml(slug: string | null): string {
         ${post.cover ? `<figure class="blog-post-cover"><img src="${esc(post.cover)}" alt=""/></figure>` : ""}
         <div class="blog-content">${renderMarkdown(post.rawBody)}</div>
         ${engagementShell()}
-        <div class="section-more">
+        
+        ${getReadMoreHtml(post.slug)} <div class="section-more" style="margin-top: 2rem;">
           <a class="pj-link" href="#/blogs">← All posts</a>
         </div>
       </div>
@@ -281,4 +289,40 @@ function wireFloatingVideos(container: HTMLElement): void {
   );
 
   wrappers.forEach((w) => observer.observe(w));
+}
+function getReadMoreHtml(currentSlug: string): string {
+  // Get up to 2 posts that aren't the one currently being read
+  const otherPosts = BLOG_POSTS.filter((p) => p.slug !== currentSlug).slice(0, 2);
+  
+  if (otherPosts.length === 0) return "";
+
+  const cardsHtml = otherPosts.map(p => {
+    const thumb = p.cover
+      ? `<div class="blog-card-thumb"><img src="${esc(p.cover)}" alt="" loading="lazy"/></div>`
+      : `<div class="blog-card-thumb blog-card-thumb-empty" aria-hidden="true">§</div>`;
+
+    const tags = p.tags.length
+      ? `<div class="blog-card-tags">${p.tags.map((t) => `<span class="blog-tag">${esc(t)}</span>`).join("")}</div>`
+      : "";
+
+    return `
+      <a class="blog-card" href="#/blog?slug=${encodeURIComponent(p.slug)}">
+        ${thumb}
+        <div class="blog-card-body">
+          ${p.date ? `<div class="blog-card-date">${esc(formatBlogDate(p.date))} · ${estimateReadingMinutes(p.rawBody)} min read</div>` : ""}
+          <h3 class="blog-card-title">${esc(p.title)}</h3>
+          ${p.excerpt ? `<p class="blog-card-excerpt">${esc(p.excerpt)}</p>` : ""}
+          ${tags}
+        </div>
+      </a>`;
+  }).join("");
+
+  return `
+    <div class="blog-read-more" style="margin-top: 3rem; padding-top: 1.5rem; border-top: 0.6px solid #ddd;">
+      <h3 class="section" style="margin-top: 0; border: none; padding: 0;">Read more</h3>
+      <div class="blog-grid" style="margin-top: 1rem;">
+        ${cardsHtml}
+      </div>
+    </div>
+  `;
 }
