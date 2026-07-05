@@ -1,6 +1,7 @@
 import "../styles/blog.css";
 import { resume } from "../data/resume";
 import { BLOG_POSTS, formatBlogDate, type BlogPost } from "../lib/blog";
+import { SCROLL_TOP_BUTTON_HTML, initScrollTopButton } from "../lib/scroll-top";
 
 function esc(s: string): string {
   return s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c] as string));
@@ -46,6 +47,7 @@ function pageHtml(): string {
         </p>
         ${body}
       </div>
+      ${SCROLL_TOP_BUTTON_HTML}
     </article>`;
 }
 
@@ -53,4 +55,5 @@ function pageHtml(): string {
 // there is nothing async to load — render once.
 export function mountBlogs(container: HTMLElement): void {
   container.innerHTML = pageHtml();
+  initScrollTopButton(container);
 }
