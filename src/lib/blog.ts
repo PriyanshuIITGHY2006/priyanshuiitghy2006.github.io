@@ -111,9 +111,11 @@ export function getPost(slug: string | null): BlogPost | undefined {
 // The source text is kept in this registry, keyed by a generated id, rather
 // than serialized into an HTML attribute — that avoids any escaping issues
 // with quotes/angle brackets inside real source code.
+// In src/lib/blog.ts
+
 export interface RunnableBlock {
   code: string;
-  languageId: number;
+  compilerId: string; // Changed from languageId: number
   languageLabel: string;
 }
 export const runnableBlocks = new Map<string, RunnableBlock>();
@@ -123,17 +125,20 @@ export function getRunnableBlock(id: string): RunnableBlock | undefined {
   return runnableBlocks.get(id);
 }
 
-// Judge0 CE's stable language ids (see https://ce.judge0.com/languages/ to
-// confirm/extend). Only languages listed here get a Run button.
-const JUDGE0_LANGUAGE_IDS: Record<string, number> = {
-  cpp: 54,
-  "c++": 54,
-  c: 50,
-  python: 71,
-  py: 71,
-  java: 62,
-  javascript: 63,
-  js: 63,
+// Map markdown language tags to OnlineCompiler string IDs
+const COMPILER_IDS: Record<string, string> = {
+  cpp: "g++-15",
+  "c++": "g++-15",
+  c: "gcc-15",
+  python: "python-3.14",
+  py: "python-3.14",
+  java: "openjdk-25",
+  javascript: "typescript-deno",
+  js: "typescript-deno",
+  typescript: "typescript-deno",
+  ts: "typescript-deno",
+  rust: "rust-1.93",
+  go: "go-1.26"
 };
 
 const renderer = new marked.Renderer();
@@ -159,11 +164,13 @@ renderer.code = ({ text, lang }: Tokens.Code): string => {
   }
   const langLabel = usedLang ? `<span class="blog-code-lang">${usedLang}</span>` : "";
 
+  // Inside renderer.code in src/lib/blog.ts ...
+  
   let runPanel = "";
-  const judge0Id = JUDGE0_LANGUAGE_IDS[language];
-  if (isRunnable && judge0Id) {
+  const compilerId = COMPILER_IDS[language];
+  if (isRunnable && compilerId) {
     const id = `run-${++runnableCounter}`;
-    runnableBlocks.set(id, { code: text, languageId: judge0Id, languageLabel: usedLang || language });
+    runnableBlocks.set(id, { code: text, compilerId: compilerId, languageLabel: usedLang || language });
     runPanel = `
       <div class="blog-run-panel" data-run-id="${id}">
         <div class="blog-run-controls">
