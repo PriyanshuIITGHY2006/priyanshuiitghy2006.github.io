@@ -126,6 +126,7 @@ export function mountBlogPost(container: HTMLElement, slug: string | null): void
   wireLikeButton(container, post.slug);
   wireCommentForm(container, post.slug);
   wireRunnableCode(container);
+  wireFloatingVideos(container);
   initScrollTopButton(container);
 }
 
@@ -255,4 +256,29 @@ function wireRunnableCode(container: HTMLElement): void {
       } 
     });
   });
+}
+// Add this at the bottom of src/pages/blog-post.ts:
+
+function wireFloatingVideos(container: HTMLElement): void {
+  const wrappers = container.querySelectorAll<HTMLElement>(".blog-video-embed");
+  if (!wrappers.length) return;
+
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        const iframe = entry.target.querySelector("iframe");
+        if (!iframe) return;
+
+        // boundingClientRect.bottom < 0 checks if the element has scrolled UP past the viewport
+        if (!entry.isIntersecting && entry.boundingClientRect.bottom < 0) {
+          iframe.classList.add("floating");
+        } else {
+          iframe.classList.remove("floating");
+        }
+      });
+    },
+    { threshold: 0 } // Triggers exactly when the wrapper fully leaves or enters the viewport
+  );
+
+  wrappers.forEach((w) => observer.observe(w));
 }
