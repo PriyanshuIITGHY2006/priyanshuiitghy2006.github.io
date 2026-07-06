@@ -18,6 +18,8 @@ function linkBtn(p: DetailedProject): string {
   }
   if (p.verifyImg) {
     parts.push(`<a class="pj-link pj-verify" href="#/gallery?img=${encodeURIComponent(p.verifyImg)}">Verify ✓</a>`);
+  } else if (p.verify) {
+    parts.push(`<a class="pj-link pj-verify" href="#/gallery?img=${encodeURIComponent(a.verify)}">View work</a>`);
   }
   return parts.length ? `<div class="pj-links">${parts.join("")}</div>` : "";
 }
