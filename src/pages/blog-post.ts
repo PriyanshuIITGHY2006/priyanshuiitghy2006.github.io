@@ -220,6 +220,10 @@ function wireRunnableCode(container: HTMLElement): void {
     const status = panel.querySelector<HTMLElement>(".blog-run-status");
     const stdinInput = panel.querySelector<HTMLTextAreaElement>(".blog-run-stdin-input");
     const output = panel.querySelector<HTMLElement>(".blog-run-output");
+    
+    // NEW: Find the hidden Turnstile input field
+    const turnstileInput = panel.querySelector<HTMLInputElement>('[name="cf-turnstile-response"]');
+
     if (!id || !btn || !status || !output) return;
 
     btn.addEventListener("click", async () => {
@@ -229,38 +233,23 @@ function wireRunnableCode(container: HTMLElement): void {
       btn.disabled = true;
       status.textContent = "Running…";
       output.hidden = true;
-      output.classList.remove("blog-run-error"); // optional: clear previous error styles
 
       try {
+        // Updated call: We no longer need to manually grab the token from the DOM 
+        // because we updated compiler.ts to do it. Just call runCode:
         const result = await runCode(block.compilerId, block.code, stdinInput?.value ?? "");
         
-        // OnlineCompiler combines stdout and stderr into output/error fields
-        const sections = [result.output, result.error]
-          .map((s) => (s ?? "").trim())
-          .filter(Boolean);
-          
+        // ... (Keep your existing output parsing logic here)
+        const sections = [result.output, result.error].map((s) => (s ?? "").trim()).filter(Boolean);
         output.textContent = sections.length ? sections.join("\n\n") : "(no output)";
         output.hidden = false;
-        
-        if (result.status === "error") {
-          status.textContent = `Error (Exit Code: ${result.exit_code})`;
-          output.style.color = "#ff6b6b"; // optional visual feedback for errors
-        } else {
-          status.textContent = `Finished in ${result.time}s`;
-          output.style.color = "inherit";
-        }
+        status.textContent = `Finished in ${result.time}s`;
       } catch (err) {
-        console.error("Execution error:", err); // Logs to browser console
-        
-        if (err instanceof Error && err.message === "missing-key") {
-            status.textContent = "Error: API Key is missing. GitHub Action didn't inject it.";
-        } else if (err instanceof TypeError && err.message === "Failed to fetch") {
-            status.textContent = "Error: CORS Blocked. The REST API rejected a direct browser request.";
-        } else {
-            status.textContent = `API Error: ${err instanceof Error ? err.message : "Unknown"}`;
-        }
+        status.textContent = `API Error: ${err instanceof Error ? err.message : "Unknown"}`;
       } finally {
         btn.disabled = false;
+        // IMPORTANT: Reset the Turnstile widget so they can run code again
+        (window as any).turnstile?.reset();
       } 
     });
   });
