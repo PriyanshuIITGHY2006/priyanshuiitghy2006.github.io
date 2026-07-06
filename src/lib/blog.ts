@@ -166,15 +166,23 @@ renderer.code = ({ text, lang }: Tokens.Code): string => {
 
   // Inside renderer.code in src/lib/blog.ts ...
   
-  let runPanel = "";
+let runPanel = "";
   const compilerId = COMPILER_IDS[language];
   if (isRunnable && compilerId) {
     const id = `run-${++runnableCounter}`;
     runnableBlocks.set(id, { code: text, compilerId: compilerId, languageLabel: usedLang || language });
+    
+    // We inject the Turnstile site key from your environment variables
+    const siteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY;
+    
     runPanel = `
       <div class="blog-run-panel" data-run-id="${id}">
+        <!-- Cloudflare Turnstile Anti-Bot Widget -->
+        <div class="cf-turnstile" data-sitekey="${siteKey}" data-callback="enableRunButton"></div>
+
         <div class="blog-run-controls">
-          <button type="button" class="blog-run-btn" data-run-action="run">Run &#9654;</button>
+          <!-- Button is disabled by default until the Turnstile green tick appears -->
+          <button type="button" class="blog-run-btn" data-run-action="run" disabled>Run &#9654;</button>
           <span class="blog-run-status"></span>
         </div>
         <details class="blog-run-stdin">
