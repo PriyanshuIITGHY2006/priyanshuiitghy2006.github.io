@@ -105,6 +105,7 @@ export const PROJECTS: DetailedProject[] = [
     date: "Dec 2025 – Jan 2026",
     stack: ["Python", "Game Theory", "Stochastic Modeling"],
     link: { label: "LinkedIn", href: "https://www.linkedin.com/in/priyanshu-debnath-3a81711b3" },
+    verify: "kelly-criterion",
     tagline:
       "A betting-strategy engine that adapts the Kelly criterion to games where you cannot bet an arbitrary fraction of your bankroll.",
     detail: [
