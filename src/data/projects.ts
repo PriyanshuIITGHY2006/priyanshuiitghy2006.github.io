@@ -13,6 +13,7 @@ export interface DetailedProject {
   /** Gallery image id for a "Verify" deep-link (#/gallery?img=<id>). */
   verifyImg?: string;
   /** One-line "what it is". */
+  verify?: string;
   tagline: string;
   /** Detailed understanding — rendered as paragraphs. */
   detail: string[];
