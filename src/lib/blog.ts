@@ -178,7 +178,7 @@ let runPanel = "";
     runPanel = `
       <div class="blog-run-panel" data-run-id="${id}">
         <!-- Cloudflare Turnstile Anti-Bot Widget -->
-        <div class="cf-turnstile" data-sitekey="${siteKey}" data-callback="enableRunButton"></div>
+        <div class="cf-turnstile" data-sitekey="${siteKey}"></div>
 
         <div class="blog-run-controls">
           <!-- Button is disabled by default until the Turnstile green tick appears -->
@@ -263,7 +263,7 @@ const youtubeExtension = {
   },
   renderer(token: Tokens.Generic): string {
     const t = token as VideoToken;
-    return `<div class="blog-video-embed"><iframe src="https://www.youtube-nocookie.com/embed/${t.videoId}" title="Embedded video" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>`;
+    return `<div class="blog-video-embed"><iframe src="https://www.youtube-nocookie.com/embed/${t.videoId}" title="Embedded video" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe><button type="button" class="blog-video-close" aria-label="Close floating video">&times;</button></div>`;
   },
 };
 
