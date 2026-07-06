@@ -265,7 +265,7 @@ function wireRunnableCode(container: HTMLElement): void {
 }
 
 // Ensure this is defined at the top level of the file
-(window as any).enablerRunButton = () => {
+(window as any).enableRunButton = () => {
   // Find all run buttons and enable them
   const btns = document.querySelectorAll('[data-run-action="run"]');
   btns.forEach(btn => (btn as HTMLButtonElement).disabled = false);
