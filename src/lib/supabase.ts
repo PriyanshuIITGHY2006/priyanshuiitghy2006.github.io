@@ -2,9 +2,9 @@ import { createClient } from "@supabase/supabase-js";
 import type { ResumeData } from "../types";
 import { resume as staticResume } from "../data/resume";
 
-const SUPABASE_URL = "https://vadbagtnekrjwrimvgxe.supabase.co";
-const SUPABASE_ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhZGJhZ3RuZWtyandyaW12Z3hlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1MDYyMjQsImV4cCI6MjA5NjA4MjIyNH0.u-nRlL0onDRezJVmQyAtfNMQxcyGq6hPk688hdZiK28";
+// Pull credentials securely from Vite environment variables
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
