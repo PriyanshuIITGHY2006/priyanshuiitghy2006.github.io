@@ -1,5 +1,4 @@
 // src/lib/compiler.ts
-import { io } from "socket.io-client";
 
 export interface CompilerResult {
   output: string;
@@ -11,55 +10,59 @@ export interface CompilerResult {
   memory: string;
 }
 
+// Since the API key is now safely on the backend, the frontend is always "configured"
 export function isCompilerConfigured(): boolean {
-  return Boolean(import.meta.env.VITE_ONLINE_COMPILER_KEY);
+  return true; 
 }
 
-export function runCode(
+export async function runCode(
   compilerId: string,
   sourceCode: string,
   stdin: string,
 ): Promise<CompilerResult> {
-  const key = import.meta.env.VITE_ONLINE_COMPILER_KEY as string | undefined;
-  
-  if (!key) {
-    return Promise.reject(new Error("missing-key"));
-  }
+  const PROXY_URL = "https://vadbagtnekrjwrimvgxe.supabase.co/functions/v1/smooth-endpoint";
 
-  return new Promise((resolve, reject) => {
-    // Connect to the WebSocket server using your Widget key
-    console.log("Using key:", key);
-    const socket = io("wss://api.onlinecompiler.io", {
-      auth: { token: key },
-      transports: ["websocket"] // Force websockets to avoid CORS polling
-    });
+  // Replicate your original 35-second safety timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 35000);
 
-    // Safety timeout: The API has a 30s limit, so we kill the socket if it hangs for 35s
-    const timeout = setTimeout(() => {
-      socket.disconnect();
-      reject(new Error("timeout"));
-    }, 35000);
-
-    socket.on("connect", () => {
-      // Send the code execution payload
-      socket.emit("runcode", {
-        api_key: key,
+  try {
+    const response = await fetch(PROXY_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        // "X-Turnstile-Token": turnstileToken // Uncomment this line later when you add Cloudflare Turnstile
+      },
+      // Keep the payload keys exactly the same so your Edge Function 
+      // can pass them directly to compiler.io
+      body: JSON.stringify({
         compiler: compilerId,
         code: sourceCode,
         input: stdin,
-      });
+      }),
+      signal: controller.signal
     });
 
-    socket.on("codeoutput", (result: CompilerResult) => {
-      clearTimeout(timeout);
-      socket.disconnect();
-      resolve(result); // Return the result back to blog-post.ts
-    });
+    clearTimeout(timeoutId);
 
-    socket.on("connect_error", (err) => {
-      clearTimeout(timeout);
-      socket.disconnect();
-      reject(new Error(`WebSocket Connection Error: ${err.message}`));
-    });
-  });
+    if (!response.ok) {
+      const errorData = await response.text();
+      throw new Error(`Execution Failed: ${response.status} - ${errorData}`);
+    }
+
+    const result: CompilerResult = await response.json();
+    return result;
+
+  } catch (error) {
+    clearTimeout(timeoutId);
+    
+    // Handle the specific timeout abort error
+    if (error instanceof Error && error.name === "AbortError") {
+      return Promise.reject(new Error("timeout"));
+    }
+    
+    return Promise.reject(
+      new Error(error instanceof Error ? error.message : "Connection Error")
+    );
+  }
 }
