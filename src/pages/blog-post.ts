@@ -213,6 +213,29 @@ function wireCommentForm(container: HTMLElement, slug: string): void {
   });
 }
 
+function renderTurnstileWidget(panel: HTMLElement, onSolved: () => void): void {
+  const el = panel.querySelector<HTMLElement>(".cf-turnstile");
+  if (!el) return;
+
+  const tryRender = () => {
+    const ts = (window as any).turnstile;
+    if (!ts) {
+      // api.js is async/defer and may not have executed yet — poll briefly.
+      setTimeout(tryRender, 100);
+      return;
+    }
+    // Guard against double-render if this panel is wired twice.
+    if (el.dataset.tsRendered === "1") return;
+    el.dataset.tsRendered = "1";
+    const widgetId = ts.render(el, {
+      sitekey: el.dataset.sitekey,
+      callback: onSolved,
+    });
+    el.dataset.tsWidgetId = widgetId;
+  };
+  tryRender();
+}
+
 function wireRunnableCode(container: HTMLElement): void {
   container.querySelectorAll<HTMLElement>(".blog-run-panel").forEach((panel) => {
     const id = panel.dataset.runId;
@@ -222,6 +245,8 @@ function wireRunnableCode(container: HTMLElement): void {
     const output = panel.querySelector<HTMLElement>(".blog-run-output");
 
     if (!id || !btn || !status || !output) return;
+
+    renderTurnstileWidget(panel, () => (btn.disabled = false));
 
     btn.addEventListener("click", async () => {
       const block = getRunnableBlock(id);
@@ -254,23 +279,17 @@ function wireRunnableCode(container: HTMLElement): void {
         status.textContent = `API Error: ${err instanceof Error ? err.message : "Unknown"}`;
       } finally {
         // IMPORTANT: Reset Turnstile so the user must re-verify before the next run
-        btn.disabled = true; 
-        (window as any).turnstile?.reset();
-        
-        // Disable the button again, the Turnstile widget will re-enable it 
-        // automatically via the data-callback="enableRunButton" attribut
+        btn.disabled = true;
+        const el = panel.querySelector<HTMLElement>(".cf-turnstile");
+        const widgetId = el?.dataset.tsWidgetId;
+        (window as any).turnstile?.reset(widgetId);
+
+        // Disable the button again — renderTurnstileWidget's onSolved callback
+        // re-enables it once the user passes the challenge again.
       }
     });
   });
 }
-
-// Ensure this is defined at the top level of the file
-(window as any).enableRunButton = () => {
-  // Find all run buttons and enable them
-  const btns = document.querySelectorAll('[data-run-action="run"]');
-  btns.forEach(btn => (btn as HTMLButtonElement).disabled = false);
-};
-// Add this at the bottom of src/pages/blog-post.ts:
 
 function wireFloatingVideos(container: HTMLElement): void {
   const wrappers = container.querySelectorAll<HTMLElement>(".blog-video-embed");
@@ -279,21 +298,34 @@ function wireFloatingVideos(container: HTMLElement): void {
   const observer = new IntersectionObserver(
     (entries) => {
       entries.forEach((entry) => {
-        const iframe = entry.target.querySelector("iframe");
+        const wrapper = entry.target as HTMLElement;
+        const iframe = wrapper.querySelector("iframe");
         if (!iframe) return;
 
-        // boundingClientRect.bottom < 0 checks if the element has scrolled UP past the viewport
-        if (!entry.isIntersecting && entry.boundingClientRect.bottom < 0) {
-          iframe.classList.add("floating");
-        } else {
+        if (entry.isIntersecting) {
+          // Back in view — clear any dismissal so it can float again next time it leaves.
+          wrapper.dataset.dismissed = "0";
           iframe.classList.remove("floating");
+        } else if (wrapper.dataset.dismissed !== "1") {
+          // Out of view in either direction (scrolled past above or below) and not dismissed.
+          iframe.classList.add("floating");
         }
       });
     },
     { threshold: 0 } // Triggers exactly when the wrapper fully leaves or enters the viewport
   );
 
-  wrappers.forEach((w) => observer.observe(w));
+  wrappers.forEach((w) => {
+    w.dataset.dismissed = "0";
+    observer.observe(w);
+
+    const closeBtn = w.querySelector<HTMLButtonElement>(".blog-video-close");
+    const iframe = w.querySelector("iframe");
+    closeBtn?.addEventListener("click", () => {
+      w.dataset.dismissed = "1";
+      iframe?.classList.remove("floating");
+    });
+  });
 }
 function getReadMoreHtml(currentSlug: string): string {
   // Get up to 2 posts that aren't the one currently being read
