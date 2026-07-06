@@ -27,15 +27,16 @@ export async function runCode(
   const timeoutId = setTimeout(() => controller.abort(), 35000);
 
   try {
+    // Grab the token injected into the DOM by the Turnstile widget
+    const turnstileToken = (document.querySelector('[name="cf-turnstile-response"]') as HTMLInputElement)?.value;
+
     const response = await fetch(PROXY_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
-        // "X-Turnstile-Token": turnstileToken // Uncomment this line later when you add Cloudflare Turnstile
+        "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        "X-Turnstile-Token": turnstileToken || "" // Pass it to the Edge Function
       },
-      // Keep the payload keys exactly the same so your Edge Function 
-      // can pass them directly to compiler.io
       body: JSON.stringify({
         compiler: compilerId,
         code: sourceCode,
