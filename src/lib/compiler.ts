@@ -31,6 +31,7 @@ export async function runCode(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
         // "X-Turnstile-Token": turnstileToken // Uncomment this line later when you add Cloudflare Turnstile
       },
       // Keep the payload keys exactly the same so your Edge Function 
