@@ -220,9 +220,6 @@ function wireRunnableCode(container: HTMLElement): void {
     const status = panel.querySelector<HTMLElement>(".blog-run-status");
     const stdinInput = panel.querySelector<HTMLTextAreaElement>(".blog-run-stdin-input");
     const output = panel.querySelector<HTMLElement>(".blog-run-output");
-    
-    // NEW: Find the hidden Turnstile input field
-    const turnstileInput = panel.querySelector<HTMLInputElement>('[name="cf-turnstile-response"]');
 
     if (!id || !btn || !status || !output) return;
 
@@ -230,30 +227,49 @@ function wireRunnableCode(container: HTMLElement): void {
       const block = getRunnableBlock(id);
       if (!block) return;
 
+      // Lock UI during execution
       btn.disabled = true;
       status.textContent = "Running…";
       output.hidden = true;
 
       try {
-        // Updated call: We no longer need to manually grab the token from the DOM 
-        // because we updated compiler.ts to do it. Just call runCode:
         const result = await runCode(block.compilerId, block.code, stdinInput?.value ?? "");
         
-        // ... (Keep your existing output parsing logic here)
-        const sections = [result.output, result.error].map((s) => (s ?? "").trim()).filter(Boolean);
+        const sections = [result.output, result.error]
+          .map((s) => (s ?? "").trim())
+          .filter(Boolean);
+          
         output.textContent = sections.length ? sections.join("\n\n") : "(no output)";
         output.hidden = false;
-        status.textContent = `Finished in ${result.time}s`;
+        
+        if (result.status === "error") {
+          status.textContent = `Error (Exit Code: ${result.exit_code})`;
+          output.style.color = "#ff6b6b";
+        } else {
+          status.textContent = `Finished in ${result.time}s`;
+          output.style.color = "inherit";
+        }
       } catch (err) {
+        console.error("Execution error:", err);
         status.textContent = `API Error: ${err instanceof Error ? err.message : "Unknown"}`;
       } finally {
-        btn.disabled = false;
-        // IMPORTANT: Reset the Turnstile widget so they can run code again
+        // IMPORTANT: Reset Turnstile so the user must re-verify before the next run
+        btn.disabled = true; 
         (window as any).turnstile?.reset();
-      } 
+        
+        // Disable the button again, the Turnstile widget will re-enable it 
+        // automatically via the data-callback="enableRunButton" attribut
+      }
     });
   });
 }
+
+// Ensure this is defined at the top level of the file
+(window as any).enableRunButton = () => {
+  // Find all run buttons and enable them
+  const btns = document.querySelectorAll('[data-run-action="run"]');
+  btns.forEach(btn => (btn as HTMLButtonElement).disabled = false);
+};
 // Add this at the bottom of src/pages/blog-post.ts:
 
 function wireFloatingVideos(container: HTMLElement): void {
