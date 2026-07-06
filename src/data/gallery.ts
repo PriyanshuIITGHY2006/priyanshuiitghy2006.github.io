@@ -40,4 +40,12 @@ export const GALLERY: GalleryItem[] = [
     date: "Apr 2026",
     description: "Certificate of completion — Coding Club, IIT Guwahati.",
   },
+  {
+    id: "kelly-criterion",
+    title: "Kelly-Criterion — Priyanshu Debnath",
+    // File uploaded with spaces in its name — URL-encode for the browser.
+    src: "gallery/kelly-criterion.pdf",
+    date: "Apr 2026",
+    description: "Detailed work on kelly criterion for fixed bet games",
+  }
 ];
