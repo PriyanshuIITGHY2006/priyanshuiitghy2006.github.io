@@ -242,6 +242,8 @@ interface VideoToken extends Tokens.Generic {
   videoId: string;
 }
 
+let videoEmbedCounter = 0;
+
 function extractYouTubeId(input: string): string {
   const trimmed = input.trim();
   const m = trimmed.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([\w-]{6,})/);
@@ -263,7 +265,9 @@ const youtubeExtension = {
   },
   renderer(token: Tokens.Generic): string {
     const t = token as VideoToken;
-    return `<div class="blog-video-embed"><iframe src="https://www.youtube-nocookie.com/embed/${t.videoId}" title="Embedded video" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe><button type="button" class="blog-video-close" aria-label="Close floating video">&times;</button></div>`;
+    videoEmbedCounter += 1;
+    const playerId = `blog-yt-player-${videoEmbedCounter}`;
+    return `<div class="blog-video-embed"><iframe id="${playerId}" src="https://www.youtube-nocookie.com/embed/${t.videoId}?enablejsapi=1" title="Embedded video" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe><button type="button" class="blog-video-close" aria-label="Close floating video">&times;</button></div>`;
   },
 };
 
