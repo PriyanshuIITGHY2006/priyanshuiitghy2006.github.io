@@ -56,7 +56,7 @@ Two attempts, both failing on the same test. At that point I didn't think much, 
 
 To understand where the time was going, it helps to understand what `ordered_multiset` actually is under the hood. So let's build up a Red-Black tree from the basics.
 
-:::spoiler Part 1 — Why a plain BST isn't enough
+## Part 1 — Why a plain BST isn't enough
 
 A Binary Search Tree is a tree where, for every node, everything in the left subtree is smaller and everything in the right subtree is bigger.
 
@@ -83,8 +83,8 @@ But if you insert values in sorted order — 1, 2, 3, 4, 5 — the tree degenera
 ```
 
 Now height equals $n$, not $\log n$, and every operation costs $O(n)$. This is the reason self-balancing trees exist: they force the height to stay logarithmic regardless of insertion order.
-:::
-:::spoiler Part 2 — The Red-Black invariants
+
+## Part 2 — The Red-Black invariants
 
 A Red-Black tree colors every node red or black and enforces five rules:
 
@@ -95,8 +95,8 @@ A Red-Black tree colors every node red or black and enforces five rules:
 5. **Every path from a node to any of its null descendants passes through the same number of black nodes** (its "black-height").
 
 Rule 5 is the one doing the real work. It doesn't force every path to be the *same length* — it forces the number of *black* nodes on every path to match. Combined with rule 4 (reds can't stack), this caps how much longer any path can be than any other: at most a factor of 2.
-:::
-:::spoiler The proof that height stays $O(\log n)$
+
+## The proof that height stays $O(\log n)$
 
 Define $\text{bh}(x)$ as the black-height of node $x$: the number of black nodes from $x$ down to a null leaf (not counting $x$ itself).
 
@@ -123,8 +123,8 @@ $$n \ge 2^{\text{bh}(\text{root})} - 1 \ge 2^{h/2} - 1$$
 $$h \le 2\log_2(n+1)$$
 
 That's the guarantee. However you insert data, height never exceeds roughly twice $\log_2 n$.
-:::
-:::spoiler Part 3 — Fixing violations: rotations
+
+## Part 3 — Fixing violations: rotations
 
 When you insert a new node, it always starts **red** (inserting black would instantly break rule 5 on one path; inserting red might break rule 4, which is locally repairable).
 
@@ -195,8 +195,8 @@ Insert `10, 20, 30, 15, 5` one at a time.
 ```
 
 Tree is balanced, all 5 rules hold.
-:::
-:::spoiler Part 4 — Turning it into an order-statistics tree
+
+## Part 4 — Turning it into an order-statistics tree
 
 A plain `std::set` is a Red-Black tree, but it can't answer "how many elements are smaller than $x$?" or "what's the $k$-th smallest element?" in $O(\log n)$ — because a node in a plain RB tree only knows its own key and its children's pointers. It has no idea how many descendants it has.
 
@@ -264,11 +264,11 @@ Node* find_by_order(int k) {
 ```
 
 Both run in time proportional to the height of the tree, which we already proved is $O(\log n)$. So on paper, this gives a fully indexable, rank-queryable balanced BST at $O(\log n)$ per operation.
-:::
+
 check it's uses here.
 :::youtube https://www.youtube.com/watch?v=IWyIwLFucU4
 :::
-:::spoiler Part 5 — Counting exactly how many operations my code did
+## Part 5 — Counting exactly how many operations my code did
 
 Here's the structure of the hot loop in my first (TLE'd) solution:
 
@@ -347,7 +347,7 @@ Estimated total: ~44 seconds. The actual time limit is 4 seconds — roughly 11x
 In practice not every single hop costs the full 100 ns — the top few levels of an actively-used tree tend to stay in L2/L3 cache, which is why the real run finished in some large but finite time rather than a literal 44 seconds before Codeforces terminated it. But the order of magnitude, tens of seconds needed versus 4 allowed, is enough to explain the failure on its own.
 
 The algorithmic complexity, $O(n^2 \log n)$, was completely correct. The problem was that the constant hidden inside that $\log n$ was roughly **100x larger** than it needed to be, purely because of how the data was laid out in memory.
-:::
+
 ## Attempt #2: swap the tree for a flat array
 
 The fix keeps the exact same math — same comparisons, same accumulation logic — and only changes the data structure. Instead of a Red-Black tree of heap nodes, I use coordinate compression plus a **Fenwick tree** (Binary Indexed Tree) backed by one contiguous `vector<int>`.
@@ -426,7 +426,7 @@ This submission passed:
 
 3625 ms, inside the 4000 ms limit. The algorithmic complexity didn't change from the first attempt, so the difference has to come from somewhere else.
 
-:::spoiler Part 6 — Why the Fenwick tree passes: same math, different constant
+ Part 6 — Why the Fenwick tree passes: same math, different constant
 
 The Fenwick tree does the *same number* of "logical steps" as the PBDS tree — for $n=2000$, tree height was $\approx 44$ for the big structure and $\approx 22$ for the small one, and a Fenwick tree over the same number of elements needs the same $\lceil \log_2(\text{size}) \rceil$ iterations per `add`/`query`, since each step strips off the lowest set bit. The total operation count $T_{\text{total}} = 3n^2+n \approx 12$ million and total "step" count $\approx 4.4 \times 10^8$ are essentially identical to before.
 
@@ -446,7 +446,7 @@ $$4.4 \times 10^8 \text{ steps} \times 2\text{ns} \approx 0.88 \text{ seconds}$$
 That's roughly 50x faster than the ~44 second PBDS estimate, for the same number of logical steps. It also removes the other overhead the tree had: no `new` call on every insert (the vector for each Fenwick tree is allocated exactly once, up front), no red-black rebalancing, no rotations, no recoloring, no extra `size` bookkeeping through parent pointers.
 
 The actual submission ran in 3625 ms rather than my rough 0.88s estimate — real code always carries extra constant factor from the modular arithmetic, the `lower_bound` binary searches for coordinate compression, and I/O — but it lands in the same universe as the estimate, and critically, on the correct side of the 4-second wall, instead of ~10x over it.
-:::
+
 ## Summary
 
 Both solutions are $O(n^2 \log n)$. Both perform roughly the same number of logical tree steps. The difference between the TLE and the accepted run came down to where the data physically lives in memory:
