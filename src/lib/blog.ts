@@ -99,6 +99,32 @@ export function getPost(slug: string | null): BlogPost | undefined {
   return BLOG_POSTS.find((p) => p.slug === slug);
 }
 
+/** Other posts ranked by shared-tag count (desc), then recency (desc). */
+export function getRelatedPosts(current: BlogPost, limit = 2): BlogPost[] {
+  const currentTags = new Set(current.tags.map((t) => t.toLowerCase()));
+  return BLOG_POSTS.filter((p) => p.slug !== current.slug)
+    .map((p) => {
+      const overlap = p.tags.reduce((n, t) => n + (currentTags.has(t.toLowerCase()) ? 1 : 0), 0);
+      return { post: p, overlap };
+    })
+    .sort((a, b) => b.overlap - a.overlap || (a.post.date < b.post.date ? 1 : -1))
+    .slice(0, limit)
+    .map((x) => x.post);
+}
+
+/** All distinct tags across posts, in descending frequency order. */
+export function getAllTags(): string[] {
+  const counts = new Map<string, number>();
+  for (const p of BLOG_POSTS) {
+    for (const t of p.tags) counts.set(t, (counts.get(t) ?? 0) + 1);
+  }
+  return [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([t]) => t);
+}
+
+function esc(s: string): string {
+  return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] as string));
+}
+
 // ─── Monaco / Code Block Registry ──────────────────────────────────────────
 
 export interface CodeBlockMetadata {
@@ -111,6 +137,18 @@ export interface CodeBlockMetadata {
 
 export const codeBlocksRegistry = new Map<string, CodeBlockMetadata>();
 let codeBlockCounter = 0;
+
+// ─── Test cases (paired with the nearest preceding runnable block) ─────────
+
+export interface TestCase {
+  name?: string;
+  input: string;
+  expected: string;
+}
+
+/** Keyed by the runnable code block's id (e.g. "code-block-3"). */
+export const testcasesRegistry = new Map<string, TestCase[]>();
+let lastRunnableBlockId: string | null = null;
 
 export const COMPILER_IDS: Record<string, string> = {
   cpp: "g++-15",
@@ -127,7 +165,47 @@ export const COMPILER_IDS: Record<string, string> = {
   go: "go-1.26"
 };
 
+// ─── Table of contents (h2/h3 headings, slugified) ─────────────────────────
+
+export interface TocEntry {
+  id: string;
+  text: string;
+  level: number;
+}
+
+const headingSlugCounts = new Map<string, number>();
+let currentToc: TocEntry[] = [];
+let lastToc: TocEntry[] = [];
+
+function slugifyHeading(text: string): string {
+  const base =
+    text
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, "")
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-") || "section";
+  const n = (headingSlugCounts.get(base) ?? 0) + 1;
+  headingSlugCounts.set(base, n);
+  return n === 1 ? base : `${base}-${n}`;
+}
+
+/** Headings from the most recent renderMarkdown() call, in document order. */
+export function getLastToc(): TocEntry[] {
+  return lastToc;
+}
+
 const renderer = new marked.Renderer();
+
+// Regular function (not an arrow) so marked can bind `this.parser` when it
+// wraps this method — needed to render inline markdown inside the heading.
+renderer.heading = function (this: { parser: { parseInline: (t: Tokens.Generic[]) => string } }, { tokens, depth, text }: Tokens.Heading): string {
+  const plain = text.replace(/<[^>]*>/g, "");
+  const id = slugifyHeading(plain);
+  if (depth === 2 || depth === 3) currentToc.push({ id, text: plain, level: depth });
+  const inline = this.parser.parseInline(tokens);
+  return `<h${depth} id="${id}">${inline}</h${depth}>\n`;
+};
 
 renderer.code = ({ text, lang }: Tokens.Code): string => {
   const parts = (lang || "").trim().split(/\s+/);
@@ -167,6 +245,7 @@ renderer.code = ({ text, lang }: Tokens.Code): string => {
   
   let runPanel = "";
   if (isRunnable && compilerId) {
+    lastRunnableBlockId = id;
     const siteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY;
     runPanel = `
       <div class="blog-run-panel" data-run-id="${id}">
@@ -186,6 +265,7 @@ renderer.code = ({ text, lang }: Tokens.Code): string => {
   return `
     <div class="blog-code-block" style="position: relative; margin-bottom: 1.5rem;">
       ${langLabel}
+      <button type="button" class="blog-code-copy-btn" data-copy-target="${id}" aria-label="Copy code">Copy</button>
       <div id="${id}" class="monaco-editor-container" style="height: ${editorHeight}px; width: 100%; border-radius: 6px; overflow: hidden; border: 1px solid #ddd; background: #1e1e1e;">
         <pre style="margin:0; padding:16px; height:100%; overflow:auto;"><code class="hljs${usedLang ? ` language-${usedLang}` : ""}">${highlighted}</code></pre>
       </div>
@@ -228,6 +308,65 @@ const spoilerExtension = {
   },
 };
 
+// ─── Test-case panels ─────────────────────────────────────────────────────────
+// A `:::testcases` block must come right after a ```lang runnable``` block.
+// Its body is a JSON array of { name?, input, expected }. Rendered as a panel
+// with a "Run all tests" button that executes the paired editor's current
+// code once per case and diffs stdout against `expected` (trimmed).
+interface TestcasesToken extends Tokens.Generic {
+  type: "testcases";
+  json: string;
+}
+
+const testcasesExtension = {
+  name: "testcases",
+  level: "block" as const,
+  start(src: string): number | undefined {
+    const idx = src.indexOf(":::testcases");
+    return idx === -1 ? undefined : idx;
+  },
+  tokenizer(src: string) {
+    const match = /^:::testcases\n([\s\S]*?)\n:::(?:\n|$)/.exec(src);
+    if (!match) return undefined;
+    const token: TestcasesToken = { type: "testcases", raw: match[0], json: match[1] };
+    return token;
+  },
+  renderer(token: Tokens.Generic): string {
+    const t = token as TestcasesToken;
+    const runId = lastRunnableBlockId;
+    if (!runId) {
+      return `<p class="blog-testcases-error">No runnable code block found for this test-case panel.</p>`;
+    }
+    let cases: TestCase[];
+    try {
+      cases = JSON.parse(t.json);
+      if (!Array.isArray(cases)) throw new Error("not an array");
+    } catch {
+      return `<p class="blog-testcases-error">Could not parse test cases (invalid JSON).</p>`;
+    }
+    testcasesRegistry.set(runId, cases);
+
+    const rows = cases
+      .map(
+        (c, i) => `
+      <div class="blog-testcase-row" data-tc-index="${i}">
+        <span class="blog-testcase-name">${esc(c.name || `Test ${i + 1}`)}</span>
+        <span class="blog-testcase-status" data-tc-status>not run</span>
+      </div>`,
+      )
+      .join("");
+
+    return `
+      <div class="blog-testcases-panel" data-testcases-for="${runId}">
+        <div class="blog-testcases-head">
+          <span class="blog-testcases-title">Test cases (${cases.length})</span>
+          <button type="button" class="blog-testcases-run-btn" data-tc-run disabled>Run all tests</button>
+        </div>
+        <div class="blog-testcases-list">${rows}</div>
+      </div>`;
+  },
+};
+
 // ─── Video embeds ────────────────────────────────────────────────────────────
 interface VideoToken extends Tokens.Generic {
   type: "youtube";
@@ -263,18 +402,23 @@ const youtubeExtension = {
   },
 };
 
-marked.use({ renderer, breaks: false, gfm: true, extensions: [spoilerExtension, youtubeExtension] });
+marked.use({ renderer, breaks: false, gfm: true, extensions: [spoilerExtension, youtubeExtension, testcasesExtension] });
 marked.use(markedKatex({ throwOnError: false, nonStandard: true }));
 
 export function renderMarkdown(md: string): string {
+  lastRunnableBlockId = null;
+  headingSlugCounts.clear();
+  currentToc = [];
   const html = marked.parse(md, { async: false }) as string;
+  lastToc = currentToc;
   return DOMPurify.sanitize(html, {
     ADD_TAGS: ["span", "iframe", "button", "textarea", "details", "summary", "div"],
     ADD_ATTR: [
       "target", "rel", "class", "id", "style", // id and style added to allow Monaco sizing
       "src", "title", "loading", "referrerpolicy", "allow", "allowfullscreen", "frameborder",
       "rows", "placeholder", "hidden", "type", "open", 
-      "data-run-id", "data-run-action", "data-sitekey" // Data attributes explicitly allowed
+      "data-run-id", "data-run-action", "data-sitekey", // Data attributes explicitly allowed
+      "data-copy-target", "data-testcases-for", "data-tc-run", "data-tc-index", "data-tc-status", "disabled"
     ],
     USE_PROFILES: { html: true, svg: true, svgFilters: true, mathMl: true },
   });

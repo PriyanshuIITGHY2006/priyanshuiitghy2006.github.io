@@ -108,7 +108,7 @@ It only grows and shrinks from one end. (LIFO) Last thing added, first thing rem
 
 Growing it means subtracting from `rsp`. Shrinking it means adding back. One instruction. `sub rsp, 32`. That's the entire cost.
 
-```cpp
+```cpp runnable
 int square(int x) {
     int result = x * x;   // lives on the stack
     return result;
@@ -158,7 +158,9 @@ On top of that, the allocator keeps its own records. Every chunk it hands out ca
 
 All that searching, merging, and bookkeeping is why heap allocation costs more than stack allocation. If you want to know how it works, there is something called Bit Scan Forward. I don't know in details tho. In multi-threaded programs it costs even more, since the heap is usually shared across threads and needs locking. The stack needs none of that — each thread already owns its own.
 
-```cpp
+```cpp runnable
+#include <iostream>
+
 struct Player {
     int hp;
     char name[32];
@@ -166,6 +168,7 @@ struct Player {
 
 int main() {
     Player* p = new Player{100, "test"};
+    std::cout << p->name << " has " << p->hp << " hp\n";
     delete p;
 }
 ```

@@ -456,7 +456,49 @@ Both solutions are $O(n^2 \log n)$. Both perform roughly the same number of logi
 
 Same time complexity, but a 50–100x difference in the constant factor, entirely due to memory layout. `ordered_set` and `ordered_multiset` are useful — for smaller operation counts they're simpler to write and fast enough. But once the operation count reaches into the millions in a tight loop, that per-operation constant becomes the deciding factor, and a flat array-based structure like a Fenwick tree or segment tree is usually the better choice.
 
+Here's the minimal Fenwick tree itself, runnable and editable below. It reads `n` values followed by `q` inclusive `[l, r]` range-sum queries (0-indexed) and prints the sum for each — try changing the array or queries and hit Run, or use the test cases underneath to check it against a couple of known answers.
+
 ```cpp runnable
-#include <iostream>
-int main() { std::cout << "Priyanshu writes the best blogs"; }
+#include <bits/stdc++.h>
+using namespace std;
+
+struct Fenwick {
+    int n;
+    vector<long long> tree;
+    Fenwick(int n) : n(n), tree(n + 1, 0) {}
+
+    void add(int i, long long delta) {
+        for (++i; i <= n; i += i & (-i)) tree[i] += delta;
+    }
+    long long prefixSum(int i) {
+        long long sum = 0;
+        for (++i; i > 0; i -= i & (-i)) sum += tree[i];
+        return sum;
+    }
+};
+
+int main() {
+    int n;
+    cin >> n;
+    Fenwick fen(n);
+    for (int i = 0; i < n; i++) {
+        long long x; cin >> x;
+        fen.add(i, x);
+    }
+
+    int q;
+    cin >> q;
+    while (q--) {
+        int l, r; cin >> l >> r;
+        long long sum = fen.prefixSum(r) - (l ? fen.prefixSum(l - 1) : 0);
+        cout << sum << "\n";
+    }
+}
 ```
+
+:::testcases
+[
+  {"name": "ascending array, two ranges", "input": "5\n1 2 3 4 5\n2\n0 2\n1 4\n", "expected": "6\n14"},
+  {"name": "includes a negative value", "input": "3\n10 -5 7\n1\n0 2\n", "expected": "12"}
+]
+:::

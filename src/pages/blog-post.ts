@@ -7,7 +7,11 @@ import {
   renderMarkdown, 
   estimateReadingMinutes,
   codeBlocksRegistry,
-  BLOG_POSTS 
+  testcasesRegistry,
+  getLastToc,
+  getRelatedPosts,
+  type TocEntry,
+  type BlogPost,
 } from "../lib/blog";
 import { runCode } from "../lib/compiler";
 import {
@@ -156,6 +160,35 @@ function engagementShell(): string {
     </div>`;
 }
 
+const SITE_ORIGIN = "https://priyanshuiitghy2006.github.io";
+
+function tocHtml(toc: TocEntry[]): string {
+  if (toc.length < 2) return "";
+  const items = toc
+    .map((h) => `<li class="blog-toc-item blog-toc-level-${h.level}"><a href="javascript:void(0)" class="blog-toc-link" data-toc-target="${h.id}">${esc(h.text)}</a></li>`)
+    .join("");
+  return `
+    <details class="blog-toc" open>
+      <summary class="blog-toc-summary">Contents</summary>
+      <ul class="blog-toc-list">${items}</ul>
+    </details>`;
+}
+
+function shareButtonsHtml(post: BlogPost): string {
+  const url = `${SITE_ORIGIN}/blog/${encodeURIComponent(post.slug)}/`;
+  const text = encodeURIComponent(post.title);
+  const encodedUrl = encodeURIComponent(url);
+  return `
+    <div class="blog-share">
+      <span class="blog-share-label">Share</span>
+      <a class="blog-share-btn" target="_blank" rel="noopener noreferrer"
+         href="https://twitter.com/intent/tweet?text=${text}&url=${encodedUrl}">X</a>
+      <a class="blog-share-btn" target="_blank" rel="noopener noreferrer"
+         href="https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}">LinkedIn</a>
+      <button type="button" class="blog-share-btn" data-copy-link="${esc(url)}">Copy link</button>
+    </div>`;
+}
+
 function pageHtml(slug: string | null): string {
   const post = getPost(slug);
   if (!post) return notFoundHtml();
@@ -164,7 +197,11 @@ function pageHtml(slug: string | null): string {
     ? `<div class="blog-post-tags">${post.tags.map((t) => `<span class="blog-tag">${esc(t)}</span>`).join("")}</div>`
     : "";
 
+  const contentHtml = renderMarkdown(post.rawBody);
+  const toc = getLastToc();
+
   return `
+    <div class="blog-progress-bar" id="blog-progress-bar"></div>
     <article class="page section-page blog-post-page">
       <nav class="section-nav">
         <a class="section-back" href="#/blogs">← back to blog</a>
@@ -180,9 +217,11 @@ function pageHtml(slug: string | null): string {
           </div>
         </header>
         ${post.cover ? `<figure class="blog-post-cover"><img src="${esc(post.cover)}" alt=""/></figure>` : ""}
-        <div class="blog-content">${renderMarkdown(post.rawBody)}</div>
+        ${tocHtml(toc)}
+        <div class="blog-content" id="blog-content">${contentHtml}</div>
+        ${shareButtonsHtml(post)}
         ${engagementShell()}
-        ${getReadMoreHtml(post.slug)} 
+        ${getRelatedPostsHtml(post)} 
         
         <div style="margin-top: 3rem;">
             ${SUBSCRIBE_FORM_HTML}
@@ -196,6 +235,8 @@ function pageHtml(slug: string | null): string {
     </article>`;
 }
 
+let detachProgressBar: (() => void) | null = null;
+
 export function mountBlogPost(container: HTMLElement, slug: string | null): void {
   container.innerHTML = pageHtml(slug);
 
@@ -207,6 +248,11 @@ export function mountBlogPost(container: HTMLElement, slug: string | null): void
   wireLikeButton(container, post.slug);
   wireCommentForm(container, post.slug);
   wireRunnableCode(container);
+  wireTestcases(container);
+  wireCopyButtons(container);
+  wireToc(container);
+  wireProgressBar(container);
+  wireShareButtons(container);
   wireFloatingVideos(container);
   wireSubscribeForm(container);
   initScrollTopButton(container);
@@ -217,6 +263,150 @@ export function mountBlogPost(container: HTMLElement, slug: string | null): void
 export function unmountBlogPost(): void {
   editorInstances.forEach((editor) => editor.dispose());
   editorInstances.clear();
+  if (detachProgressBar) {
+    detachProgressBar();
+    detachProgressBar = null;
+  }
+}
+
+// ─── Copy-to-clipboard for code blocks ──────────────────────────────────────
+
+function wireCopyButtons(container: HTMLElement): void {
+  container.querySelectorAll<HTMLButtonElement>(".blog-code-copy-btn").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const id = btn.dataset.copyTarget;
+      if (!id) return;
+      const editor = editorInstances.get(id);
+      const block = codeBlocksRegistry.get(id);
+      const text = editor ? editor.getValue() : block?.code ?? "";
+      try {
+        await navigator.clipboard.writeText(text);
+        const original = btn.textContent;
+        btn.textContent = "Copied";
+        btn.classList.add("copied");
+        setTimeout(() => {
+          btn.textContent = original;
+          btn.classList.remove("copied");
+        }, 1500);
+      } catch {
+        // Clipboard API unavailable — silently ignore, button just won't confirm.
+      }
+    });
+  });
+}
+
+// ─── Test-case runner (paired with a runnable code block) ──────────────────
+
+function wireTestcases(container: HTMLElement): void {
+  container.querySelectorAll<HTMLElement>(".blog-testcases-panel").forEach((panel) => {
+    const runId = panel.dataset.testcasesFor;
+    const runBtn = panel.querySelector<HTMLButtonElement>("[data-tc-run]");
+    if (!runId || !runBtn) return;
+    const cases = testcasesRegistry.get(runId);
+    if (!cases || !cases.length) return;
+
+    runBtn.addEventListener("click", async () => {
+      const block = codeBlocksRegistry.get(runId);
+      if (!block || !block.compilerId) return;
+      const editor = editorInstances.get(runId);
+      const sourceCode = editor ? editor.getValue() : block.code;
+
+      const rows = panel.querySelectorAll<HTMLElement>(".blog-testcase-row");
+      runBtn.disabled = true;
+      const originalLabel = runBtn.textContent;
+      runBtn.textContent = "Running…";
+
+      for (let i = 0; i < cases.length; i++) {
+        const statusEl = rows[i]?.querySelector<HTMLElement>("[data-tc-status]");
+        if (statusEl) {
+          statusEl.textContent = "running…";
+          statusEl.className = "blog-testcase-status";
+        }
+        try {
+          const result = await runCode(block.compilerId, sourceCode, cases[i].input);
+          const actual = (result.output ?? "").trim();
+          const expected = cases[i].expected.trim();
+          const pass = actual === expected && result.status !== "error";
+          if (statusEl) {
+            statusEl.textContent = pass ? "passed" : `failed — got: ${actual.slice(0, 120) || "(no output)"}`;
+            statusEl.className = `blog-testcase-status ${pass ? "tc-pass" : "tc-fail"}`;
+          }
+        } catch (err) {
+          if (statusEl) {
+            statusEl.textContent = `error: ${err instanceof Error ? err.message : "unknown"}`;
+            statusEl.className = "blog-testcase-status tc-fail";
+          }
+        }
+      }
+
+      runBtn.disabled = false;
+      runBtn.textContent = originalLabel;
+    });
+  });
+}
+
+// ─── Table of contents ──────────────────────────────────────────────────────
+// Anchors intentionally avoid touching location.hash (which the router
+// listens on) — clicking a ToC entry scrolls the heading into view instead.
+
+function wireToc(container: HTMLElement): void {
+  container.querySelectorAll<HTMLAnchorElement>(".blog-toc-link").forEach((link) => {
+    link.addEventListener("click", (e) => {
+      e.preventDefault();
+      const id = link.dataset.tocTarget;
+      const target = id ? container.querySelector<HTMLElement>(`#${CSS.escape(id)}`) : null;
+      target?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  });
+}
+
+// ─── Reading progress bar ───────────────────────────────────────────────────
+
+function wireProgressBar(container: HTMLElement): void {
+  if (detachProgressBar) {
+    detachProgressBar();
+    detachProgressBar = null;
+  }
+
+  const bar = container.querySelector<HTMLElement>("#blog-progress-bar");
+  const content = container.querySelector<HTMLElement>("#blog-content");
+  if (!bar || !content) return;
+
+  const onScroll = () => {
+    const rect = content.getBoundingClientRect();
+    const total = rect.height - window.innerHeight;
+    const scrolled = -rect.top;
+    const pct = total > 0 ? Math.min(100, Math.max(0, (scrolled / total) * 100)) : 0;
+    bar.style.width = `${pct}%`;
+  };
+
+  window.addEventListener("scroll", onScroll, { passive: true });
+  window.addEventListener("resize", onScroll);
+  onScroll();
+
+  detachProgressBar = () => {
+    window.removeEventListener("scroll", onScroll);
+    window.removeEventListener("resize", onScroll);
+  };
+}
+
+// ─── Share buttons ───────────────────────────────────────────────────────────
+
+function wireShareButtons(container: HTMLElement): void {
+  container.querySelectorAll<HTMLButtonElement>("[data-copy-link]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const url = btn.dataset.copyLink;
+      if (!url) return;
+      try {
+        await navigator.clipboard.writeText(url);
+        const original = btn.textContent;
+        btn.textContent = "Copied";
+        setTimeout(() => (btn.textContent = original), 1500);
+      } catch {
+        // Clipboard API unavailable.
+      }
+    });
+  });
 }
 
 async function loadEngagement(container: HTMLElement, slug: string): Promise<void> {
@@ -325,7 +515,13 @@ function wireRunnableCode(container: HTMLElement): void {
 
     if (!id || !btn || !status || !output) return;
 
-    renderTurnstileWidget(panel, () => (btn.disabled = false));
+    const testcasesPanel = container.querySelector<HTMLElement>(`.blog-testcases-panel[data-testcases-for="${id}"]`);
+    const tcRunBtn = testcasesPanel?.querySelector<HTMLButtonElement>("[data-tc-run]");
+
+    renderTurnstileWidget(panel, () => {
+      btn.disabled = false;
+      if (tcRunBtn) tcRunBtn.disabled = false;
+    });
 
     btn.addEventListener("click", async () => {
       const block = codeBlocksRegistry.get(id);
@@ -451,8 +647,8 @@ function wireFloatingVideos(container: HTMLElement): void {
   });
 }
 
-function getReadMoreHtml(currentSlug: string): string {
-  const otherPosts = BLOG_POSTS.filter((p) => p.slug !== currentSlug).slice(0, 2);
+function getRelatedPostsHtml(current: BlogPost): string {
+  const otherPosts = getRelatedPosts(current, 2);
   
   if (otherPosts.length === 0) return "";
 
@@ -479,7 +675,7 @@ function getReadMoreHtml(currentSlug: string): string {
 
   return `
     <div class="blog-read-more" style="margin-top: 3rem; padding-top: 1.5rem; border-top: 0.6px solid #ddd;">
-      <h3 class="section" style="margin-top: 0; border: none; padding: 0;">Read more</h3>
+      <h3 class="section" style="margin-top: 0; border: none; padding: 0;">Related posts</h3>
       <div class="blog-grid" style="margin-top: 1rem;">
         ${cardsHtml}
       </div>

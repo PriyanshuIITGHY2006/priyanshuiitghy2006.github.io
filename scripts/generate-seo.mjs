@@ -121,6 +121,44 @@ function robotsTxt() {
   return `User-agent: *\nAllow: /\n\nSitemap: ${SITE_ORIGIN}/sitemap.xml\n`;
 }
 
+function escXml(s) {
+  return String(s ?? "").replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+}
+
+function rfc822(dateStr) {
+  const d = dateStr ? new Date(dateStr) : new Date();
+  return Number.isNaN(d.getTime()) ? new Date().toUTCString() : d.toUTCString();
+}
+
+// Sorted newest-first, same ordering as the in-app BLOG_POSTS list.
+function feedXml(posts) {
+  const sorted = [...posts].sort((a, b) => (a.date && b.date ? (a.date < b.date ? 1 : -1) : a.date ? -1 : 1));
+  const items = sorted
+    .map((p) => {
+      const url = `${SITE_ORIGIN}/blog/${p.slug}/`;
+      return `  <item>
+    <title>${escXml(p.title)}</title>
+    <link>${escXml(url)}</link>
+    <guid isPermaLink="true">${escXml(url)}</guid>
+    <pubDate>${rfc822(p.date)}</pubDate>
+    <description>${escXml(p.excerpt || "")}</description>
+  </item>`;
+    })
+    .join("\n");
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+<channel>
+  <title>Priyanshu Debnath — Blog</title>
+  <link>${SITE_ORIGIN}/#/blogs</link>
+  <description>Notes on competitive programming, mathematics, and systems programming.</description>
+  <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
+${items}
+</channel>
+</rss>
+`;
+}
+
 function main() {
   const posts = loadPosts();
 
@@ -132,8 +170,9 @@ function main() {
 
   writeFileSync(join(DIST, "sitemap.xml"), sitemapXml(posts), "utf-8");
   writeFileSync(join(DIST, "robots.txt"), robotsTxt(), "utf-8");
+  writeFileSync(join(DIST, "feed.xml"), feedXml(posts), "utf-8");
 
-  console.log(`generate-seo: wrote ${posts.length} blog preview page(s), sitemap.xml, robots.txt`);
+  console.log(`generate-seo: wrote ${posts.length} blog preview page(s), sitemap.xml, robots.txt, feed.xml`);
 }
 
 main();
