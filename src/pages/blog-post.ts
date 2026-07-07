@@ -6,22 +6,94 @@ import {
   formatBlogDate, 
   renderMarkdown, 
   estimateReadingMinutes, 
-  getRunnableBlock,
+  codeBlocksRegistry,
   BLOG_POSTS 
 } from "../lib/blog";
-// Replace Judge0 import:
-// import { runOnJudge0 } from "../lib/judge0";
 import { runCode } from "../lib/compiler";
 import {
-  getBlogStats,
-  recordView,
-  likePost,
-  getApprovedComments,
-  submitComment,
-  type BlogComment,
+  getBlogStats, 
+  recordView, 
+  likePost, 
+  getApprovedComments, 
+  submitComment, 
+  type BlogComment
 } from "../lib/blog-engagement";
 import { SCROLL_TOP_BUTTON_HTML, initScrollTopButton } from "../lib/scroll-top";
 import { SUBSCRIBE_FORM_HTML, wireSubscribeForm } from "../lib/subscribe";
+
+// ============================================================================
+// Monaco Editor Integration
+// ============================================================================
+
+let monacoLoaderPromise: Promise<any> | null = null;
+
+export function loadMonaco(): Promise<any> {
+  if ((window as any).monaco) return Promise.resolve((window as any).monaco);
+  if (monacoLoaderPromise) return monacoLoaderPromise;
+
+  monacoLoaderPromise = new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js';
+    script.onload = () => {
+      const require = (window as any).require;
+      require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs' }});
+      require(['vs/editor/editor.main'], () => resolve((window as any).monaco));
+    };
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+  return monacoLoaderPromise;
+}
+
+export const editorInstances = new Map<string, any>();
+
+async function initEditors(container: HTMLElement) {
+  const editorContainers = container.querySelectorAll('.monaco-editor-container');
+  if (editorContainers.length === 0) return;
+
+  try {
+    const monaco = await loadMonaco();
+    editorContainers.forEach((el) => {
+       const id = el.id;
+       const block = codeBlocksRegistry.get(id);
+       if (!block) return;
+       
+       el.innerHTML = ''; // Clear Highlight.js fallback content
+       
+       const editor = monaco.editor.create(el as HTMLElement, {
+         value: block.code,
+         language: getMonacoLanguage(block.language),
+         theme: 'vs-dark',
+         readOnly: !block.isRunnable,
+         minimap: { enabled: false },
+         scrollBeyondLastLine: false,
+         automaticLayout: true,
+         padding: { top: 16, bottom: 16 },
+         fontSize: 14,
+       });
+       
+       editorInstances.set(id, editor);
+    });
+  } catch (err) {
+    console.error("Failed to load Monaco editor", err);
+  }
+}
+
+function getMonacoLanguage(lang: string) {
+  const map: Record<string, string> = {
+    'cpp': 'cpp', 'c++': 'cpp', 'c': 'c',
+    'python': 'python', 'py': 'python', 'java': 'java',
+    'javascript': 'javascript', 'js': 'javascript',
+    'typescript': 'typescript', 'ts': 'typescript',
+    'rust': 'rust', 'go': 'go', 'bash': 'shell', 'sh': 'shell',
+    'json': 'json', 'xml': 'xml', 'html': 'html', 'css': 'css', 'sql': 'sql',
+  };
+  return map[lang.toLowerCase()] || 'plaintext';
+}
+
+// ============================================================================
+// Page Rendering
+// ============================================================================
 
 function esc(s: string): string {
   return s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c] as string));
@@ -30,63 +102,12 @@ function esc(s: string): string {
 function notFoundHtml(): string {
   return `
     <article class="page section-page blog-post-page">
-      <nav class="section-nav">
-        <a class="section-back" href="#/blogs">← back to blog</a>
-        <span class="section-crumb">${esc(resume.name)} · Blog</span>
-      </nav>
       <div class="section-body">
-        <h2 class="section">Post not found</h2>
-        <p class="edu-note">This post may have been renamed, moved, or unpublished.</p>
-        <a class="pj-link" href="#/blogs">← All posts</a>
+        <h1 class="section">Post Not Found</h1>
+        <p>The post you are looking for does not exist.</p>
+        <a class="pj-link" href="#/blogs">← Back to blog</a>
       </div>
     </article>`;
-}
-
-function commentItem(c: BlogComment): string {
-  const date = c.created_at ? formatBlogDate(c.created_at.slice(0, 10)) : "";
-  return `
-    <li class="blog-comment">
-      <div class="blog-comment-head">
-        <span class="blog-comment-name">${esc(c.name)}</span>
-        ${date ? `<span class="blog-comment-date">${esc(date)}</span>` : ""}
-      </div>
-      <p class="blog-comment-message">${esc(c.message)}</p>
-    </li>`;
-}
-
-function engagementShell(): string {
-  return `
-    <div class="blog-engagement">
-      <div class="blog-engagement-bar">
-        <span class="blog-views" id="blog-views">— views</span>
-        <button class="blog-like-btn" id="blog-like-btn" type="button" disabled>
-          <span class="blog-like-heart">♥</span> <span id="blog-like-count">—</span>
-        </button>
-      </div>
-
-      <div class="blog-comments-section">
-        <h3 class="section blog-comments-title">Comments</h3>
-        <ul class="blog-comments-list" id="blog-comments-list">
-          <li class="blog-comments-loading">Loading comments…</li>
-        </ul>
-
-        <form id="blog-comment-form" class="contact-form blog-comment-form">
-          <div id="blog-comment-status" class="contact-status" style="display:none"></div>
-          <div>
-            <label for="bc-name">Name</label>
-            <input id="bc-name" name="name" type="text" maxlength="60" required autocomplete="name"/>
-          </div>
-          <div>
-            <label for="bc-message">Comment</label>
-            <textarea id="bc-message" name="message" maxlength="1000" required></textarea>
-          </div>
-          <div class="contact-actions">
-            <button type="submit" class="pj-link contact-submit">Post comment</button>
-          </div>
-          <p class="blog-comment-note">Comments are reviewed before they appear publicly.</p>
-        </form>
-      </div>
-    </div>`;
 }
 
 function pageHtml(slug: string | null): string {
@@ -113,17 +134,28 @@ function pageHtml(slug: string | null): string {
           </div>
         </header>
         ${post.cover ? `<figure class="blog-post-cover"><img src="${esc(post.cover)}" alt=""/></figure>` : ""}
-        <div class="blog-content">${renderMarkdown(post.rawBody)}</div>
-        ${engagementShell()}
-        ${SUBSCRIBE_FORM_HTML}
         
-        ${getReadMoreHtml(post.slug)} <div class="section-more" style="margin-top: 2rem;">
+        <div class="blog-content">${renderMarkdown(post.rawBody)}</div>
+        
+        ${engagementShell()}
+        ${getReadMoreHtml(post.slug)} 
+        
+        <!-- Subscribe Form explicitly moved to the very bottom -->
+        <div style="margin-top: 3rem;">
+          ${SUBSCRIBE_FORM_HTML}
+        </div>
+
+        <div class="section-more" style="margin-top: 2rem;">
           <a class="pj-link" href="#/blogs">← All posts</a>
         </div>
       </div>
       ${SCROLL_TOP_BUTTON_HTML}
     </article>`;
 }
+
+// ============================================================================
+// Lifecycle Hooks
+// ============================================================================
 
 export function mountBlogPost(container: HTMLElement, slug: string | null): void {
   container.innerHTML = pageHtml(slug);
@@ -139,105 +171,20 @@ export function mountBlogPost(container: HTMLElement, slug: string | null): void
   wireFloatingVideos(container);
   wireSubscribeForm(container);
   initScrollTopButton(container);
+  
+  // Initialize dynamic monaco editors
+  void initEditors(container);
 }
 
-async function loadEngagement(container: HTMLElement, slug: string): Promise<void> {
-  const [stats, comments] = await Promise.all([
-    getBlogStats(slug),
-    getApprovedComments(slug),
-  ]);
-
-  const viewsEl = container.querySelector<HTMLElement>("#blog-views");
-  if (viewsEl) viewsEl.textContent = `${stats.views} view${stats.views === 1 ? "" : "s"}`;
-
-  const likeCountEl = container.querySelector<HTMLElement>("#blog-like-count");
-  if (likeCountEl) likeCountEl.textContent = String(stats.likes);
-
-  const likeBtn = container.querySelector<HTMLButtonElement>("#blog-like-btn");
-  if (likeBtn) {
-    const alreadyLiked = localStorage.getItem(`blog-liked:${slug}`) === "1";
-    likeBtn.disabled = alreadyLiked;
-    if (alreadyLiked) likeBtn.classList.add("blog-liked");
-  }
-
-  const list = container.querySelector<HTMLElement>("#blog-comments-list");
-  if (list) {
-    list.innerHTML = comments.length
-      ? comments.map(commentItem).join("")
-      : `<li class="blog-comments-empty">No comments yet — be the first.</li>`;
-  }
+export function unmountBlogPost(): void {
+  // Dispose all active Monaco instances to prevent memory leaks when navigating away
+  editorInstances.forEach((editor) => editor.dispose());
+  editorInstances.clear();
 }
 
-function wireLikeButton(container: HTMLElement, slug: string): void {
-  const btn = container.querySelector<HTMLButtonElement>("#blog-like-btn");
-  if (!btn) return;
-  btn.addEventListener("click", async () => {
-    if (localStorage.getItem(`blog-liked:${slug}`) === "1") return;
-    btn.disabled = true;
-    try {
-      const newCount = await likePost(slug);
-      localStorage.setItem(`blog-liked:${slug}`, "1");
-      btn.classList.add("blog-liked");
-      const countEl = container.querySelector<HTMLElement>("#blog-like-count");
-      if (countEl) countEl.textContent = String(newCount);
-    } catch {
-      btn.disabled = false;
-    }
-  });
-}
-
-function wireCommentForm(container: HTMLElement, slug: string): void {
-  const form = container.querySelector<HTMLFormElement>("#blog-comment-form");
-  const status = container.querySelector<HTMLElement>("#blog-comment-status");
-  if (!form || !status) return;
-
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const name = container.querySelector<HTMLInputElement>("#bc-name")!.value.trim();
-    const message = container.querySelector<HTMLTextAreaElement>("#bc-message")!.value.trim();
-    if (!name || !message) return;
-
-    const submitBtn = form.querySelector<HTMLButtonElement>(".contact-submit")!;
-    submitBtn.disabled = true;
-    status.style.display = "none";
-    try {
-      await submitComment(slug, name, message);
-      status.textContent = "Thanks — your comment is awaiting review and will appear once approved.";
-      status.className = "contact-status contact-status-ok";
-      status.style.display = "block";
-      form.reset();
-    } catch {
-      status.textContent = "Something went wrong posting that — please try again.";
-      status.className = "contact-status contact-status-err";
-      status.style.display = "block";
-    } finally {
-      submitBtn.disabled = false;
-    }
-  });
-}
-
-function renderTurnstileWidget(panel: HTMLElement, onSolved: () => void): void {
-  const el = panel.querySelector<HTMLElement>(".cf-turnstile");
-  if (!el) return;
-
-  const tryRender = () => {
-    const ts = (window as any).turnstile;
-    if (!ts) {
-      // api.js is async/defer and may not have executed yet — poll briefly.
-      setTimeout(tryRender, 100);
-      return;
-    }
-    // Guard against double-render if this panel is wired twice.
-    if (el.dataset.tsRendered === "1") return;
-    el.dataset.tsRendered = "1";
-    const widgetId = ts.render(el, {
-      sitekey: el.dataset.sitekey,
-      callback: onSolved,
-    });
-    el.dataset.tsWidgetId = widgetId;
-  };
-  tryRender();
-}
+// ============================================================================
+// Runnable Code Logic
+// ============================================================================
 
 function wireRunnableCode(container: HTMLElement): void {
   container.querySelectorAll<HTMLElement>(".blog-run-panel").forEach((panel) => {
@@ -252,16 +199,19 @@ function wireRunnableCode(container: HTMLElement): void {
     renderTurnstileWidget(panel, () => (btn.disabled = false));
 
     btn.addEventListener("click", async () => {
-      const block = getRunnableBlock(id);
-      if (!block) return;
+      const block = codeBlocksRegistry.get(id); 
+      if (!block || !block.compilerId) return;
 
-      // Lock UI during execution
+      // Extract code from Monaco instance if it loaded, otherwise fallback to static string
+      const editor = editorInstances.get(id);
+      const sourceCode = editor ? editor.getValue() : block.code;
+
       btn.disabled = true;
       status.textContent = "Running…";
       output.hidden = true;
 
       try {
-        const result = await runCode(block.compilerId, block.code, stdinInput?.value ?? "");
+        const result = await runCode(block.compilerId, sourceCode, stdinInput?.value ?? "");
         
         const sections = [result.output, result.error]
           .map((s) => (s ?? "").trim())
@@ -281,136 +231,184 @@ function wireRunnableCode(container: HTMLElement): void {
         console.error("Execution error:", err);
         status.textContent = `API Error: ${err instanceof Error ? err.message : "Unknown"}`;
       } finally {
-        // IMPORTANT: Reset Turnstile so the user must re-verify before the next run
         btn.disabled = true;
         const el = panel.querySelector<HTMLElement>(".cf-turnstile");
         const widgetId = el?.dataset.tsWidgetId;
-        (window as any).turnstile?.reset(widgetId);
-
-        // Disable the button again — renderTurnstileWidget's onSolved callback
-        // re-enables it once the user passes the challenge again.
+        if ((window as any).turnstile) {
+            (window as any).turnstile.reset(widgetId);
+        }
       }
     });
   });
 }
 
-// ─── YouTube IFrame Player API loader ──────────────────────────────────────
-let ytApiPromise: Promise<typeof window.YT> | null = null;
+// ============================================================================
+// Existing App Engagement & UI Functions
+// ============================================================================
 
-function loadYouTubeApi(): Promise<typeof window.YT> {
-  if (ytApiPromise) return ytApiPromise;
-
-  ytApiPromise = new Promise((resolve) => {
-    if ((window as any).YT?.Player) {
-      resolve((window as any).YT);
-      return;
-    }
-    const prevReady = (window as any).onYouTubeIframeAPIReady;
-    (window as any).onYouTubeIframeAPIReady = () => {
-      prevReady?.();
-      resolve((window as any).YT);
-    };
-    if (!document.querySelector('script[src="https://www.youtube.com/iframe_api"]')) {
-      const script = document.createElement("script");
-      script.src = "https://www.youtube.com/iframe_api";
-      document.head.appendChild(script);
-    }
-  });
-
-  return ytApiPromise;
-}
-
-function wireFloatingVideos(container: HTMLElement): void {
-  const wrappers = container.querySelectorAll<HTMLElement>(".blog-video-embed");
-  if (!wrappers.length) return;
-
-  const observer = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((entry) => {
-        const wrapper = entry.target as HTMLElement;
-        const iframe = wrapper.querySelector("iframe");
-        if (!iframe) return;
-
-        wrapper.dataset.inView = entry.isIntersecting ? "1" : "0";
-
-        if (entry.isIntersecting) {
-          // Back in view — clear any dismissal so it can float again next time it leaves.
-          wrapper.dataset.dismissed = "0";
-          iframe.classList.remove("floating");
-        } else if (wrapper.dataset.dismissed !== "1" && wrapper.dataset.playing === "1") {
-          // Out of view in either direction, not dismissed, and actively playing.
-          iframe.classList.add("floating");
-        }
-      });
-    },
-    { threshold: 0 } // Triggers exactly when the wrapper fully leaves or enters the viewport
-  );
-
-  wrappers.forEach((w) => {
-    w.dataset.dismissed = "0";
-    w.dataset.playing = "0";
-    w.dataset.inView = "1";
-    observer.observe(w);
-
-    const closeBtn = w.querySelector<HTMLButtonElement>(".blog-video-close");
-    const iframe = w.querySelector<HTMLIFrameElement>("iframe");
-    closeBtn?.addEventListener("click", () => {
-      w.dataset.dismissed = "1";
-      iframe?.classList.remove("floating");
-    });
-
-    if (!iframe?.id) return;
-    loadYouTubeApi().then((YT) => {
-      new YT.Player(iframe.id, {
-        events: {
-          onStateChange: (event: { data: number }) => {
-            const isPlaying = event.data === YT.PlayerState.PLAYING;
-            w.dataset.playing = isPlaying ? "1" : "0";
-
-            if (isPlaying && w.dataset.inView === "0" && w.dataset.dismissed !== "1") {
-              iframe.classList.add("floating");
-            } else if (!isPlaying) {
-              // Paused, ended, buffering, cued — don't keep floating a non-playing video.
-              iframe.classList.remove("floating");
-            }
-          },
-        },
-      });
-    });
-  });
-}
-function getReadMoreHtml(currentSlug: string): string {
-  // Get up to 2 posts that aren't the one currently being read
-  const otherPosts = BLOG_POSTS.filter((p) => p.slug !== currentSlug).slice(0, 2);
-  
-  if (otherPosts.length === 0) return "";
-
-  const cardsHtml = otherPosts.map(p => {
-    const thumb = p.cover
-      ? `<div class="blog-card-thumb"><img src="${esc(p.cover)}" alt="" loading="lazy"/></div>`
-      : `<div class="blog-card-thumb blog-card-thumb-empty" aria-hidden="true">§</div>`;
-
-    const tags = p.tags.length
-      ? `<div class="blog-card-tags">${p.tags.map((t) => `<span class="blog-tag">${esc(t)}</span>`).join("")}</div>`
-      : "";
-
-    return `
-      <a class="blog-card" href="#/blog?slug=${encodeURIComponent(p.slug)}">
-        ${thumb}
-        <div class="blog-card-body">
-          ${p.date ? `<div class="blog-card-date">${esc(formatBlogDate(p.date))} · ${estimateReadingMinutes(p.rawBody)} min read</div>` : ""}
-          <h3 class="blog-card-title">${esc(p.title)}</h3>
-          ${p.excerpt ? `<p class="blog-card-excerpt">${esc(p.excerpt)}</p>` : ""}
-          ${tags}
-        </div>
-      </a>`;
-  }).join("");
-
+function engagementShell(): string {
   return `
-    <div class="blog-read-more" style="margin-top: 3rem; padding-top: 1.5rem; border-top: 0.6px solid #ddd;">
-      <h3 class="section" style="margin-top: 0; border: none; padding: 0;">Read more</h3>
-      <div class="blog-grid" style="margin-top: 1rem;">
-        ${cardsHtml}
+    <div class="blog-engagement">
+      <div class="blog-stats">
+        <span id="blog-views">... views</span>
+        <button id="blog-like-btn" class="blog-like-btn">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+          <span id="blog-likes">...</span>
+        </button>
+      </div>
+      <div class="blog-comments-section">
+        <h3>Comments</h3>
+        <div id="blog-comments-list" class="blog-comments-list">Loading comments...</div>
+        <form id="blog-comment-form" class="blog-comment-form">
+          <input type="text" id="comment-author" placeholder="Name (optional)" />
+          <textarea id="comment-content" placeholder="Leave a comment..." required></textarea>
+          <div class="cf-turnstile-comment" data-sitekey="${import.meta.env.VITE_TURNSTILE_SITE_KEY}"></div>
+          <button type="submit" disabled>Post Comment</button>
+        </form>
+      </div>
+    </div>`;
+}
+
+function commentItem(c: BlogComment): string {
+  const author = c.author_name ? esc(c.author_name) : "Anonymous";
+  const date = new Date(c.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+  return `
+    <div class="blog-comment">
+      <div class="blog-comment-header">
+        <strong>${author}</strong> <span>${date}</span>
+      </div>
+      <p class="blog-comment-body">${esc(c.content)}</p>
+    </div>`;
+}
+
+async function loadEngagement(container: HTMLElement, slug: string) {
+  const viewsEl = container.querySelector("#blog-views");
+  const likesEl = container.querySelector("#blog-likes");
+  const commentsList = container.querySelector("#blog-comments-list");
+
+  try {
+    const stats = await getBlogStats(slug);
+    if (viewsEl) viewsEl.textContent = `${stats.views} views`;
+    if (likesEl) likesEl.textContent = `${stats.likes}`;
+
+    const comments = await getApprovedComments(slug);
+    if (commentsList) {
+      commentsList.innerHTML = comments.length 
+        ? comments.map(commentItem).join("") 
+        : "<p class='no-comments'>No comments yet. Be the first!</p>";
+    }
+  } catch (err) {
+    console.error("Failed to load engagement data", err);
+  }
+}
+
+function wireLikeButton(container: HTMLElement, slug: string) {
+  const btn = container.querySelector<HTMLButtonElement>("#blog-like-btn");
+  const likesEl = container.querySelector("#blog-likes");
+  if (!btn || !likesEl) return;
+
+  const likedKey = `liked_${slug}`;
+  if (localStorage.getItem(likedKey)) {
+    btn.classList.add("liked");
+    btn.disabled = true;
+  }
+
+  btn.addEventListener("click", async () => {
+    if (btn.disabled) return;
+    btn.disabled = true;
+    try {
+      const newLikes = await likePost(slug);
+      likesEl.textContent = `${newLikes}`;
+      btn.classList.add("liked");
+      localStorage.setItem(likedKey, "true");
+    } catch (err) {
+      console.error("Failed to like post", err);
+      btn.disabled = false;
+    }
+  });
+}
+
+function wireCommentForm(container: HTMLElement, slug: string) {
+  const form = container.querySelector<HTMLFormElement>("#blog-comment-form");
+  const authorInput = container.querySelector<HTMLInputElement>("#comment-author");
+  const contentInput = container.querySelector<HTMLTextAreaElement>("#comment-content");
+  const submitBtn = form?.querySelector<HTMLButtonElement>('button[type="submit"]');
+  const turnstileContainer = form?.querySelector<HTMLElement>(".cf-turnstile-comment");
+
+  if (!form || !authorInput || !contentInput || !submitBtn || !turnstileContainer) return;
+
+  let turnstileToken = "";
+  if ((window as any).turnstile) {
+    (window as any).turnstile.render(turnstileContainer, {
+      sitekey: turnstileContainer.dataset.sitekey,
+      callback: (token: string) => {
+        turnstileToken = token;
+        submitBtn.disabled = false;
+      },
+      "error-callback": () => {
+        submitBtn.disabled = true;
+      }
+    });
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!turnstileToken) return;
+
+    const author = authorInput.value.trim();
+    const content = contentInput.value.trim();
+    if (!content) return;
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Submitting...";
+
+    try {
+      await submitComment(slug, author, content, turnstileToken);
+      form.innerHTML = "<p class='comment-success'>Comment submitted for moderation. Thank you!</p>";
+    } catch (err) {
+      console.error("Failed to submit comment", err);
+      submitBtn.textContent = "Error. Try again.";
+      submitBtn.disabled = false;
+    }
+  });
+}
+
+function wireFloatingVideos(container: HTMLElement) {
+  const videos = container.querySelectorAll<HTMLVideoElement>("video[data-floating]");
+  videos.forEach(video => {
+    // Implement any custom floating video logic if you have it here
+  });
+}
+
+function renderTurnstileWidget(container: HTMLElement, onsuccess: () => void) {
+  const el = container.querySelector<HTMLElement>('.cf-turnstile');
+  if (!el || !(window as any).turnstile) return;
+  
+  (window as any).turnstile.render(el, {
+    sitekey: el.dataset.sitekey,
+    callback: onsuccess
+  });
+}
+
+function getReadMoreHtml(currentSlug: string): string {
+  const others = BLOG_POSTS.filter(p => p.slug !== currentSlug);
+  if (others.length === 0) return "";
+  
+  // Pick 2 random posts
+  const shuffled = others.sort(() => 0.5 - Math.random()).slice(0, 2);
+  
+  return `
+    <div class="blog-read-more">
+      <h3>Read More</h3>
+      <div class="blog-grid" style="grid-template-columns: 1fr 1fr; margin-top: 1rem;">
+        ${shuffled.map(p => `
+          <a class="blog-card" href="#/blog?slug=${encodeURIComponent(p.slug)}">
+            <div class="blog-card-body">
+              <h4 style="margin: 0 0 0.5rem 0;">${esc(p.title)}</h4>
+              ${p.excerpt ? `<p style="margin: 0; font-size: 0.9rem; color: var(--text-secondary);">${esc(p.excerpt)}</p>` : ""}
+            </div>
+          </a>
+        `).join("")}
       </div>
     </div>
   `;
