@@ -46,15 +46,18 @@ function pageHtml(): string {
         <p class="edu-note">
           Notes on competitive programming, mathematics, and the projects I'm building.
         </p>
-        ${SUBSCRIBE_FORM_HTML}
+        
         ${body}
+        
+        <!-- Subscribe form moved after all blogs -->
+        <div style="margin-top: 4rem; padding-top: 2rem; border-top: 1px solid #eaeaea;">
+          ${SUBSCRIBE_FORM_HTML}
+        </div>
       </div>
       ${SCROLL_TOP_BUTTON_HTML}
     </article>`;
 }
 
-// Blog posts are compiled in statically from Markdown at build time, so
-// there is nothing async to load — render once.
 export function mountBlogs(container: HTMLElement): void {
   container.innerHTML = pageHtml();
   initScrollTopButton(container);
