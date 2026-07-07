@@ -291,6 +291,32 @@ function wireRunnableCode(container: HTMLElement): void {
   });
 }
 
+// ─── YouTube IFrame Player API loader ──────────────────────────────────────
+let ytApiPromise: Promise<typeof window.YT> | null = null;
+
+function loadYouTubeApi(): Promise<typeof window.YT> {
+  if (ytApiPromise) return ytApiPromise;
+
+  ytApiPromise = new Promise((resolve) => {
+    if ((window as any).YT?.Player) {
+      resolve((window as any).YT);
+      return;
+    }
+    const prevReady = (window as any).onYouTubeIframeAPIReady;
+    (window as any).onYouTubeIframeAPIReady = () => {
+      prevReady?.();
+      resolve((window as any).YT);
+    };
+    if (!document.querySelector('script[src="https://www.youtube.com/iframe_api"]')) {
+      const script = document.createElement("script");
+      script.src = "https://www.youtube.com/iframe_api";
+      document.head.appendChild(script);
+    }
+  });
+
+  return ytApiPromise;
+}
+
 function wireFloatingVideos(container: HTMLElement): void {
   const wrappers = container.querySelectorAll<HTMLElement>(".blog-video-embed");
   if (!wrappers.length) return;
@@ -302,12 +328,14 @@ function wireFloatingVideos(container: HTMLElement): void {
         const iframe = wrapper.querySelector("iframe");
         if (!iframe) return;
 
+        wrapper.dataset.inView = entry.isIntersecting ? "1" : "0";
+
         if (entry.isIntersecting) {
           // Back in view — clear any dismissal so it can float again next time it leaves.
           wrapper.dataset.dismissed = "0";
           iframe.classList.remove("floating");
-        } else if (wrapper.dataset.dismissed !== "1") {
-          // Out of view in either direction (scrolled past above or below) and not dismissed.
+        } else if (wrapper.dataset.dismissed !== "1" && wrapper.dataset.playing === "1") {
+          // Out of view in either direction, not dismissed, and actively playing.
           iframe.classList.add("floating");
         }
       });
@@ -317,13 +345,34 @@ function wireFloatingVideos(container: HTMLElement): void {
 
   wrappers.forEach((w) => {
     w.dataset.dismissed = "0";
+    w.dataset.playing = "0";
+    w.dataset.inView = "1";
     observer.observe(w);
 
     const closeBtn = w.querySelector<HTMLButtonElement>(".blog-video-close");
-    const iframe = w.querySelector("iframe");
+    const iframe = w.querySelector<HTMLIFrameElement>("iframe");
     closeBtn?.addEventListener("click", () => {
       w.dataset.dismissed = "1";
       iframe?.classList.remove("floating");
+    });
+
+    if (!iframe?.id) return;
+    loadYouTubeApi().then((YT) => {
+      new YT.Player(iframe.id, {
+        events: {
+          onStateChange: (event: { data: number }) => {
+            const isPlaying = event.data === YT.PlayerState.PLAYING;
+            w.dataset.playing = isPlaying ? "1" : "0";
+
+            if (isPlaying && w.dataset.inView === "0" && w.dataset.dismissed !== "1") {
+              iframe.classList.add("floating");
+            } else if (!isPlaying) {
+              // Paused, ended, buffering, cued — don't keep floating a non-playing video.
+              iframe.classList.remove("floating");
+            }
+          },
+        },
+      });
     });
   });
 }
