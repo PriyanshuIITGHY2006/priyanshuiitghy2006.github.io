@@ -1,16 +1,19 @@
 import "../styles/admin.css";
 import { supabase } from "../lib/supabase";
 
-const ADMIN_PASSWORD = "iitg2006";
-const AUTH_KEY = "admin:auth";
-
 // ── Entry point ──────────────────────────────────────────────────────────────
+// Real auth: a Supabase session (created via supabase.auth.signInWithPassword)
+// is what actually gates writes, enforced by RLS policies on the server side.
+// This client-side check only decides which screen to render — it grants
+// nothing by itself.
 export function mountAdmin(container: HTMLElement): void {
-  if (sessionStorage.getItem(AUTH_KEY) === "1") {
-    renderPanel(container);
-  } else {
-    renderLogin(container);
-  }
+  void supabase.auth.getSession().then(({ data }) => {
+    if (data.session) {
+      renderPanel(container);
+    } else {
+      renderLogin(container);
+    }
+  });
 }
 
 // ── Login screen ─────────────────────────────────────────────────────────────
@@ -20,31 +23,42 @@ function renderLogin(container: HTMLElement): void {
       <div class="admin-login-card">
         <h2>Portfolio Admin</h2>
         <div id="admin-login-err" class="admin-login-error" style="display:none"></div>
+        <label>Email</label>
+        <input type="email" id="admin-email" placeholder="you@example.com" autocomplete="username"/>
         <label>Password</label>
         <input type="password" id="admin-pw" placeholder="Enter password" autocomplete="current-password"/>
         <button class="admin-btn admin-btn-primary" id="admin-login-btn" style="width:100%">Sign in</button>
       </div>
     </div>`;
 
+  const email = container.querySelector<HTMLInputElement>("#admin-email")!;
   const pw = container.querySelector<HTMLInputElement>("#admin-pw")!;
   const btn = container.querySelector<HTMLButtonElement>("#admin-login-btn")!;
   const err = container.querySelector<HTMLElement>("#admin-login-err")!;
 
-  function attempt() {
-    if (pw.value === ADMIN_PASSWORD) {
-      sessionStorage.setItem(AUTH_KEY, "1");
-      renderPanel(container);
-    } else {
-      err.textContent = "Incorrect password.";
+  async function attempt() {
+    btn.disabled = true;
+    err.style.display = "none";
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email.value.trim(),
+      password: pw.value,
+    });
+    btn.disabled = false;
+
+    if (error) {
+      err.textContent = "Incorrect email or password.";
       err.style.display = "block";
       pw.value = "";
       pw.focus();
+      return;
     }
+    renderPanel(container);
   }
 
-  btn.addEventListener("click", attempt);
-  pw.addEventListener("keydown", (e) => { if (e.key === "Enter") attempt(); });
-  pw.focus();
+  btn.addEventListener("click", () => void attempt());
+  pw.addEventListener("keydown", (e) => { if (e.key === "Enter") void attempt(); });
+  email.addEventListener("keydown", (e) => { if (e.key === "Enter") pw.focus(); });
+  email.focus();
 }
 
 // ── Main panel ───────────────────────────────────────────────────────────────
@@ -76,8 +90,7 @@ function renderPanel(container: HTMLElement): void {
     </div>`;
 
   container.querySelector("#admin-logout")!.addEventListener("click", () => {
-    sessionStorage.removeItem(AUTH_KEY);
-    renderLogin(container);
+    void supabase.auth.signOut().then(() => renderLogin(container));
   });
 
   container.querySelectorAll<HTMLButtonElement>(".admin-tab-bar button").forEach((btn) => {
