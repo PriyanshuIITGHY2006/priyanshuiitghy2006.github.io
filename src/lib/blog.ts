@@ -2,6 +2,7 @@ import { marked, type Tokens } from "marked";
 import markedKatex from "marked-katex-extension";
 import DOMPurify from "dompurify";
 import hljs from "highlight.js/lib/core";
+import { BIN_PACKING_ALGORITHMS, BIN_PACKING_ALGORITHM_LABELS, type BinVizResult } from "./bin-packing";
 
 import cpp from "highlight.js/lib/languages/cpp";
 import python from "highlight.js/lib/languages/python";
@@ -376,6 +377,91 @@ const testcasesExtension = {
   },
 };
 
+// ─── Bin-packing algorithm visualizations ──────────────────────────────────
+// :::binviz
+// algorithm: first-fit
+// capacity: 10
+// items: 4,8,1,4,2,1,7,3
+// caption: First Fit packing items into bins of capacity 10
+// :::
+// The simulation runs once at render time (deterministic, cheap); the DOM
+// wiring in blog-post.ts replays it step by step against this registry.
+export interface BinVizConfig {
+  algorithm: string;
+  algorithmLabel: string;
+  capacity: number;
+  items: number[];
+  caption: string;
+  result: BinVizResult;
+}
+
+export const binVizRegistry = new Map<string, BinVizConfig>();
+let binVizCounter = 0;
+
+interface BinVizToken extends Tokens.Generic {
+  type: "binviz";
+  body: string;
+}
+
+const binVizExtension = {
+  name: "binviz",
+  level: "block" as const,
+  start(src: string): number | undefined {
+    const idx = src.indexOf(":::binviz");
+    return idx === -1 ? undefined : idx;
+  },
+  tokenizer(src: string) {
+    const match = /^:::binviz\n([\s\S]*?)\n:::(?:\n|$)/.exec(src);
+    if (!match) return undefined;
+    const token: BinVizToken = { type: "binviz", raw: match[0], body: match[1] };
+    return token;
+  },
+  renderer(token: Tokens.Generic): string {
+    const t = token as BinVizToken;
+    const data: Record<string, string> = {};
+    for (const line of t.body.split(/\r?\n/)) {
+      const idx = line.indexOf(":");
+      if (idx === -1) continue;
+      data[line.slice(0, idx).trim()] = line.slice(idx + 1).trim();
+    }
+    const algorithm = data.algorithm || "first-fit";
+    const capacity = Number(data.capacity) || 10;
+    const items = (data.items || "")
+      .split(",")
+      .map((s) => Number(s.trim()))
+      .filter((n) => Number.isFinite(n) && n > 0);
+    const caption = data.caption || "";
+    const algoFn = BIN_PACKING_ALGORITHMS[algorithm];
+
+    if (!algoFn || items.length === 0) {
+      return `<p class="blog-testcases-error">Could not render bin-packing visualization (bad :::binviz config).</p>`;
+    }
+
+    const result = algoFn(items, capacity);
+    const id = `binviz-${++binVizCounter}`;
+    binVizRegistry.set(id, {
+      algorithm,
+      algorithmLabel: BIN_PACKING_ALGORITHM_LABELS[algorithm] || algorithm,
+      capacity,
+      items,
+      caption,
+      result,
+    });
+
+    return `
+      <figure class="blog-binviz" id="${id}">
+        <div class="blog-binviz-canvas" data-binviz-canvas></div>
+        <div class="blog-binviz-controls">
+          <button type="button" class="blog-binviz-btn" data-binviz-action="step">Step</button>
+          <button type="button" class="blog-binviz-btn" data-binviz-action="play">Play &#9656;</button>
+          <button type="button" class="blog-binviz-btn" data-binviz-action="reset">Reset</button>
+          <span class="blog-binviz-status" data-binviz-status></span>
+        </div>
+        ${caption ? `<figcaption class="blog-binviz-caption">${esc(caption)}</figcaption>` : ""}
+      </figure>`;
+  },
+};
+
 // ─── Video embeds ────────────────────────────────────────────────────────────
 interface VideoToken extends Tokens.Generic {
   type: "youtube";
@@ -411,7 +497,7 @@ const youtubeExtension = {
   },
 };
 
-marked.use({ renderer, breaks: false, gfm: true, extensions: [spoilerExtension, youtubeExtension, testcasesExtension] });
+marked.use({ renderer, breaks: false, gfm: true, extensions: [spoilerExtension, youtubeExtension, testcasesExtension, binVizExtension] });
 marked.use(markedKatex({ throwOnError: false, nonStandard: true }));
 
 export function renderMarkdown(md: string): string {
@@ -421,13 +507,14 @@ export function renderMarkdown(md: string): string {
   const html = marked.parse(md, { async: false }) as string;
   lastToc = currentToc;
   return DOMPurify.sanitize(html, {
-    ADD_TAGS: ["span", "iframe", "button", "textarea", "details", "summary", "div"],
+    ADD_TAGS: ["span", "iframe", "button", "textarea", "details", "summary", "div", "figure", "figcaption"],
     ADD_ATTR: [
       "target", "rel", "class", "id", "style", // id and style added to allow Monaco sizing
       "src", "title", "loading", "referrerpolicy", "allow", "allowfullscreen", "frameborder",
-      "rows", "placeholder", "hidden", "type", "open", 
+      "rows", "placeholder", "hidden", "type", "open",
       "data-run-id", "data-run-action", "data-sitekey", // Data attributes explicitly allowed
-      "data-copy-target", "data-testcases-for", "data-tc-run", "data-tc-index", "data-tc-status", "disabled"
+      "data-copy-target", "data-testcases-for", "data-tc-run", "data-tc-index", "data-tc-status", "disabled",
+      "data-binviz-canvas", "data-binviz-action", "data-binviz-status",
     ],
     USE_PROFILES: { html: true, svg: true, svgFilters: true, mathMl: true },
   });
