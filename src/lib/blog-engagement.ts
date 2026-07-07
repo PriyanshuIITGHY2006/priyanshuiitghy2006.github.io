@@ -56,7 +56,11 @@ export async function getApprovedComments(slug: string): Promise<BlogComment[]> 
 export async function submitComment(slug: string, name: string, message: string): Promise<void> {
   const { error } = await supabase
     .from("blog_comments")
-    .insert({ slug, name, message, approved: false });
+    .insert({ slug, name, message, approved: false })
+    // The anon SELECT policy only allows approved=true rows, but a fresh
+    // comment is always approved=false — asking PostgREST to hand it back
+    // would hit that same RLS gate and 403 the insert. Skip it.
+    .setHeader("Prefer", "return=minimal");
   if (error) throw error;
 }
 
@@ -71,7 +75,11 @@ export async function submitComment(slug: string, name: string, message: string)
 export async function subscribeToBlog(name: string, email: string): Promise<{ alreadySubscribed: boolean }> {
   const { error } = await supabase
     .from("blog_subscribers")
-    .insert({ name, email: email.toLowerCase().trim() });
+    .insert({ name, email: email.toLowerCase().trim() })
+    // There's no anon SELECT policy on this table (subscriber emails aren't
+    // publicly readable), so skip asking PostgREST to hand the row back —
+    // otherwise it evaluates that same RLS-gated read and 403s the insert.
+    .setHeader("Prefer", "return=minimal");
 
   if (error) {
     // Postgres unique_violation

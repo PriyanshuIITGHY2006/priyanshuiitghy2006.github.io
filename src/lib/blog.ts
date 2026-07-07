@@ -244,7 +244,8 @@ renderer.code = ({ text, lang }: Tokens.Code): string => {
   const editorHeight = Math.min(Math.max(lineCount * 21 + 32, 100), 600); // 21px per line + padding
   
   let runPanel = "";
-  if (isRunnable && compilerId) {
+  const hasRunPanel = Boolean(isRunnable && compilerId);
+  if (hasRunPanel) {
     lastRunnableBlockId = id;
     const siteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY;
     runPanel = `
@@ -262,11 +263,19 @@ renderer.code = ({ text, lang }: Tokens.Code): string => {
       </div>`;
   }
 
+  // When a run panel is attached below, the editor skips its own border/radius —
+  // the outer .blog-code-block frame already wraps the whole card, so the two
+  // never need to overlap (previously done via a negative-margin hack that could
+  // paint over the editor's last line instead of empty space).
+  const editorStyle = hasRunPanel
+    ? `height: ${editorHeight}px; width: 100%; overflow: hidden; background: #1e1e1e;`
+    : `height: ${editorHeight}px; width: 100%; border-radius: 6px; overflow: hidden; border: 1px solid #ddd; background: #1e1e1e;`;
+
   return `
     <div class="blog-code-block" style="position: relative; margin-bottom: 1.5rem;">
       ${langLabel}
       <button type="button" class="blog-code-copy-btn" data-copy-target="${id}" aria-label="Copy code">Copy</button>
-      <div id="${id}" class="monaco-editor-container" style="height: ${editorHeight}px; width: 100%; border-radius: 6px; overflow: hidden; border: 1px solid #ddd; background: #1e1e1e;">
+      <div id="${id}" class="monaco-editor-container" style="${editorStyle}">
         <pre style="margin:0; padding:16px; height:100%; overflow:auto;"><code class="hljs${usedLang ? ` language-${usedLang}` : ""}">${highlighted}</code></pre>
       </div>
       ${runPanel}
