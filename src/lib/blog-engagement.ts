@@ -60,6 +60,27 @@ export async function submitComment(slug: string, name: string, message: string)
   if (error) throw error;
 }
 
+// ─── Public: subscribers ─────────────────────────────────────────────────────
+
+/**
+ * Stores name + email for future new-post notification emails (sent manually
+ * or via a separate automation later — this just captures the signup).
+ * A duplicate email (unique constraint on `email`) is treated as an
+ * already-subscribed success rather than an error.
+ */
+export async function subscribeToBlog(name: string, email: string): Promise<{ alreadySubscribed: boolean }> {
+  const { error } = await supabase
+    .from("blog_subscribers")
+    .insert({ name, email: email.toLowerCase().trim() });
+
+  if (error) {
+    // Postgres unique_violation
+    if (error.code === "23505") return { alreadySubscribed: true };
+    throw error;
+  }
+  return { alreadySubscribed: false };
+}
+
 // ─── Admin: moderation ───────────────────────────────────────────────────────
 
 export async function getAllComments(): Promise<BlogComment[]> {

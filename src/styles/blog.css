@@ -237,6 +237,17 @@
 .blog-comment-form { max-width: 34rem; }
 .blog-comment-note { font-size: 0.76em; color: #888; margin: 0; }
 
+/* ─── Subscribe form ──────────────────────────────────────────────────── */
+.blog-subscribe {
+  margin: 2rem 0;
+  padding: 1.2rem 1.4rem;
+  border: 0.6px solid #ddd;
+  border-radius: 6px;
+  background: #fafafa;
+}
+.blog-subscribe-title { margin-top: 0; border: none; padding: 0; }
+.blog-subscribe-form { max-width: 420px; margin-top: 0.8rem; }
+
 /* ─── KaTeX math ──────────────────────────────────────────────────────── */
 .blog-content .katex-display { overflow-x: auto; overflow-y: hidden; padding: 0.2rem 0; margin: 0.9rem 0; }
 .blog-content .katex { font-size: 1.05em; }

@@ -2,6 +2,7 @@ import "../styles/blog.css";
 import { resume } from "../data/resume";
 import { BLOG_POSTS, formatBlogDate, estimateReadingMinutes, type BlogPost } from "../lib/blog";
 import { SCROLL_TOP_BUTTON_HTML, initScrollTopButton } from "../lib/scroll-top";
+import { SUBSCRIBE_FORM_HTML, wireSubscribeForm } from "../lib/subscribe";
 
 function esc(s: string): string {
   return s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c] as string));
@@ -45,6 +46,7 @@ function pageHtml(): string {
         <p class="edu-note">
           Notes on competitive programming, mathematics, and the projects I'm building.
         </p>
+        ${SUBSCRIBE_FORM_HTML}
         ${body}
       </div>
       ${SCROLL_TOP_BUTTON_HTML}
@@ -56,4 +58,5 @@ function pageHtml(): string {
 export function mountBlogs(container: HTMLElement): void {
   container.innerHTML = pageHtml();
   initScrollTopButton(container);
+  wireSubscribeForm(container);
 }

@@ -21,6 +21,7 @@ import {
   type BlogComment,
 } from "../lib/blog-engagement";
 import { SCROLL_TOP_BUTTON_HTML, initScrollTopButton } from "../lib/scroll-top";
+import { SUBSCRIBE_FORM_HTML, wireSubscribeForm } from "../lib/subscribe";
 
 function esc(s: string): string {
   return s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c] as string));
@@ -114,6 +115,7 @@ function pageHtml(slug: string | null): string {
         ${post.cover ? `<figure class="blog-post-cover"><img src="${esc(post.cover)}" alt=""/></figure>` : ""}
         <div class="blog-content">${renderMarkdown(post.rawBody)}</div>
         ${engagementShell()}
+        ${SUBSCRIBE_FORM_HTML}
         
         ${getReadMoreHtml(post.slug)} <div class="section-more" style="margin-top: 2rem;">
           <a class="pj-link" href="#/blogs">← All posts</a>
@@ -135,6 +137,7 @@ export function mountBlogPost(container: HTMLElement, slug: string | null): void
   wireCommentForm(container, post.slug);
   wireRunnableCode(container);
   wireFloatingVideos(container);
+  wireSubscribeForm(container);
   initScrollTopButton(container);
 }
 
