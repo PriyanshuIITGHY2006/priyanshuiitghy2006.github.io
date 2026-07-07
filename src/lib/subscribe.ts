@@ -7,7 +7,7 @@ import { subscribeToBlog } from "./blog-engagement";
 export const SUBSCRIBE_FORM_HTML = `
   <div class="blog-subscribe">
     <h3 class="section blog-subscribe-title">Get new posts by email</h3>
-    <p class="edu-note">No spam — just an email when a new post goes up.</p>
+    <p class="edu-note">You will get an email when a new post goes up.</p>
     <form class="contact-form blog-subscribe-form">
       <div id="blog-subscribe-status" class="contact-status" style="display:none"></div>
       <div>
