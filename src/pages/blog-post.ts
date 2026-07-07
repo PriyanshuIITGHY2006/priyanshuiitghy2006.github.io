@@ -10,9 +10,11 @@ import {
   testcasesRegistry,
   getLastToc,
   getRelatedPosts,
+  binVizRegistry,
   type TocEntry,
   type BlogPost,
 } from "../lib/blog";
+import { mountBinPackingViz, type BinVizController } from "../lib/bin-packing-viz";
 import { runCode, VerificationRequiredError, type CompilerResult } from "../lib/compiler";
 import {
   getBlogStats,
@@ -236,6 +238,7 @@ function pageHtml(slug: string | null): string {
 }
 
 let detachProgressBar: (() => void) | null = null;
+let activeBinVizPlayTimers: number[] = [];
 
 export function mountBlogPost(container: HTMLElement, slug: string | null): void {
   container.innerHTML = pageHtml(slug);
@@ -254,6 +257,7 @@ export function mountBlogPost(container: HTMLElement, slug: string | null): void
   wireProgressBar(container);
   wireShareButtons(container);
   wireFloatingVideos(container);
+  wireAlgoViz(container);
   wireSubscribeForm(container);
   initScrollTopButton(container);
 
@@ -267,6 +271,8 @@ export function unmountBlogPost(): void {
     detachProgressBar();
     detachProgressBar = null;
   }
+  activeBinVizPlayTimers.forEach((id) => window.clearInterval(id));
+  activeBinVizPlayTimers = [];
 }
 
 // ─── Copy-to-clipboard for code blocks ──────────────────────────────────────
@@ -745,6 +751,69 @@ function wireFloatingVideos(container: HTMLElement): void {
         },
       });
     });
+  });
+}
+
+// ─── Bin-packing algorithm visualizations (:::binviz) ───────────────────────
+function wireAlgoViz(container: HTMLElement): void {
+  const figures = container.querySelectorAll<HTMLElement>(".blog-binviz");
+  if (!figures.length) return;
+
+  figures.forEach((figure) => {
+    const config = binVizRegistry.get(figure.id);
+    const canvas = figure.querySelector<HTMLElement>("[data-binviz-canvas]");
+    const status = figure.querySelector<HTMLElement>("[data-binviz-status]");
+    const stepBtn = figure.querySelector<HTMLButtonElement>('[data-binviz-action="step"]');
+    const playBtn = figure.querySelector<HTMLButtonElement>('[data-binviz-action="play"]');
+    const resetBtn = figure.querySelector<HTMLButtonElement>('[data-binviz-action="reset"]');
+    if (!config || !canvas || !status || !stepBtn || !playBtn || !resetBtn) return;
+
+    let controller: BinVizController = mountBinPackingViz(canvas, config);
+    let playTimer: number | null = null;
+
+    const stopPlaying = () => {
+      if (playTimer !== null) {
+        window.clearInterval(playTimer);
+        activeBinVizPlayTimers = activeBinVizPlayTimers.filter((id) => id !== playTimer);
+        playTimer = null;
+      }
+      playBtn.textContent = "Play ▶";
+    };
+
+    const refreshStatus = () => {
+      status.textContent = controller.describeStep();
+      const done = controller.isDone();
+      stepBtn.disabled = done;
+      playBtn.disabled = done;
+      if (done) stopPlaying();
+    };
+
+    stepBtn.addEventListener("click", () => {
+      controller.stepForward();
+      refreshStatus();
+    });
+
+    playBtn.addEventListener("click", () => {
+      if (playTimer !== null) {
+        stopPlaying();
+        return;
+      }
+      playBtn.textContent = "Pause";
+      playTimer = window.setInterval(() => {
+        const advanced = controller.stepForward();
+        refreshStatus();
+        if (!advanced) stopPlaying();
+      }, 900);
+      activeBinVizPlayTimers.push(playTimer);
+    });
+
+    resetBtn.addEventListener("click", () => {
+      stopPlaying();
+      controller.reset();
+      refreshStatus();
+    });
+
+    refreshStatus();
   });
 }
 
