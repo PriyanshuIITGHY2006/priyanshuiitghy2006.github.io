@@ -52,15 +52,21 @@ export async function getApprovedComments(slug: string): Promise<BlogComment[]> 
   return (data as BlogComment[]) ?? [];
 }
 
-/** Always inserted as unapproved — publishing requires admin review. */
+/**
+ * Always inserted as unapproved — publishing requires admin review.
+ *
+ * Goes through an RPC (SECURITY DEFINER function) rather than a direct table
+ * insert: the anon SELECT policy only allows approved=true rows, but a fresh
+ * comment is always approved=false, and PostgREST insisted on evaluating
+ * that RLS-gated read-back regardless of Prefer headers, 403ing the insert.
+ * The function runs as its owner, which bypasses RLS entirely.
+ */
 export async function submitComment(slug: string, name: string, message: string): Promise<void> {
-  const { error } = await supabase
-    .from("blog_comments")
-    .insert({ slug, name, message, approved: false })
-    // The anon SELECT policy only allows approved=true rows, but a fresh
-    // comment is always approved=false — asking PostgREST to hand it back
-    // would hit that same RLS gate and 403 the insert. Skip it.
-    .setHeader("Prefer", "return=minimal");
+  const { error } = await supabase.rpc("submit_blog_comment", {
+    p_slug: slug,
+    p_name: name,
+    p_message: message,
+  });
   if (error) throw error;
 }
 
@@ -69,24 +75,22 @@ export async function submitComment(slug: string, name: string, message: string)
 /**
  * Stores name + email for future new-post notification emails (sent manually
  * or via a separate automation later — this just captures the signup).
- * A duplicate email (unique constraint on `email`) is treated as an
- * already-subscribed success rather than an error.
+ * A duplicate email is treated as an already-subscribed success rather than
+ * an error (handled inside the RPC itself, which catches unique_violation).
+ *
+ * Goes through an RPC (SECURITY DEFINER function) rather than a direct table
+ * insert: there's no anon SELECT policy on this table (subscriber emails
+ * aren't publicly readable), and PostgREST insisted on evaluating that
+ * RLS-gated read-back regardless of Prefer headers, 403ing the insert. The
+ * function runs as its owner, which bypasses RLS entirely.
  */
 export async function subscribeToBlog(name: string, email: string): Promise<{ alreadySubscribed: boolean }> {
-  const { error } = await supabase
-    .from("blog_subscribers")
-    .insert({ name, email: email.toLowerCase().trim() })
-    // There's no anon SELECT policy on this table (subscriber emails aren't
-    // publicly readable), so skip asking PostgREST to hand the row back —
-    // otherwise it evaluates that same RLS-gated read and 403s the insert.
-    .setHeader("Prefer", "return=minimal");
+  const { data, error } = await supabase
+    .rpc("subscribe_to_blog", { p_name: name, p_email: email })
+    .single();
 
-  if (error) {
-    // Postgres unique_violation
-    if (error.code === "23505") return { alreadySubscribed: true };
-    throw error;
-  }
-  return { alreadySubscribed: false };
+  if (error) throw error;
+  return { alreadySubscribed: (data as { already_subscribed: boolean } | null)?.already_subscribed ?? false };
 }
 
 // ─── Admin: moderation ───────────────────────────────────────────────────────
