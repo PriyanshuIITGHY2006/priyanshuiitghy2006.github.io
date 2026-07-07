@@ -108,7 +108,7 @@ It only grows and shrinks from one end. (LIFO) Last thing added, first thing rem
 
 Growing it means subtracting from `rsp`. Shrinking it means adding back. One instruction. `sub rsp, 32`. That's the entire cost.
 
-```cpp runnable
+```cpp
 int square(int x) {
     int result = x * x;   // lives on the stack
     return result;
