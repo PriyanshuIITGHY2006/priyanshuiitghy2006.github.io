@@ -40,8 +40,8 @@ function card(p: BlogPost): string {
 function controlsHtml(): string {
   const tags = getAllTags();
   if (!BLOG_POSTS.length) return "";
-  const tagButtons = tags
-    .map((t) => `<button type="button" class="blog-tag-filter" data-tag-filter="${esc(t.toLowerCase())}">${esc(t)}</button>`)
+  const tagOptions = tags
+    .map((t) => `<option value="${esc(t.toLowerCase())}">${esc(t)}</option>`)
     .join("");
   return `
     <div class="blog-controls">
@@ -52,9 +52,13 @@ function controlsHtml(): string {
         placeholder="Search posts…"
         aria-label="Search posts"
       />
+      ${tags.length ? `
+      <select id="blog-tag-select" class="blog-tag-select" aria-label="Filter by tag">
+        <option value="">All tags</option>
+        ${tagOptions}
+      </select>` : ""}
       <a class="blog-rss-link" href="/feed.xml" target="_blank" rel="noopener noreferrer" title="RSS feed">RSS</a>
     </div>
-    ${tags.length ? `<div class="blog-tag-filters" id="blog-tag-filters">${tagButtons}</div>` : ""}
     <p class="blog-empty-filtered" id="blog-empty-filtered" hidden>No posts match your search or filters.</p>`;
 }
 
@@ -88,22 +92,21 @@ function pageHtml(): string {
 
 function wireFilters(container: HTMLElement): void {
   const searchInput = container.querySelector<HTMLInputElement>("#blog-search-input");
-  const tagButtons = Array.from(container.querySelectorAll<HTMLButtonElement>("[data-tag-filter]"));
+  const tagSelect = container.querySelector<HTMLSelectElement>("#blog-tag-select");
   const cards = Array.from(container.querySelectorAll<HTMLElement>(".blog-card"));
   const emptyMsg = container.querySelector<HTMLElement>("#blog-empty-filtered");
   if (!cards.length) return;
 
-  const activeTags = new Set<string>();
-
   const apply = () => {
     const query = (searchInput?.value ?? "").trim().toLowerCase();
+    const activeTag = tagSelect?.value ?? "";
     let visibleCount = 0;
 
     cards.forEach((card) => {
       const haystack = card.dataset.search ?? "";
       const cardTags = (card.dataset.tags ?? "").split("|").filter(Boolean);
       const matchesSearch = !query || haystack.includes(query);
-      const matchesTags = activeTags.size === 0 || cardTags.some((t) => activeTags.has(t));
+      const matchesTags = !activeTag || cardTags.includes(activeTag);
       const visible = matchesSearch && matchesTags;
       card.style.display = visible ? "" : "none";
       if (visible) visibleCount += 1;
@@ -113,20 +116,7 @@ function wireFilters(container: HTMLElement): void {
   };
 
   searchInput?.addEventListener("input", apply);
-  tagButtons.forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const tag = btn.dataset.tagFilter;
-      if (!tag) return;
-      if (activeTags.has(tag)) {
-        activeTags.delete(tag);
-        btn.classList.remove("active");
-      } else {
-        activeTags.add(tag);
-        btn.classList.add("active");
-      }
-      apply();
-    });
-  });
+  tagSelect?.addEventListener("change", apply);
 }
 
 export function mountBlogs(container: HTMLElement): void {

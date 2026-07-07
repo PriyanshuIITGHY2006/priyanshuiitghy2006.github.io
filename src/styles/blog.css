@@ -14,6 +14,7 @@
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-width: 0; /* grid items don't shrink below content size by default, which let a long unbreakable tag blow the card past its column and misalign the row */
   text-align: left;
   background: #fff;
   border: 0.6px solid #ddd;
@@ -83,6 +84,7 @@
   background: #f0f0f3; color: #333;
   border: 0.6px solid #e0e0e4; border-radius: 999px;
   padding: 0.1em 0.6em; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; max-width: 100%; min-width: 0;
 }
 
 /* ─── Single blog post page ──────────────────────────────────────────── */
@@ -583,7 +585,7 @@
 .blog-testcase-status.tc-fail { color: #c1272d; font-weight: 600; }
 .blog-testcases-error { color: #c1272d; font-size: 0.85em; }
 
-/* ─── Blog index: search + tag filters ───────────────────────────────────── */
+/* ─── Blog index: search + tag filter ────────────────────────────────────── */
 .blog-controls {
   display: flex;
   align-items: center;
@@ -596,9 +598,21 @@
   padding: 0.4em 0.7em;
   border: 0.6px solid #ccc;
   border-radius: 5px;
+  font-family: var(--cm);
   font-size: 0.9em;
 }
+.blog-tag-select {
+  padding: 0.4em 0.7em;
+  border: 0.6px solid #ccc;
+  border-radius: 5px;
+  background: #fff;
+  color: #333;
+  font-family: var(--cm);
+  font-size: 0.85em;
+  cursor: pointer;
+}
 .blog-rss-link {
+  font-family: var(--cm);
   font-size: 0.78em;
   padding: 0.3em 0.7em;
   border: 0.6px solid #ccc;
@@ -607,27 +621,6 @@
   text-decoration: none;
 }
 .blog-rss-link:hover { border-color: #999; color: #111; }
-.blog-tag-filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  margin-top: 0.7rem;
-}
-.blog-tag-filter {
-  font-size: 0.76em;
-  padding: 0.25em 0.65em;
-  border: 0.6px solid #ccc;
-  border-radius: 999px;
-  background: #fff;
-  color: #555;
-  cursor: pointer;
-}
-.blog-tag-filter:hover { border-color: #999; }
-.blog-tag-filter.active {
-  background: #111;
-  color: #fff;
-  border-color: #111;
-}
 .blog-empty-filtered {
   margin-top: 1.5rem;
   color: #888;
