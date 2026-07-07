@@ -24,6 +24,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history, needed to diff against github.event.before below
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -53,3 +55,18 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Notify subscribers about new posts
+        if: github.event_name == 'push' && github.event.before != '0000000000000000000000000000000000000000'
+        env:
+          INTERNAL_WEBHOOK_SECRET: ${{ secrets.INTERNAL_WEBHOOK_SECRET }}
+          SUPABASE_FUNCTIONS_URL: https://vadbagtnekrjwrimvgxe.supabase.co/functions/v1
+        run: |
+          added=$(git diff --name-only --diff-filter=A "${{ github.event.before }}" "${{ github.sha }}" -- 'src/data/blogs/*.md' || true)
+          if [ -z "$added" ]; then
+            echo "No new blog posts in this push."
+          else
+            echo "$added" | while IFS= read -r file; do
+              [ -n "$file" ] && node scripts/notify-new-post.mjs "$file"
+            done
+          fi
