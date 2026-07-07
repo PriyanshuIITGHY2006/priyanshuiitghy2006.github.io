@@ -13,7 +13,7 @@ import {
   type TocEntry,
   type BlogPost,
 } from "../lib/blog";
-import { runCode } from "../lib/compiler";
+import { runCode, VerificationRequiredError, type CompilerResult } from "../lib/compiler";
 import {
   getBlogStats,
   recordView,
@@ -305,6 +305,8 @@ function wireTestcases(container: HTMLElement): void {
     const cases = testcasesRegistry.get(runId);
     if (!cases || !cases.length) return;
 
+    const runPanel = container.querySelector<HTMLElement>(`.blog-run-panel[data-run-id="${runId}"]`);
+
     runBtn.addEventListener("click", async () => {
       const block = codeBlocksRegistry.get(runId);
       if (!block || !block.compilerId) return;
@@ -323,7 +325,7 @@ function wireTestcases(container: HTMLElement): void {
           statusEl.className = "blog-testcase-status";
         }
         try {
-          const result = await runCode(block.compilerId, sourceCode, cases[i].input);
+          const result = await executeCode(runPanel, block.compilerId, sourceCode, cases[i].input);
           const actual = (result.output ?? "").trim();
           const expected = cases[i].expected.trim();
           const pass = actual === expected && result.status !== "error";
@@ -335,6 +337,12 @@ function wireTestcases(container: HTMLElement): void {
           if (statusEl) {
             statusEl.textContent = `error: ${err instanceof Error ? err.message : "unknown"}`;
             statusEl.className = "blog-testcase-status tc-fail";
+          }
+          if (err instanceof VerificationRequiredError) {
+            runPanel?.dispatchEvent(
+              new CustomEvent("blog-run-verify", { detail: "Please verify you're human again to keep running test cases." }),
+            );
+            break;
           }
         }
       }
@@ -484,6 +492,70 @@ function wireCommentForm(container: HTMLElement, slug: string): void {
   });
 }
 
+// ─── Run session (lets a solved Turnstile challenge cover many runs) ───────
+// The backend hands back a signed, time- and count-bounded session token
+// after the first successful verification; we stash it for the tab's
+// lifetime so readers aren't asked to re-solve Turnstile on every run.
+
+const RUN_SESSION_KEY = "blog-code-run-session";
+
+interface RunSession {
+  token: string;
+  expiresAt: number;
+}
+
+function getRunSession(): RunSession | null {
+  try {
+    const raw = sessionStorage.getItem(RUN_SESSION_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<RunSession>;
+    if (!parsed.token || typeof parsed.expiresAt !== "number" || Date.now() >= parsed.expiresAt) return null;
+    return parsed as RunSession;
+  } catch {
+    return null;
+  }
+}
+
+function setRunSession(token: string, expiresAt: number): void {
+  try {
+    sessionStorage.setItem(RUN_SESSION_KEY, JSON.stringify({ token, expiresAt }));
+  } catch {
+    // Storage unavailable (private mode, quota) — session just won't persist.
+  }
+}
+
+function clearRunSession(): void {
+  try {
+    sessionStorage.removeItem(RUN_SESSION_KEY);
+  } catch {
+    // ignore
+  }
+}
+
+/** Runs code using the shared session if we have one, else the panel's solved Turnstile token. */
+async function executeCode(
+  runPanel: HTMLElement | null | undefined,
+  compilerId: string,
+  sourceCode: string,
+  stdin: string,
+): Promise<CompilerResult> {
+  const session = getRunSession();
+  const turnstileToken = session
+    ? undefined
+    : (runPanel?.querySelector('[name="cf-turnstile-response"]') as HTMLInputElement | null)?.value;
+
+  const result = await runCode(compilerId, sourceCode, stdin, {
+    runSession: session?.token,
+    turnstileToken,
+  });
+
+  if (result.session && result.sessionExpiresAt) {
+    setRunSession(result.session, result.sessionExpiresAt);
+  }
+
+  return result;
+}
+
 function renderTurnstileWidget(panel: HTMLElement, onSolved: () => void): void {
   const el = panel.querySelector<HTMLElement>(".cf-turnstile");
   if (!el) return;
@@ -512,16 +584,42 @@ function wireRunnableCode(container: HTMLElement): void {
     const status = panel.querySelector<HTMLElement>(".blog-run-status");
     const stdinInput = panel.querySelector<HTMLTextAreaElement>(".blog-run-stdin-input");
     const output = panel.querySelector<HTMLElement>(".blog-run-output");
+    const turnstileEl = panel.querySelector<HTMLElement>(".cf-turnstile");
 
     if (!id || !btn || !status || !output) return;
 
     const testcasesPanel = container.querySelector<HTMLElement>(`.blog-testcases-panel[data-testcases-for="${id}"]`);
     const tcRunBtn = testcasesPanel?.querySelector<HTMLButtonElement>("[data-tc-run]");
 
-    renderTurnstileWidget(panel, () => {
+    const unlockRunning = () => {
       btn.disabled = false;
       if (tcRunBtn) tcRunBtn.disabled = false;
-    });
+      if (turnstileEl) turnstileEl.hidden = true;
+    };
+
+    // A verification-required response (no/expired/exhausted session) lands here,
+    // whether it came from this panel's own run or a paired test-case run.
+    const requireVerification = (message?: string) => {
+      clearRunSession();
+      btn.disabled = true;
+      if (tcRunBtn) tcRunBtn.disabled = true;
+      if (status && message) status.textContent = message;
+      if (turnstileEl) {
+        turnstileEl.hidden = false;
+        if (turnstileEl.dataset.tsRendered === "1") {
+          (window as any).turnstile?.reset(turnstileEl.dataset.tsWidgetId);
+        } else {
+          renderTurnstileWidget(panel, unlockRunning);
+        }
+      }
+    };
+    panel.addEventListener("blog-run-verify", ((e: CustomEvent<string>) => requireVerification(e.detail)) as EventListener);
+
+    if (getRunSession()) {
+      unlockRunning();
+    } else {
+      renderTurnstileWidget(panel, unlockRunning);
+    }
 
     btn.addEventListener("click", async () => {
       const block = codeBlocksRegistry.get(id);
@@ -535,15 +633,15 @@ function wireRunnableCode(container: HTMLElement): void {
       output.hidden = true;
 
       try {
-        const result = await runCode(block.compilerId, sourceCode, stdinInput?.value ?? "");
-        
+        const result = await executeCode(panel, block.compilerId, sourceCode, stdinInput?.value ?? "");
+
         const sections = [result.output, result.error]
           .map((s) => (s ?? "").trim())
           .filter(Boolean);
-          
+
         output.textContent = sections.length ? sections.join("\n\n") : "(no output)";
         output.hidden = false;
-        
+
         if (result.status === "error") {
           status.textContent = `Error (Exit Code: ${result.exit_code})`;
           output.style.color = "#ff6b6b";
@@ -551,14 +649,17 @@ function wireRunnableCode(container: HTMLElement): void {
           status.textContent = `Finished in ${result.time}s`;
           output.style.color = "inherit";
         }
+        btn.disabled = false;
+        if (tcRunBtn) tcRunBtn.disabled = false;
       } catch (err) {
         console.error("Execution error:", err);
-        status.textContent = `API Error: ${err instanceof Error ? err.message : "Unknown"}`;
-      } finally {
-        btn.disabled = true;
-        const el = panel.querySelector<HTMLElement>(".cf-turnstile");
-        const widgetId = el?.dataset.tsWidgetId;
-        (window as any).turnstile?.reset(widgetId);
+        if (err instanceof VerificationRequiredError) {
+          requireVerification("Please verify you're human again to keep running code.");
+        } else {
+          status.textContent = `API Error: ${err instanceof Error ? err.message : "Unknown"}`;
+          btn.disabled = false;
+          if (tcRunBtn) tcRunBtn.disabled = false;
+        }
       }
     });
   });
