@@ -41,20 +41,15 @@ hljs.registerLanguage("java", java);
 // ─── Blog post model ────────────────────────────────────────────────────────
 
 export interface BlogPost {
-  /** URL slug — derived from the frontmatter `slug` field, else the filename. */
   slug: string;
   title: string;
-  /** ISO date string, e.g. "2026-07-04". */
   date: string;
   tags: string[];
-  /** Path under /public, e.g. "blogs/my-post/cover.jpg". Optional. */
   cover?: string;
   excerpt: string;
-  /** Raw Markdown body (frontmatter stripped). */
   rawBody: string;
 }
 
-// ─── Load every Markdown file in src/data/blogs/ at build time ─────────────
 const files = import.meta.glob("/src/data/blogs/*.md", {
   eager: true,
   query: "?raw",
@@ -97,7 +92,6 @@ export const BLOG_POSTS: BlogPost[] = Object.entries(files)
       rawBody: body,
     };
   })
-  // Newest first; posts without a date sink to the bottom.
   .sort((a, b) => (a.date && b.date ? (a.date < b.date ? 1 : -1) : a.date ? -1 : 1));
 
 export function getPost(slug: string | null): BlogPost | undefined {
@@ -105,28 +99,20 @@ export function getPost(slug: string | null): BlogPost | undefined {
   return BLOG_POSTS.find((p) => p.slug === slug);
 }
 
-// ─── Markdown → sanitized, syntax-highlighted HTML ──────────────────────────
+// ─── Monaco / Code Block Registry ──────────────────────────────────────────
 
-// Fenced blocks tagged "runnable" (e.g. ```cpp runnable) get a Run button.
-// The source text is kept in this registry, keyed by a generated id, rather
-// than serialized into an HTML attribute — that avoids any escaping issues
-// with quotes/angle brackets inside real source code.
-// In src/lib/blog.ts
-
-export interface RunnableBlock {
+export interface CodeBlockMetadata {
   code: string;
-  compilerId: string; // Changed from languageId: number
+  language: string;
+  isRunnable: boolean;
+  compilerId: string | null;
   languageLabel: string;
 }
-export const runnableBlocks = new Map<string, RunnableBlock>();
-let runnableCounter = 0;
 
-export function getRunnableBlock(id: string): RunnableBlock | undefined {
-  return runnableBlocks.get(id);
-}
+export const codeBlocksRegistry = new Map<string, CodeBlockMetadata>();
+let codeBlockCounter = 0;
 
-// Map markdown language tags to OnlineCompiler string IDs
-const COMPILER_IDS: Record<string, string> = {
+export const COMPILER_IDS: Record<string, string> = {
   cpp: "g++-15",
   "c++": "g++-15",
   c: "gcc-15",
@@ -162,26 +148,30 @@ renderer.code = ({ text, lang }: Tokens.Code): string => {
     highlighted = text.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c] as string));
     usedLang = "";
   }
-  const langLabel = usedLang ? `<span class="blog-code-lang">${usedLang}</span>` : "";
-
-  // Inside renderer.code in src/lib/blog.ts ...
   
-let runPanel = "";
-  const compilerId = COMPILER_IDS[language];
+  const langLabel = usedLang ? `<span class="blog-code-lang">${usedLang}</span>` : "";
+  const compilerId = COMPILER_IDS[language] || null;
+  const id = `code-block-${++codeBlockCounter}`;
+  
+  codeBlocksRegistry.set(id, { 
+    code: text, 
+    language: usedLang || language, 
+    isRunnable, 
+    compilerId,
+    languageLabel: usedLang || language
+  });
+
+  // Calculate approximate editor height dynamically based on lines of code
+  const lineCount = text.split('\n').length;
+  const editorHeight = Math.min(Math.max(lineCount * 21 + 32, 100), 600); // 21px per line + padding
+  
+  let runPanel = "";
   if (isRunnable && compilerId) {
-    const id = `run-${++runnableCounter}`;
-    runnableBlocks.set(id, { code: text, compilerId: compilerId, languageLabel: usedLang || language });
-    
-    // We inject the Turnstile site key from your environment variables
     const siteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY;
-    
     runPanel = `
       <div class="blog-run-panel" data-run-id="${id}">
-        <!-- Cloudflare Turnstile Anti-Bot Widget -->
         <div class="cf-turnstile" data-sitekey="${siteKey}"></div>
-
         <div class="blog-run-controls">
-          <!-- Button is disabled by default until the Turnstile green tick appears -->
           <button type="button" class="blog-run-btn" data-run-action="run" disabled>Run &#9654;</button>
           <span class="blog-run-status"></span>
         </div>
@@ -193,13 +183,17 @@ let runPanel = "";
       </div>`;
   }
 
-  return `<div class="blog-code-block">${langLabel}<pre><code class="hljs${usedLang ? ` language-${usedLang}` : ""}">${highlighted}</code></pre></div>${runPanel}`;
+  return `
+    <div class="blog-code-block" style="position: relative; margin-bottom: 1.5rem;">
+      ${langLabel}
+      <div id="${id}" class="monaco-editor-container" style="height: ${editorHeight}px; width: 100%; border-radius: 6px; overflow: hidden; border: 1px solid #ddd; background: #1e1e1e;">
+        <pre style="margin:0; padding:16px; height:100%; overflow:auto;"><code class="hljs${usedLang ? ` language-${usedLang}` : ""}">${highlighted}</code></pre>
+      </div>
+      ${runPanel}
+    </div>`;
 };
 
 // ─── Editorial-style spoiler / hint blocks ──────────────────────────────────
-// :::spoiler Hint 1
-// Markdown content, rendered as usual, hidden behind a native <details>.
-// :::
 interface SpoilerToken extends Tokens.Generic {
   type: "spoiler";
   title: string;
@@ -235,8 +229,6 @@ const spoilerExtension = {
 };
 
 // ─── Video embeds ────────────────────────────────────────────────────────────
-// :::youtube dQw4w9WgXcQ         (or a full youtube.com/youtu.be URL)
-// :::
 interface VideoToken extends Tokens.Generic {
   type: "youtube";
   videoId: string;
@@ -277,18 +269,13 @@ marked.use(markedKatex({ throwOnError: false, nonStandard: true }));
 export function renderMarkdown(md: string): string {
   const html = marked.parse(md, { async: false }) as string;
   return DOMPurify.sanitize(html, {
-    // This content is authored solely by the site owner via files in
-    // src/data/blogs/ — never from user input (comments go through esc(),
-    // not this function) — so allowing iframe embeds here is safe.
-    ADD_TAGS: ["span", "iframe", "button", "textarea", "details", "summary"],
+    ADD_TAGS: ["span", "iframe", "button", "textarea", "details", "summary", "div"],
     ADD_ATTR: [
-      "target", "rel", "class",
+      "target", "rel", "class", "id", "style", // id and style added to allow Monaco sizing
       "src", "title", "loading", "referrerpolicy", "allow", "allowfullscreen", "frameborder",
-      "rows", "placeholder", "hidden", "type", "open",
+      "rows", "placeholder", "hidden", "type", "open", 
+      "data-run-id", "data-run-action", "data-sitekey" // Data attributes explicitly allowed
     ],
-    // KaTeX renders to a mix of HTML, MathML, and SVG (for radicals, etc.) —
-    // these profiles let that markup through while DOMPurify still strips
-    // scripts, event handlers, and anything unsafe.
     USE_PROFILES: { html: true, svg: true, svgFilters: true, mathMl: true },
   });
 }
@@ -300,7 +287,6 @@ export function formatBlogDate(iso: string): string {
   return d.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
 }
 
-/** Rough reading time, similar to Medium's estimate (~200 words/minute). */
 export function estimateReadingMinutes(markdown: string): number {
   const words = markdown
     .replace(/```[\s\S]*?```/g, " ")
