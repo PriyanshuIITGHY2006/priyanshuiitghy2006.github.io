@@ -1,31 +1,10 @@
 import { resume } from "../data/resume";
 import { LINKS } from "../data/links";
-import { PROJECTS } from "../data/projects";
 
 const FORMSPREE_ENDPOINT = "https://formspree.io/f/xwvdajbr";
 
 function esc(s: string): string {
   return s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c] as string));
-}
-
-// Pulled straight from the same data the Projects page renders — "date"
-// ends in "Present" for anything still ongoing — so this can't drift out
-// of sync with what's actually true there.
-function currentlyHtml(): string {
-  const ongoing = PROJECTS.filter((p) => p.date.trim().endsWith("Present"));
-  if (!ongoing.length) return "";
-  const items = ongoing
-    .map(
-      (p) => `
-      <li>
-        <a class="link" href="#/projects">${esc(p.title)}</a>
-        <p class="about-list-note">${esc(p.tagline)}</p>
-      </li>`,
-    )
-    .join("");
-  return `
-    <h2 class="section about-sub">Currently building</h2>
-    <ul class="about-list">${items}</ul>`;
 }
 
 const SITE_MAP: { label: string; href: string; note: string }[] = [
@@ -50,7 +29,7 @@ function siteMapHtml(): string {
   ).join("");
   return `
     <h2 class="section about-sub">Around the site</h2>
-    <ul class="about-list about-list-compact">${items}</ul>`;
+    <ul class="about-list">${items}</ul>`;
 }
 
 function pageHtml(): string {
@@ -84,14 +63,7 @@ function pageHtml(): string {
           </p>
         </div>
 
-        ${currentlyHtml()}
-
         <h2 class="section about-sub">Elsewhere</h2>
-        <p class="edu-note">
-          These link to what's built into this site — live rating/activity pulled
-          straight from the APIs, not just a static badge. The actual GitHub and
-          Codeforces profiles are one click further, linked from those pages.
-        </p>
         <div class="pj-links about-links">
           <a class="pj-link" href="#/github">GitHub →</a>
           <a class="pj-link" href="#/codeforces">Codeforces →</a>
