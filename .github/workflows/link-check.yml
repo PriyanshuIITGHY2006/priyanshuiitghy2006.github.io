@@ -25,10 +25,12 @@ jobs:
         with:
           args: >-
             --no-progress
+            --base-url "${{ github.workspace }}/public"
             --exclude "^https://(www\.)?linkedin\.com"
             --exclude "^https://codeforces\.com"
             --exclude "^https://x\.com"
             --exclude "^https://twitter\.com"
+            --exclude "^https://(www\.)?researchgate\.net"
             'src/data/**/*.ts'
             'src/data/blogs/*.md'
             'index.html'
