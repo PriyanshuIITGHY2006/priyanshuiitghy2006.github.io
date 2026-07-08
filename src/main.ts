@@ -17,6 +17,7 @@ import { loadResumeFromDB } from "./lib/supabase";
 import { route, start } from "./lib/router";
 import { mountThemeToggle } from "./lib/theme";
 import { initFallingSymbolsEasterEgg } from "./lib/falling-symbols";
+import { initTerminalEasterEgg } from "./lib/terminal";
 
 const app = document.querySelector<HTMLElement>("#app");
 if (!app) throw new Error("Missing #app");
@@ -25,6 +26,7 @@ const themeToggleBtn = document.querySelector<HTMLButtonElement>("#theme-toggle"
 if (themeToggleBtn) mountThemeToggle(themeToggleBtn);
 
 initFallingSymbolsEasterEgg();
+initTerminalEasterEgg();
 
 document.addEventListener("click", (e) => {
   const target = (e.target as HTMLElement).closest<HTMLElement>("[data-detail]");
