@@ -39,7 +39,29 @@ export async function likePost(slug: string): Promise<number> {
   return data as number;
 }
 
-// ─── Public: comments ────────────────────────────────────────────────────────
+// ─── Public: comments & subscribers ─────────────────────────────────────────
+// Both go through the `blog-engage` edge function rather than calling their
+// SECURITY DEFINER RPCs directly: the RPCs are no longer grantable to anon,
+// because a direct RPC call bypasses the UI (and any client-side checks)
+// entirely — anyone with the public anon key could otherwise script mass
+// signups/comments. The edge function verifies a Turnstile token server-side
+// before touching the database, using the service role to call the RPCs.
+
+const ENGAGE_URL = "https://vadbagtnekrjwrimvgxe.supabase.co/functions/v1/blog-engage";
+
+async function callEngage<T>(body: Record<string, unknown>): Promise<T> {
+  const res = await fetch(ENGAGE_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+    },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json().catch(() => null);
+  if (!res.ok) throw new Error((data as { error?: string } | null)?.error || "Request failed");
+  return data as T;
+}
 
 export async function getApprovedComments(slug: string): Promise<BlogComment[]> {
   const { data, error } = await supabase
@@ -52,45 +74,22 @@ export async function getApprovedComments(slug: string): Promise<BlogComment[]> 
   return (data as BlogComment[]) ?? [];
 }
 
-/**
- * Always inserted as unapproved — publishing requires admin review.
- *
- * Goes through an RPC (SECURITY DEFINER function) rather than a direct table
- * insert: the anon SELECT policy only allows approved=true rows, but a fresh
- * comment is always approved=false, and PostgREST insisted on evaluating
- * that RLS-gated read-back regardless of Prefer headers, 403ing the insert.
- * The function runs as its owner, which bypasses RLS entirely.
- */
-export async function submitComment(slug: string, name: string, message: string): Promise<void> {
-  const { error } = await supabase.rpc("submit_blog_comment", {
-    p_slug: slug,
-    p_name: name,
-    p_message: message,
-  });
-  if (error) throw error;
+/** Always inserted as unapproved — publishing requires admin review. */
+export async function submitComment(slug: string, name: string, message: string, turnstileToken: string): Promise<void> {
+  await callEngage({ action: "comment", slug, name, message, turnstileToken });
 }
 
-// ─── Public: subscribers ─────────────────────────────────────────────────────
-
 /**
- * Stores name + email for future new-post notification emails (sent manually
- * or via a separate automation later — this just captures the signup).
- * A duplicate email is treated as an already-subscribed success rather than
- * an error (handled inside the RPC itself, which catches unique_violation).
- *
- * Goes through an RPC (SECURITY DEFINER function) rather than a direct table
- * insert: there's no anon SELECT policy on this table (subscriber emails
- * aren't publicly readable), and PostgREST insisted on evaluating that
- * RLS-gated read-back regardless of Prefer headers, 403ing the insert. The
- * function runs as its owner, which bypasses RLS entirely.
+ * Stores name + email for future new-post notification emails. A duplicate
+ * email is treated as an already-subscribed success rather than an error.
  */
-export async function subscribeToBlog(name: string, email: string): Promise<{ alreadySubscribed: boolean }> {
-  const { data, error } = await supabase
-    .rpc("subscribe_to_blog", { p_name: name, p_email: email })
-    .single();
-
-  if (error) throw error;
-  return { alreadySubscribed: (data as { already_subscribed: boolean } | null)?.already_subscribed ?? false };
+export async function subscribeToBlog(
+  name: string,
+  email: string,
+  turnstileToken: string,
+): Promise<{ alreadySubscribed: boolean }> {
+  const data = await callEngage<{ alreadySubscribed: boolean }>({ action: "subscribe", name, email, turnstileToken });
+  return { alreadySubscribed: data.alreadySubscribed ?? false };
 }
 
 // ─── Admin: moderation ───────────────────────────────────────────────────────
