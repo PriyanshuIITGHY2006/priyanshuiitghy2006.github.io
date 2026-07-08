@@ -1,10 +1,56 @@
 import { resume } from "../data/resume";
 import { LINKS } from "../data/links";
+import { PROJECTS } from "../data/projects";
 
 const FORMSPREE_ENDPOINT = "https://formspree.io/f/xwvdajbr";
 
 function esc(s: string): string {
   return s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c] as string));
+}
+
+// Pulled straight from the same data the Projects page renders — "date"
+// ends in "Present" for anything still ongoing — so this can't drift out
+// of sync with what's actually true there.
+function currentlyHtml(): string {
+  const ongoing = PROJECTS.filter((p) => p.date.trim().endsWith("Present"));
+  if (!ongoing.length) return "";
+  const items = ongoing
+    .map(
+      (p) => `
+      <li>
+        <a class="link" href="#/projects">${esc(p.title)}</a>
+        <p class="about-list-note">${esc(p.tagline)}</p>
+      </li>`,
+    )
+    .join("");
+  return `
+    <h2 class="section about-sub">Currently building</h2>
+    <ul class="about-list">${items}</ul>`;
+}
+
+const SITE_MAP: { label: string; href: string; note: string }[] = [
+  { label: "Education", href: "#/education", note: "degree, grade card, curriculum" },
+  { label: "Projects", href: "#/projects", note: "full write-ups, one per project" },
+  { label: "Skills", href: "#/skills", note: "languages, libraries, concepts" },
+  { label: "Positions", href: "#/positions", note: "roles and responsibilities" },
+  { label: "Achievements", href: "#/achievements", note: "contests, hackathons, exams" },
+  { label: "Gallery", href: "#/gallery", note: "certificates and scorecards" },
+  { label: "Codeforces", href: "#/codeforces", note: "rating, activity, problem breakdown" },
+  { label: "GitHub", href: "#/github", note: "profile and recent commits" },
+  { label: "Blog", href: "#/blogs", note: "write-ups on what I'm building" },
+];
+
+function siteMapHtml(): string {
+  const items = SITE_MAP.map(
+    (s) => `
+      <li>
+        <a class="link" href="${s.href}">${esc(s.label)}</a>
+        <span class="about-list-note-inline">${esc(s.note)}</span>
+      </li>`,
+  ).join("");
+  return `
+    <h2 class="section about-sub">Around the site</h2>
+    <ul class="about-list about-list-compact">${items}</ul>`;
 }
 
 function pageHtml(): string {
@@ -38,15 +84,22 @@ function pageHtml(): string {
           </p>
         </div>
 
+        ${currentlyHtml()}
+
         <h2 class="section about-sub">Elsewhere</h2>
+        <p class="edu-note">
+          These link to what's built into this site — live rating/activity pulled
+          straight from the APIs, not just a static badge. The actual GitHub and
+          Codeforces profiles are one click further, linked from those pages.
+        </p>
         <div class="pj-links about-links">
-          <a class="pj-link" href="${LINKS.github}" target="_blank" rel="noopener">GitHub ↗</a>
-          <a class="pj-link" href="#/github">GitHub Activity →</a>
+          <a class="pj-link" href="#/github">GitHub →</a>
+          <a class="pj-link" href="#/codeforces">Codeforces →</a>
           <a class="pj-link" href="${LINKS.linkedin}" target="_blank" rel="noopener">LinkedIn ↗</a>
-          <a class="pj-link" href="${LINKS.codeforces}" target="_blank" rel="noopener">Codeforces ↗</a>
-          <a class="pj-link" href="#/codeforces">Codeforces Stats →</a>
           <a class="pj-link" href="#/blogs">Blog →</a>
         </div>
+
+        ${siteMapHtml()}
 
         <h2 class="section about-sub">Get in touch</h2>
         <p class="edu-note">

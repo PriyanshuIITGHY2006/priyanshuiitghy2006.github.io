@@ -1,6 +1,7 @@
 import "../styles/github.css";
 import { resume } from "../data/resume";
 import { loadGithub, GH_USERNAME, type GHUser, type GHCommit, type GHRepo } from "../lib/github";
+import { renderActivityHeatmap } from "../lib/heatmap";
 
 const PROFILE_URL = `https://github.com/${GH_USERNAME}`;
 
@@ -8,7 +9,8 @@ export async function mountGithub(container: HTMLElement): Promise<void> {
   container.innerHTML = skeleton();
   try {
     const data = await loadGithub();
-    container.innerHTML = render(data.user, data.commits, data.recentRepos);
+    container.innerHTML = render(data.user, data.commits, data.recentRepos, data.activity);
+    initInteractions(container);
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Failed to load";
     container.innerHTML = renderError(msg);
@@ -33,6 +35,7 @@ function pageShell(inner: string): string {
           <p class="edu-note">Public profile and recent commit activity.</p>
           <a class="gh-external" href="${PROFILE_URL}" target="_blank" rel="noopener">github.com/${esc(GH_USERNAME)} ↗</a>
         </div>
+        <div class="chart-tip" id="gh-tip"></div>
         ${inner}
       </div>
     </article>`;
@@ -50,9 +53,20 @@ function renderError(msg: string): string {
     </div>`);
 }
 
-function render(user: GHUser, commits: GHCommit[], recentRepos: GHRepo[]): string {
+function render(user: GHUser, commits: GHCommit[], recentRepos: GHRepo[], activity: Record<string, number>): string {
   const activitySection = commits.length ? renderCommits(commits) : renderRepos(recentRepos);
-  return pageShell(`${renderProfile(user)}${activitySection}`);
+  return pageShell(`${renderProfile(user)}${renderHeatmap(activity)}${activitySection}`);
+}
+
+// The events feed only reaches back ~90 days (vs. a full year on the
+// Codeforces page), so the heatmap window matches what the API actually
+// covers instead of implying a full year of data that isn't there.
+function renderHeatmap(activity: Record<string, number>): string {
+  return `
+    <div class="gh-block">
+      <p class="gh-block-title">Activity (last ~90 days)</p>
+      ${renderActivityHeatmap(activity, { weeks: 13, ariaLabel: "GitHub push activity" })}
+    </div>`;
 }
 
 function renderProfile(user: GHUser): string {
@@ -155,6 +169,35 @@ function repoIcon(): string {
     <rect x="1" y="2" width="14" height="12" rx="1.5"/>
     <line x1="1" y1="5.5" x2="15" y2="5.5"/>
   </svg>`;
+}
+
+// ── Chart interactivity (heatmap hover) ──────────────────────────────────
+function initInteractions(root: HTMLElement): void {
+  const tipEl = root.querySelector<HTMLElement>("#gh-tip");
+  if (!tipEl) return;
+  const tip: HTMLElement = tipEl;
+
+  function moveTip(e: MouseEvent): void {
+    const x = e.clientX + 14;
+    const y = e.clientY - 10;
+    tip.style.left = `${Math.min(x, window.innerWidth - 170)}px`;
+    tip.style.top = `${y}px`;
+  }
+
+  root.querySelectorAll<SVGRectElement>(".heat-cell").forEach((cell) => {
+    const date = cell.dataset.date ?? "";
+    const count = cell.dataset.count ?? "0";
+    const label = count === "0"
+      ? `${date}: no activity`
+      : `${date}: <b>${count}</b> commit${count === "1" ? "" : "s"}`;
+    cell.addEventListener("mouseover", (e) => {
+      tip.innerHTML = label;
+      tip.classList.add("chart-tip-visible");
+      moveTip(e as MouseEvent);
+    });
+    cell.addEventListener("mousemove", (e) => moveTip(e as MouseEvent));
+    cell.addEventListener("mouseout", () => tip.classList.remove("chart-tip-visible"));
+  });
 }
 
 // "10 months ago", "2 years ago"

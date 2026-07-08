@@ -579,6 +579,47 @@ body {
   margin: 0.6rem -0.4rem 0;
 }
 
+/* ─── Shared calendar heatmap (Codeforces + GitHub pages) ───────────────
+   Built by src/lib/heatmap.ts so both pages render an identical calendar
+   heatmap regardless of which activity feed it's summarizing. Greyscale
+   intensity ramp matches the site's monochrome data-viz convention instead
+   of a GitHub-style green heatmap; distinct light/dark values per level
+   (rather than one shared var) since a straight var(--muted)-family swap
+   would flatten most levels to the same grey. ──────────────────────────── */
+.heatwrap { overflow-x: auto; padding-bottom: 4px; }
+.heatsvg { display: block; width: 100%; height: auto; min-width: 560px; }
+.heat-label { fill: var(--muted-2); font-size: 9.5px; font-family: var(--cm); }
+.heat-cell { transition: opacity 0.12s ease; cursor: default; }
+.heat-cell:hover { opacity: 0.6; }
+.heat-0 { fill: #eeeeee; }
+.heat-1 { fill: #c9c9c9; }
+.heat-2 { fill: #999999; }
+.heat-3 { fill: #555555; }
+.heat-4 { fill: #111111; }
+:root[data-theme="dark"] .heat-0 { fill: #232327; }
+:root[data-theme="dark"] .heat-1 { fill: #3a3a40; }
+:root[data-theme="dark"] .heat-2 { fill: #63636b; }
+:root[data-theme="dark"] .heat-3 { fill: #9a9aa2; }
+:root[data-theme="dark"] .heat-4 { fill: #eaeaec; }
+
+/* ─── Floating chart tooltip (Codeforces + GitHub pages) ─────────────── */
+.chart-tip {
+  position: fixed;
+  background: rgba(20, 20, 20, 0.92);
+  color: #fff;
+  font-family: var(--cm);
+  font-size: 0.82em;
+  line-height: 1.5;
+  padding: 0.4em 0.7em;
+  border-radius: 3px;
+  pointer-events: none;
+  z-index: 9999;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.1s ease;
+}
+.chart-tip.chart-tip-visible { opacity: 1; }
+
 /* ─── Theme toggle (fixed, persists across route changes) ───────────── */
 .theme-toggle {
   position: fixed;

@@ -8,6 +8,7 @@ import {
   type CFUser,
   type CFSubmission,
 } from "../lib/codeforces";
+import { renderActivityHeatmap } from "../lib/heatmap";
 
 const PROFILE_URL = `https://codeforces.com/profile/${CF_HANDLE}`;
 
@@ -66,7 +67,7 @@ function renderError(msg: string): string {
 // away rather than always-on visual weight.
 function render(data: CFData): string {
   return pageShell(`
-    <div class="cf-tooltip" id="cf-tip"></div>
+    <div class="chart-tip" id="cf-tip"></div>
     <div class="cf-tabbar" role="tablist">
       <button type="button" class="cf-tab-btn active" data-tab="overview">Overview</button>
       <button type="button" class="cf-tab-btn" data-tab="problems">Problems</button>
@@ -200,7 +201,7 @@ function renderProfile(user: CFUser): string {
 // near-duplicate noise (see PR discussion: crowded page feedback).
 function renderActivity(data: CFData): string {
   const { activity, stats, recentSubmissions } = data;
-  const heat = heatmap(activity);
+  const heat = renderActivityHeatmap(activity, { weeks: 52, ariaLabel: "Submission activity" });
   const lastActive = recentSubmissions.length ? relTime(recentSubmissions[0].creationTimeSeconds) : "—";
 
   return `
@@ -222,83 +223,6 @@ function renderActivity(data: CFData): string {
         </div>
       </div>
     </div>`;
-}
-
-// GitHub/Codeforces-style calendar heatmap of the trailing ~12 months.
-function heatmap(activity: Record<string, number>): string {
-  const CELL = 11;
-  const GAP = 3;
-  const STEP = CELL + GAP;
-
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const end = new Date(today);
-  const start = new Date(today);
-  start.setDate(start.getDate() - 7 * 52);
-  start.setDate(start.getDate() - start.getDay());
-
-  const days: { date: Date; key: string; count: number }[] = [];
-  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-    days.push({ date: new Date(d), key, count: activity[key] ?? 0 });
-  }
-
-  const weeks = Math.ceil(days.length / 7);
-  const padLeft = 30;
-  const padTop = 18;
-  const W = padLeft + weeks * STEP;
-  const H = padTop + 7 * STEP;
-
-  const cells: string[] = [];
-  const monthLabels: string[] = [];
-  let lastMonth = -1;
-
-  days.forEach((day, i) => {
-    const col = Math.floor(i / 7);
-    const row = i % 7;
-    const x = padLeft + col * STEP;
-    const y = padTop + row * STEP;
-    cells.push(
-      `<rect x="${x}" y="${y}" width="${CELL}" height="${CELL}" rx="2" class="cf-heat-cell cf-heat-${heatLevel(day.count)}" data-date="${day.key}" data-count="${day.count}"/>`,
-    );
-    if (row === 0) {
-      const m = day.date.getMonth();
-      if (m !== lastMonth) {
-        lastMonth = m;
-        monthLabels.push(
-          `<text x="${x}" y="${padTop - 6}" class="cf-heat-label">${day.date.toLocaleString("en-US", { month: "short" })}</text>`,
-        );
-      }
-    }
-  });
-
-  const dayLabels = [
-    { row: 1, text: "Mon" },
-    { row: 3, text: "Wed" },
-    { row: 5, text: "Fri" },
-  ]
-    .map((d) => `<text x="0" y="${padTop + d.row * STEP + CELL - 2}" class="cf-heat-label">${d.text}</text>`)
-    .join("");
-
-  return `
-    <div class="cf-heatwrap">
-      <svg class="cf-heat" viewBox="0 0 ${W} ${H}" role="img" aria-label="Submission activity">
-        ${monthLabels.join("")}
-        ${dayLabels}
-        ${cells.join("")}
-      </svg>
-    </div>`;
-}
-
-// Intensity level 0-4 — actual colors (light/dark variants) live in
-// codeforces.css as .cf-heat-0..4, matching the site's monochrome data-viz
-// convention instead of a GitHub-style green heatmap.
-function heatLevel(count: number): number {
-  if (count <= 0) return 0;
-  if (count <= 2) return 1;
-  if (count <= 5) return 2;
-  if (count <= 9) return 3;
-  return 4;
 }
 
 // ── Problem Ratings bar chart ───────────────────────────────────────────
@@ -427,7 +351,7 @@ function initInteractions(root: HTMLElement): void {
 
   function showTip(e: MouseEvent, html: string): void {
     tip.innerHTML = html;
-    tip.classList.add("cf-tip-visible");
+    tip.classList.add("chart-tip-visible");
     moveTip(e);
   }
 
@@ -439,7 +363,7 @@ function initInteractions(root: HTMLElement): void {
   }
 
   function hideTip(): void {
-    tip.classList.remove("cf-tip-visible");
+    tip.classList.remove("chart-tip-visible");
   }
 
   // Bar chart hover
@@ -463,7 +387,7 @@ function initInteractions(root: HTMLElement): void {
   });
 
   // Heatmap cell hover
-  root.querySelectorAll<SVGRectElement>(".cf-heat-cell").forEach((cell) => {
+  root.querySelectorAll<SVGRectElement>(".heat-cell").forEach((cell) => {
     const date = cell.dataset.date ?? "";
     const count = cell.dataset.count ?? "0";
     const label = count === "0"

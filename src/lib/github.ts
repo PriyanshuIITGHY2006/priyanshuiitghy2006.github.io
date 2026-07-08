@@ -56,6 +56,12 @@ export interface GithubData {
    * empty, so they're the fallback rather than just showing nothing.
    */
   recentRepos: GHRepo[];
+  /**
+   * date "YYYY-MM-DD" → number of commits pushed that day, for the
+   * heatmap. Derived from the same events feed as `commits`, so it shares
+   * its ~90-day coverage window rather than a full year like Codeforces.
+   */
+  activity: Record<string, number>;
 }
 
 async function fetchJSON<T>(path: string): Promise<T> {
@@ -87,18 +93,32 @@ async function cached<T>(name: string, fn: () => Promise<T>): Promise<T> {
   return data;
 }
 
+// Local-time ISO day key ("YYYY-MM-DD"), matching lib/codeforces.ts's helper.
+function isoDay(ms: number): string {
+  const d = new Date(ms);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 export async function loadGithub(): Promise<GithubData> {
   const [user, events] = await Promise.all([
     cached("user", () => fetchJSON<GHUser>(`/users/${GH_USERNAME}`)),
-    cached("events", () => fetchJSON<GHEvent[]>(`/users/${GH_USERNAME}/events/public?per_page=30`)),
+    cached("events", () => fetchJSON<GHEvent[]>(`/users/${GH_USERNAME}/events/public?per_page=100`)),
   ]);
 
   // The events feed already comes newest-first; flatten each push event's
   // commit list (GitHub doesn't expose a plain "recent commits across all
-  // repos" endpoint, so this is the standard way to build one).
+  // repos" endpoint, so this is the standard way to build one). The
+  // heatmap counts every pushed commit, not just the ones kept in the
+  // trimmed `commits` list shown below.
   const commits: GHCommit[] = [];
+  const activity: Record<string, number> = {};
   for (const e of events) {
     if (e.type !== "PushEvent" || !e.payload.commits) continue;
+    const day = isoDay(Date.parse(e.created_at));
+    activity[day] = (activity[day] ?? 0) + e.payload.commits.length;
     for (const c of e.payload.commits) {
       commits.push({
         repo: e.repo.name,
@@ -112,11 +132,11 @@ export async function loadGithub(): Promise<GithubData> {
 
   const trimmed = commits.slice(0, 15);
   if (trimmed.length > 0) {
-    return { user, commits: trimmed, recentRepos: [] };
+    return { user, commits: trimmed, recentRepos: [], activity };
   }
 
   const recentRepos = await cached("repos", () =>
     fetchJSON<GHRepo[]>(`/users/${GH_USERNAME}/repos?sort=pushed&direction=desc&per_page=6`),
   );
-  return { user, commits: trimmed, recentRepos };
+  return { user, commits: trimmed, recentRepos, activity };
 }
