@@ -1,3 +1,4 @@
+import { resume } from "../data/resume";
 import {
   loadCodeforces,
   rankColor,
@@ -27,52 +28,57 @@ function esc(s: string | undefined | null): string {
   return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] as string));
 }
 
+function pageShell(inner: string): string {
+  return `
+    <article class="page section-page cf-page">
+      <nav class="section-nav">
+        <a class="section-back" href="#/">← back to résumé</a>
+        <span class="section-crumb">${esc(resume.name)} · Codeforces</span>
+      </nav>
+      <div class="section-body">
+        <h2 class="section">Codeforces</h2>
+        <div class="cf-toprow">
+          <p class="edu-note">Live competitive programming profile — rating, activity, and problem-solving breakdown.</p>
+          <a class="cf-external" href="${PROFILE_URL}" target="_blank" rel="noopener">codeforces.com/profile/${esc(CF_HANDLE)} ↗</a>
+        </div>
+        ${inner}
+      </div>
+    </article>`;
+}
+
 // ── Loading / error ─────────────────────────────────────────────────────
 function skeleton(): string {
-  return `
-    <div class="cf">
-      <a class="cf-home" href="#/">← résumé</a>
-      <div class="cf-roundbox cf-msg">Loading from Codeforces…</div>
-    </div>`;
+  return pageShell(`<div class="cf-block cf-msg">Loading from Codeforces…</div>`);
 }
 
 function renderError(msg: string): string {
-  return `
-    <div class="cf">
-      <a class="cf-home" href="#/">← résumé</a>
-      <div class="cf-roundbox cf-msg">
-        <b>Couldn't reach Codeforces.</b><br/>${esc(msg)}<br/>
-        <a href="${PROFILE_URL}" target="_blank" rel="noopener">Open the profile on codeforces.com →</a>
-      </div>
-    </div>`;
+  return pageShell(`
+    <div class="cf-block cf-msg">
+      <b>Couldn't reach Codeforces.</b><br/>${esc(msg)}<br/>
+      <a href="${PROFILE_URL}" target="_blank" rel="noopener">Open the profile on codeforces.com →</a>
+    </div>`);
 }
 
 function render(data: CFData): string {
-  return `
-    <div class="cf">
-      <div class="cf-tooltip" id="cf-tip"></div>
-      <div class="cf-bar">
-        <a class="cf-tab cf-tab-active" href="${PROFILE_URL}" target="_blank" rel="noopener">${esc(data.user.handle)}</a>
-        <a class="cf-home" href="#/">← back to résumé</a>
+  return pageShell(`
+    <div class="cf-tooltip" id="cf-tip"></div>
+    <div class="cf-twocol">
+      <div class="cf-main">
+        ${renderProfile(data.user)}
+        ${renderActivity(data)}
+        ${renderProblemRatings(data.stats.ratingBuckets)}
+        ${renderTags(data.stats.tagCounts)}
       </div>
-      <div class="cf-twocol">
-        <div class="cf-main">
-          ${renderProfile(data.user)}
-          ${renderActivity(data)}
-          ${renderProblemRatings(data.stats.ratingBuckets)}
-          ${renderTags(data.stats.tagCounts)}
-        </div>
-        <aside class="cf-sidebar">
-          ${renderSidebar(data.recentSubmissions)}
-        </aside>
-      </div>
-    </div>`;
+      <aside class="cf-sidebar">
+        ${renderSidebar(data.recentSubmissions)}
+      </aside>
+    </div>`);
 }
 
 // ── Sidebar: Latest Submissions ─────────────────────────────────────────
 function renderSidebar(submissions: CFSubmission[]): string {
   if (!submissions || submissions.length === 0) {
-    return `<div class="cf-roundbox"><h2 class="cf-h2">Latest Submissions</h2><p class="cf-empty">No submissions yet.</p></div>`;
+    return `<div class="cf-block"><p class="cf-block-title">Latest Submissions</p><p class="cf-empty">No submissions yet.</p></div>`;
   }
 
   const rows = submissions.slice(0, 20).map((s) => {
@@ -85,9 +91,7 @@ function renderSidebar(submissions: CFSubmission[]): string {
       : `${PROFILE_URL}/submissions`;
     const lang = shortLang(s.programmingLanguage);
     const when = relTime(s.creationTimeSeconds);
-    const ratingBadge = s.problem.rating
-      ? `<span class="cf-sub-rating" style="color:${barColor(s.problem.rating)}">${s.problem.rating}</span>`
-      : "";
+    const ratingBadge = s.problem.rating ? `<span class="cf-sub-rating">${s.problem.rating}</span>` : "";
     return `
       <div class="cf-subrow">
         <span class="cf-verdict ${verdictClass}">${verdictLabel}</span>
@@ -99,8 +103,8 @@ function renderSidebar(submissions: CFSubmission[]): string {
   }).join("");
 
   return `
-    <div class="cf-roundbox">
-      <h2 class="cf-h2">Latest Submissions</h2>
+    <div class="cf-block">
+      <p class="cf-block-title">Latest Submissions</p>
       <div class="cf-sublist">${rows}</div>
       <div class="cf-sidebar-more"><a href="${PROFILE_URL}" target="_blank" rel="noopener">All submissions →</a></div>
     </div>`;
@@ -150,7 +154,7 @@ function renderProfile(user: CFUser): string {
   const registered = user.registrationTimeSeconds ? relTime(user.registrationTimeSeconds) : null;
 
   return `
-    <div class="cf-roundbox cf-profile">
+    <div class="cf-block cf-profile">
       <div class="cf-profile-info">
         <div class="cf-rank-title" style="color:${color}">${esc(rank)}</div>
         <h1 class="cf-username" style="color:${color}">${esc(user.handle)}</h1>
@@ -176,7 +180,7 @@ function renderActivity(data: CFData): string {
   const heat = heatmap(activity);
 
   return `
-    <div class="cf-roundbox cf-activity">
+    <div class="cf-block cf-activity">
       ${heat}
       <div class="cf-actstats">
         <div class="cf-actcol">
@@ -273,12 +277,14 @@ function heatmap(activity: Record<string, number>): string {
     </div>`;
 }
 
+// Grayscale ramp — matches the site's monochrome data-viz convention
+// instead of the GitHub-style green heatmap.
 function heatColor(count: number): string {
-  if (count <= 0) return "#ebedf0";
-  if (count <= 2) return "#c6e6c6";
-  if (count <= 5) return "#7bc96f";
-  if (count <= 9) return "#42a83c";
-  return "#1d6b1d";
+  if (count <= 0) return "#eeeeee";
+  if (count <= 2) return "#c9c9c9";
+  if (count <= 5) return "#999999";
+  if (count <= 9) return "#555555";
+  return "#111111";
 }
 
 // ── Problem Ratings bar chart ───────────────────────────────────────────
@@ -288,7 +294,7 @@ function renderProblemRatings(buckets: Record<string, number>): string {
     .sort((a, b) => a[0] - b[0]);
 
   if (entries.length === 0) {
-    return `<div class="cf-roundbox"><h2 class="cf-h2">Problem Ratings</h2><p class="cf-empty">No rated problems solved yet.</p></div>`;
+    return `<div class="cf-block"><p class="cf-block-title">Problem Ratings</p><p class="cf-empty">No rated problems solved yet.</p></div>`;
   }
 
   const min = entries[0][0];
@@ -323,16 +329,16 @@ function renderProblemRatings(buckets: Record<string, number>): string {
         <rect class="cf-bar-rect"
               x="${x.toFixed(1)}" y="${y.toFixed(1)}"
               width="${barW.toFixed(1)}" height="${h.toFixed(1)}"
-              fill="${barColor(rating)}" stroke="${barStroke(rating)}" stroke-width="1"
+              fill="#222222"
               data-rating="${rating}" data-count="${count}"/>
         <text x="${(x + barW / 2).toFixed(1)}" y="${H - P.bottom + 16}" class="cf-axis" text-anchor="middle">${rating}</text>`;
     })
     .join("");
 
   return `
-    <div class="cf-roundbox">
-      <h2 class="cf-h2">Problem Ratings</h2>
-      <div class="cf-legend-top"><span class="cf-legend-swatch" style="background:#dddddd;border-color:#bbb"></span>Problems Solved</div>
+    <div class="cf-block">
+      <p class="cf-block-title">Problem Ratings</p>
+      <div class="cf-legend-top"><span class="cf-legend-swatch"></span>Problems Solved</div>
       <div class="cf-chartwrap">
         <svg class="cf-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Problems solved by rating">
           ${grid}
@@ -346,7 +352,7 @@ function renderProblemRatings(buckets: Record<string, number>): string {
 function renderTags(tagCounts: Record<string, number>): string {
   const tags = Object.entries(tagCounts).sort((a, b) => b[1] - a[1]);
   if (tags.length === 0) {
-    return `<div class="cf-roundbox"><h2 class="cf-h2">Tags Solved</h2><p class="cf-empty">No tagged problems solved yet.</p></div>`;
+    return `<div class="cf-block"><p class="cf-block-title">Tags Solved</p><p class="cf-empty">No tagged problems solved yet.</p></div>`;
   }
 
   const total = tags.reduce((s, [, c]) => s + c, 0);
@@ -377,8 +383,8 @@ function renderTags(tagCounts: Record<string, number>): string {
   });
 
   return `
-    <div class="cf-roundbox">
-      <h2 class="cf-h2">Tags Solved</h2>
+    <div class="cf-block">
+      <p class="cf-block-title">Tags Solved</p>
       <div class="cf-tagsbody">
         <svg class="cf-donut" viewBox="0 0 240 240" role="img" aria-label="Problems solved by tag">${slices.join("")}</svg>
         <ul class="cf-taglegend">${legend.join("")}</ul>
@@ -457,30 +463,13 @@ function initInteractions(root: HTMLElement): void {
 }
 
 // ── Colours ─────────────────────────────────────────────────────────────
-function barColor(rating: number): string {
-  if (rating < 1200) return "#cfcfcf";
-  if (rating < 1400) return "#90ee90";
-  if (rating < 1600) return "#86e3ce";
-  if (rating < 1900) return "#a8a8ff";
-  if (rating < 2100) return "#ff8cff";
-  if (rating < 2400) return "#ffce8c";
-  return "#ff8c8c";
-}
-function barStroke(rating: number): string {
-  if (rating < 1200) return "#9e9e9e";
-  if (rating < 1400) return "#3fbf3f";
-  if (rating < 1600) return "#36b89e";
-  if (rating < 1900) return "#6a6aff";
-  if (rating < 2100) return "#c000c0";
-  if (rating < 2400) return "#e6960a";
-  return "#e23b3b";
-}
-
+// A muted, low-saturation palette — enough hue variety to tell ~20 tags
+// apart at a glance, without breaking the page's black-and-white tone.
 const TAG_PALETTE = [
-  "#ff6b6b", "#ff8fb1", "#d98fff", "#9b8cff", "#8c9bff", "#6ec8ff", "#5fd6e0",
-  "#5fe0c0", "#5fe08a", "#9be05f", "#d6e05f", "#e0c25f", "#e0945f", "#ff9d6b",
-  "#ffb3c1", "#e8a0ff", "#b0a0ff", "#a0b8ff", "#a0e0ff", "#a0ffe8", "#b8ffa0",
-  "#ffe0a0", "#ffc0a0", "#ff9999",
+  "#8c8c8c", "#6f8faf", "#7fa88a", "#b0895f", "#9a89b5", "#5f9ea0",
+  "#a3a35a", "#b58ea0", "#6f9a8c", "#8f8fbf", "#a5896f", "#7a9e6e",
+  "#9e7a9e", "#7fa0b5", "#af8f6f", "#7a8f5f", "#a08f9e", "#5f8f8f",
+  "#8f7a6f", "#8fa06f", "#9e6f7a", "#6f8f9e", "#a0925f", "#7a7aa0",
 ];
 
 // ── Tiny inline icons ────────────────────────────────────────────────────
@@ -489,9 +478,9 @@ function icon(kind: string): string {
     `<svg class="cf-ico" viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">${inner}</svg>`;
   switch (kind) {
     case "rating":
-      return wrap('<path fill="#3b78c2" d="M1 13h14v1.5H1zM3 11l3-4 3 2 4-6 1.2.8-4.8 7.2-3-2-2.4 3z"/>');
+      return wrap('<path fill="#7a7a7a" d="M1 13h14v1.5H1zM3 11l3-4 3 2 4-6 1.2.8-4.8 7.2-3-2-2.4 3z"/>');
     case "star":
-      return wrap('<path fill="#e8b400" d="M8 1l2 4.4 4.8.5-3.6 3.2 1 4.7L8 11.6 3.8 13.8l1-4.7L1.2 5.9 6 5.4z"/>');
+      return wrap('<path fill="#7a7a7a" d="M8 1l2 4.4 4.8.5-3.6 3.2 1 4.7L8 11.6 3.8 13.8l1-4.7L1.2 5.9 6 5.4z"/>');
     case "badge":
       return wrap('<path fill="#7a7a7a" d="M8 1l2 1.6 2.5-.3.6 2.4 2 1.6-1.3 2.1.3 2.5-2.4.6L10 15l-2-1.4L6 15l-1.6-1.4-2.4-.6.3-2.5L1 8.3l2-1.6.6-2.4L6.1 2.6z"/>');
     case "clock":
