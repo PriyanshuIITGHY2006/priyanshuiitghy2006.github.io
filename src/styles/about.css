@@ -6,7 +6,7 @@
   line-height: 1.6;
   margin: 0.7rem 0;
   text-align: justify;
-  color: #222;
+  color: var(--ink-soft);
 }
 
 .about-sub { margin-top: 1.5rem; }
@@ -53,7 +53,7 @@
   font-size: 0.78em;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: #666;
+  color: var(--muted);
   margin-bottom: 0.25rem;
 }
 .contact-form input,
@@ -62,20 +62,21 @@
   font-family: var(--cm);
   font-size: 0.95em;
   color: var(--ink);
-  border: 0.6px solid #ccc;
+  border: 0.6px solid var(--border);
   border-radius: 4px;
   padding: 0.45em 0.6em;
-  background: #fff;
+  background: var(--bg-card);
 }
 .contact-form textarea { min-height: 7rem; resize: vertical; }
 .contact-form input:focus,
 .contact-form textarea:focus {
   outline: none;
-  border-color: #888;
+  border-color: var(--border-strong);
 }
 .contact-actions { margin-top: 0.1rem; }
 .contact-submit {
-  background: #fff;
+  background: var(--bg-card);
+  color: var(--ink);
   cursor: pointer;
 }
 .contact-submit:disabled { opacity: 0.6; cursor: default; }
@@ -87,14 +88,14 @@
   border: 0.6px solid transparent;
 }
 .contact-status-ok {
-  background: #e8f0e6;
-  color: #2c5e2e;
-  border-color: #b9d3b5;
+  background: var(--success-bg);
+  color: var(--success-ink);
+  border-color: var(--success-border);
 }
 .contact-status-err {
-  background: #fbeaea;
-  color: #a03030;
-  border-color: #e3b8b8;
+  background: var(--danger-bg);
+  color: var(--danger-ink);
+  border-color: var(--danger-border);
 }
 
 @media (max-width: 560px) {

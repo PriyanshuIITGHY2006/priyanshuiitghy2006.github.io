@@ -246,7 +246,7 @@ function heatmap(activity: Record<string, number>): string {
     const x = padLeft + col * STEP;
     const y = padTop + row * STEP;
     cells.push(
-      `<rect x="${x}" y="${y}" width="${CELL}" height="${CELL}" rx="2" fill="${heatColor(day.count)}" class="cf-heat-cell" data-date="${day.key}" data-count="${day.count}"/>`,
+      `<rect x="${x}" y="${y}" width="${CELL}" height="${CELL}" rx="2" class="cf-heat-cell cf-heat-${heatLevel(day.count)}" data-date="${day.key}" data-count="${day.count}"/>`,
     );
     if (row === 0) {
       const m = day.date.getMonth();
@@ -277,14 +277,15 @@ function heatmap(activity: Record<string, number>): string {
     </div>`;
 }
 
-// Grayscale ramp — matches the site's monochrome data-viz convention
-// instead of the GitHub-style green heatmap.
-function heatColor(count: number): string {
-  if (count <= 0) return "#eeeeee";
-  if (count <= 2) return "#c9c9c9";
-  if (count <= 5) return "#999999";
-  if (count <= 9) return "#555555";
-  return "#111111";
+// Intensity level 0-4 — actual colors (light/dark variants) live in
+// codeforces.css as .cf-heat-0..4, matching the site's monochrome data-viz
+// convention instead of a GitHub-style green heatmap.
+function heatLevel(count: number): number {
+  if (count <= 0) return 0;
+  if (count <= 2) return 1;
+  if (count <= 5) return 2;
+  if (count <= 9) return 3;
+  return 4;
 }
 
 // ── Problem Ratings bar chart ───────────────────────────────────────────
@@ -329,7 +330,6 @@ function renderProblemRatings(buckets: Record<string, number>): string {
         <rect class="cf-bar-rect"
               x="${x.toFixed(1)}" y="${y.toFixed(1)}"
               width="${barW.toFixed(1)}" height="${h.toFixed(1)}"
-              fill="#222222"
               data-rating="${rating}" data-count="${count}"/>
         <text x="${(x + barW / 2).toFixed(1)}" y="${H - P.bottom + 16}" class="cf-axis" text-anchor="middle">${rating}</text>`;
     })
@@ -374,7 +374,7 @@ function renderTags(tagCounts: Record<string, number>): string {
     slices.push(
       `<path class="cf-donut-slice"
             d="${donutArc(cx, cy, rO, rI, a0, a1)}"
-            fill="${color}" stroke="#fff" stroke-width="1.5"
+            fill="${color}" stroke-width="1.5"
             data-tag="${esc(tag)}" data-count="${count}"/>`,
     );
     legend.push(

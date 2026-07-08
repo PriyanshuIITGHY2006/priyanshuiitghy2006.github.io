@@ -18,7 +18,7 @@
 .cf-toprow .edu-note { margin: 0; }
 .cf-external {
   font-size: 0.82em;
-  color: #777;
+  color: var(--muted-2);
   white-space: nowrap;
 }
 .cf-external:hover { color: var(--link-hover); }
@@ -35,11 +35,11 @@
 
 /* ── Card block (mirrors .edu-entry) ──────────────────────────────────── */
 .cf-block {
-  border: 0.6px solid #d8d8d8;
+  border: 0.6px solid var(--border);
   border-left: 3px solid var(--ink);
   border-radius: 4px;
   padding: 1rem 1.2rem;
-  background: #fcfcfc;
+  background: var(--bg-card);
   margin-bottom: 1rem;
 }
 .cf-block-title {
@@ -47,22 +47,22 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.6px;
-  color: #888;
+  color: var(--muted-2);
   margin: 0 0 0.7rem;
 }
-.cf-empty { color: #777; font-size: 0.88em; }
-.cf-msg { color: #777; }
+.cf-empty { color: var(--muted-2); font-size: 0.88em; }
+.cf-msg { color: var(--muted-2); }
 
 /* ── Profile card ──────────────────────────────────────────────────── */
 .cf-profile { display: grid; grid-template-columns: 1fr auto; gap: 1.4rem; align-items: start; }
 .cf-rank-title { font-size: 0.78em; font-weight: 700; letter-spacing: 0.3px; text-transform: uppercase; margin-bottom: 0.1rem; }
 .cf-username { font-size: 1.55em; font-weight: 700; margin: 0.05rem 0 0.35rem; line-height: 1.15; }
-.cf-profile-cflink { font-size: 0.78em; color: #888; margin-bottom: 0.35rem; }
-.cf-profile-cflink a { color: #888; }
+.cf-profile-cflink { font-size: 0.78em; color: var(--muted-2); margin-bottom: 0.35rem; }
+.cf-profile-cflink a { color: var(--muted-2); }
 .cf-profile-cflink a:hover { color: var(--link-hover); text-decoration: underline; }
-.cf-place { color: #444; font-size: 0.9em; margin-bottom: 0.15rem; }
-.cf-realname { color: #000; }
-.cf-link { color: var(--ink); border-bottom: 1px dotted #aaa; }
+.cf-place { color: var(--ink-soft); font-size: 0.9em; margin-bottom: 0.15rem; }
+.cf-realname { color: var(--ink); }
+.cf-link { color: var(--ink); border-bottom: 1px dotted var(--border-strong); }
 .cf-link:hover { color: var(--link-hover); border-bottom-color: currentColor; text-decoration: none; }
 
 .cf-props { list-style: none; margin: 0.85rem 0 0; padding: 0; }
@@ -73,16 +73,16 @@
   padding: 0.3rem 0;
   font-size: 0.92em;
   line-height: 1.5;
-  border-top: 0.6px solid #ececec;
+  border-top: 0.6px solid var(--border-soft);
 }
 .cf-props li:first-child { border-top: none; }
 .cf-ico { flex: 0 0 auto; margin-top: 2px; opacity: 0.75; }
-.cf-muted { color: #777; font-weight: 400; }
+.cf-muted { color: var(--muted-2); font-weight: 400; }
 
 .cf-photo img {
   width: 6.5rem;
   height: auto;
-  border: 0.6px solid #ccc;
+  border: 0.6px solid var(--border);
   border-radius: 3px;
   display: block;
   filter: grayscale(0.15);
@@ -91,9 +91,23 @@
 /* ── Activity heatmap + stat row ──────────────────────────────────────── */
 .cf-heatwrap { overflow-x: auto; padding-bottom: 4px; }
 .cf-heat { display: block; width: 100%; height: auto; min-width: 560px; }
-.cf-heat-label { fill: #999; font-size: 9.5px; font-family: var(--cm); }
+.cf-heat-label { fill: var(--muted-2); font-size: 9.5px; font-family: var(--cm); }
 .cf-heat-cell { transition: opacity 0.12s ease; cursor: default; }
 .cf-heat-cell:hover { opacity: 0.6; }
+/* Greyscale intensity ramp — matches the site's monochrome data-viz
+   convention instead of a GitHub-style green heatmap. Distinct light/dark
+   values per level (rather than one shared var) since a straight
+   var(--muted)-family swap would flatten most levels to the same grey. */
+.cf-heat-0 { fill: #eeeeee; }
+.cf-heat-1 { fill: #c9c9c9; }
+.cf-heat-2 { fill: #999999; }
+.cf-heat-3 { fill: #555555; }
+.cf-heat-4 { fill: #111111; }
+:root[data-theme="dark"] .cf-heat-0 { fill: #232327; }
+:root[data-theme="dark"] .cf-heat-1 { fill: #3a3a40; }
+:root[data-theme="dark"] .cf-heat-2 { fill: #63636b; }
+:root[data-theme="dark"] .cf-heat-3 { fill: #9a9aa2; }
+:root[data-theme="dark"] .cf-heat-4 { fill: #eaeaec; }
 
 .cf-actstats {
   display: grid;
@@ -101,10 +115,10 @@
   gap: 0.9rem 1.4rem;
   margin-top: 1.1rem;
   padding-top: 0.7rem;
-  border-top: 0.6px solid #e2e2e2;
+  border-top: 0.6px solid var(--border-soft);
 }
 .cf-bignum { font-size: 1.5em; font-weight: 700; color: var(--ink); line-height: 1.15; font-variant-numeric: tabular-nums; }
-.cf-actsub { color: #777; font-size: 0.76em; margin-top: 0.1rem; }
+.cf-actsub { color: var(--muted-2); font-size: 0.76em; margin-top: 0.1rem; }
 
 /* ── Charts ─────────────────────────────────────────────────────────── */
 .cf-legend-top {
@@ -112,8 +126,8 @@
   align-items: center;
   gap: 0.4rem;
   font-size: 0.78em;
-  color: #555;
-  border: 0.6px solid #ddd;
+  color: var(--muted);
+  border: 0.6px solid var(--border);
   border-radius: 999px;
   padding: 0.15em 0.7em;
   margin-bottom: 0.6rem;
@@ -121,10 +135,11 @@
 .cf-legend-swatch { width: 1.1em; height: 0.6em; background: var(--ink); display: inline-block; border-radius: 1px; }
 .cf-chartwrap { width: 100%; overflow-x: auto; }
 .cf-chart { width: 100%; height: auto; min-width: 560px; display: block; }
-.cf-grid { stroke: #eee; stroke-width: 1; }
-.cf-axis { fill: #888; font-size: 10.5px; font-family: var(--cm); }
+.cf-grid { stroke: var(--border-soft); stroke-width: 1; }
+.cf-axis { fill: var(--muted-2); font-size: 10.5px; font-family: var(--cm); }
 
 .cf-bar-rect {
+  fill: var(--ink); /* CSS class overrides the inline fill="" presentation attribute */
   cursor: pointer;
   transition: opacity 0.12s ease;
   transform-origin: bottom center;
@@ -139,7 +154,12 @@
   align-items: center;
 }
 .cf-donut { width: 13rem; height: 13rem; overflow: visible; }
-.cf-donut-slice { cursor: pointer; transition: opacity 0.12s ease; transform-origin: 120px 120px; }
+.cf-donut-slice {
+  stroke: var(--bg-card); /* overrides inline stroke="#fff" — gap matches card bg in both themes */
+  cursor: pointer;
+  transition: opacity 0.12s ease;
+  transform-origin: 120px 120px;
+}
 .cf-donut-slice:hover { opacity: 0.72; }
 .cf-taglegend {
   list-style: none;
@@ -159,8 +179,8 @@
   break-inside: avoid;
 }
 .cf-dot { width: 0.65rem; height: 0.65rem; border-radius: 2px; flex: 0 0 auto; }
-.cf-legend-name { color: #222; }
-.cf-legend-count { color: #999; }
+.cf-legend-name { color: var(--ink-soft); }
+.cf-legend-count { color: var(--muted-2); }
 
 /* ── Floating tooltip ───────────────────────────────────────────────── */
 .cf-tooltip {
@@ -187,7 +207,7 @@
   align-items: flex-start;
   gap: 0.55rem;
   padding: 0.5rem 0;
-  border-top: 0.6px solid #ececec;
+  border-top: 0.6px solid var(--border-soft);
 }
 .cf-subrow:first-child { border-top: none; }
 
@@ -202,8 +222,8 @@
   flex: 0 0 auto;
   margin-top: 1px;
 }
-.cf-verdict-ok { background: #e8f0e6; color: #2c5e2e; border: 0.6px solid #cfe3cb; }
-.cf-verdict-fail { background: #fbeceb; color: #a13d34; border: 0.6px solid #eecac6; }
+.cf-verdict-ok { background: var(--success-bg); color: var(--success-ink); border: 0.6px solid var(--success-border); }
+.cf-verdict-fail { background: var(--danger-bg); color: var(--danger-ink); border: 0.6px solid var(--danger-border); }
 
 .cf-subinfo { flex: 1; min-width: 0; }
 .cf-subproblem {
@@ -217,11 +237,11 @@
   line-height: 1.4;
 }
 .cf-subproblem:hover { color: var(--link-hover); text-decoration: underline; }
-.cf-submeta { font-size: 0.76em; color: #999; margin-top: 0.05rem; }
+.cf-submeta { font-size: 0.76em; color: var(--muted-2); margin-top: 0.05rem; }
 .cf-sub-rating { font-weight: 700; margin-right: 0.2rem; }
 
 .cf-sidebar-more { margin-top: 0.6rem; text-align: right; font-size: 0.82em; }
-.cf-sidebar-more a { color: #777; }
+.cf-sidebar-more a { color: var(--muted-2); }
 .cf-sidebar-more a:hover { color: var(--link-hover); }
 
 /* ── Mobile ─────────────────────────────────────────────────────────── */
