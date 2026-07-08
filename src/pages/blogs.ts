@@ -63,6 +63,62 @@ function controlsHtml(): string {
     <p class="blog-empty-filtered" id="blog-empty-filtered" hidden>No posts match your search or filters.</p>`;
 }
 
+function brandHtml(): string {
+  return `
+    <header class="blog-brand">
+      <h2 class="blog-logo">
+        <span class="blog-logo-row">
+          <span class="blog-logo-word blog-logo-solid">let</span>
+          <span class="blog-logo-word blog-logo-outline blog-logo-tilt">down</span>
+        </span>
+        <span class="blog-logo-and">and</span>
+        <span class="blog-logo-row">
+          <span class="blog-logo-word blog-logo-outline">hanging</span>
+          <span class="blog-logo-word blog-logo-solid blog-logo-tilt blog-logo-accent">around</span>
+        </span>
+      </h2>
+      <p class="blog-brand-tagline">
+        Priyanshu's blog — competitive programming, math, and the projects I build and occasionally break.
+      </p>
+    </header>`;
+}
+
+function readmeHtml(): string {
+  const tags = getAllTags();
+  const latest = BLOG_POSTS[0];
+  const postCount = BLOG_POSTS.length;
+  return `
+    <section class="blog-readme" aria-label="About this blog">
+      <div class="blog-readme-titlebar">
+        <span class="blog-readme-dots" aria-hidden="true">
+          <span class="blog-readme-dot" style="background:#ff5f56"></span>
+          <span class="blog-readme-dot" style="background:#ffbd2e"></span>
+          <span class="blog-readme-dot" style="background:#27c93f"></span>
+        </span>
+        <span class="blog-readme-filename">README.md</span>
+      </div>
+      <div class="blog-readme-body">
+        <h3 class="blog-readme-h"># let down and hanging around</h3>
+        <blockquote class="blog-readme-quote">
+          "...shell smash, juicy fields, <strong>letdown and hanging around</strong>..." — Radiohead, <em>Let Down</em>.
+          Borrowed the name for the stuff that gets stuck in my head long after I close the laptop.
+        </blockquote>
+        <h4 class="blog-readme-h">## what's here</h4>
+        <p>Write-ups from competitive programming, some math I found interesting, and postmortems on things
+        I built (and occasionally broke) — Hackathon-Squad and friends.</p>
+        ${tags.length ? `
+        <h4 class="blog-readme-h">## topics</h4>
+        <p class="blog-readme-tags">${tags.map((t) => `<code>${esc(t.toLowerCase())}</code>`).join(" ")}</p>` : ""}
+        <h4 class="blog-readme-h">## stats</h4>
+        <ul class="blog-readme-list">
+          <li><code>posts</code> — ${postCount}</li>
+          ${latest?.date ? `<li><code>last updated</code> — ${esc(formatBlogDate(latest.date))}</li>` : ""}
+          <li><code>feed</code> — <a class="link" href="/feed.xml" target="_blank" rel="noopener noreferrer">/feed.xml</a></li>
+        </ul>
+      </div>
+    </section>`;
+}
+
 function pageHtml(): string {
   const body = BLOG_POSTS.length
     ? `<div class="blog-grid" id="blog-grid">${BLOG_POSTS.map(card).join("")}</div>`
@@ -74,16 +130,14 @@ function pageHtml(): string {
         <span class="section-crumb">${esc(resume.name)} · Blog</span>
       </nav>
       <div class="section-body">
-        <h2 class="section">Blog</h2>
-        <p class="edu-note">
-          Notes on competitive programming, mathematics, and the projects I'm building.
-        </p>
+        ${brandHtml()}
 
         ${controlsHtml()}
         ${body}
-        
-        <!-- Subscribe form moved after all blogs -->
-        <div style="margin-top: 4rem; padding-top: 2rem; border-top: 1px solid #eaeaea;">
+
+        ${readmeHtml()}
+
+        <div class="blog-subscribe-wrap">
           ${SUBSCRIBE_FORM_HTML}
         </div>
       </div>

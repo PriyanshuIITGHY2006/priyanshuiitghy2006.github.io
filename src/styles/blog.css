@@ -1,6 +1,63 @@
 /* ─── Blog list page (reuses .gl-* card shell conventions) ───────────── */
 .blogs-page { max-width: 60rem; margin: 0 auto; background: transparent; }
 
+/* ─── Brand wordmark: "let down and hanging around" ──────────────────── */
+.blog-brand {
+  position: relative; /* stays above the particle background — src/lib/blog-graph.ts */
+  --bl-green: #2f6d3f;
+  --bl-orange: #c95a1f;
+  --bl-cream: #f4ecd8;
+  margin-bottom: 1.6rem;
+}
+:root[data-theme="dark"] .blog-brand {
+  --bl-green: #7fd9a0;
+  --bl-orange: #ff9752;
+  --bl-cream: #26241d;
+}
+.blog-logo {
+  margin: 0;
+  border: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15em;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  line-height: 0.95;
+}
+.blog-logo-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.35em; }
+.blog-logo-word {
+  font-weight: 900;
+  font-size: clamp(1.8rem, 6vw, 3.1rem);
+  letter-spacing: -0.01em;
+  text-transform: lowercase;
+  display: inline-block;
+}
+.blog-logo-solid { color: var(--bl-green); }
+.blog-logo-solid.blog-logo-accent { color: var(--bl-orange); }
+.blog-logo-outline {
+  color: transparent;
+  -webkit-text-stroke: 2px var(--ink);
+  paint-order: stroke fill;
+}
+.blog-logo-outline.blog-logo-accent { -webkit-text-stroke-color: var(--bl-orange); }
+.blog-logo-tilt { display: inline-block; transform: rotate(-3deg); }
+.blog-logo-and {
+  font-family: var(--cm);
+  font-style: italic;
+  font-size: 1.1rem;
+  color: var(--muted);
+  padding-left: 0.15em;
+}
+.blog-brand-tagline {
+  margin: 0.7rem 0 0;
+  font-size: 0.92em;
+  color: var(--ink-soft);
+  max-width: 36rem;
+}
+@media (max-width: 480px) {
+  .blog-logo-outline { -webkit-text-stroke-width: 1.4px; }
+}
+
 /* ─── Force-graph background (src/lib/blog-graph.ts) ─────────────────── */
 .blog-graph-canvas {
   position: fixed;
@@ -678,6 +735,68 @@
   color: var(--muted-2);
   font-size: 0.9em;
 }
+
+/* ─── Blog README (GitHub-README-style "about" block) ────────────────────── */
+.blog-readme {
+  position: relative; /* stays above the particle background — src/lib/blog-graph.ts */
+  margin: 2.4rem 0 0;
+  border: 0.6px solid var(--border);
+  border-radius: 7px;
+  overflow: hidden;
+  background: var(--bg-card);
+}
+.blog-readme-titlebar {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem 0.9rem;
+  background: var(--bg-inset);
+  border-bottom: 0.6px solid var(--border);
+}
+.blog-readme-dots { display: flex; gap: 0.4rem; }
+.blog-readme-dot { width: 0.6rem; height: 0.6rem; border-radius: 50%; display: inline-block; }
+.blog-readme-filename {
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 0.78em;
+  color: var(--muted-2);
+}
+.blog-readme-body { padding: 1.1rem 1.3rem 1.3rem; font-size: 0.92em; line-height: 1.6; color: var(--ink-soft); }
+.blog-readme-h {
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 1.3rem 0 0.5rem;
+}
+.blog-readme-h:first-child { margin-top: 0; font-size: 1.1em; }
+.blog-readme-quote {
+  margin: 0.6rem 0 0;
+  padding: 0.3rem 1rem;
+  border-left: 3px solid var(--border-strong);
+  color: var(--muted);
+  font-style: italic;
+}
+.blog-readme-tags { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.blog-readme-tags code {
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 0.85em;
+  background: var(--bg-inset);
+  color: var(--ink-soft);
+  border: 0.6px solid var(--border);
+  border-radius: 999px;
+  padding: 0.12em 0.7em;
+}
+.blog-readme-list { margin: 0; padding-left: 1.2em; }
+.blog-readme-list li { margin: 0.3rem 0; }
+.blog-readme-list code {
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 0.88em;
+  background: var(--bg-inset);
+  color: var(--ink-soft);
+  border-radius: 3px;
+  padding: 0.05em 0.4em;
+}
+
+.blog-subscribe-wrap { margin-top: 2rem; padding-top: 1.4rem; border-top: 0.6px solid var(--border); }
 
 /* ─── Bin-packing algorithm visualizations (:::binviz) ────────────────────── */
 .blog-binviz {
