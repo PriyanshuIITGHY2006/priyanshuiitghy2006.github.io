@@ -1,237 +1,182 @@
-/* ─── Codeforces profile page — faithful to codeforces.com ───────────
-   Tahoma/Arial base (exact CF font stack), rounded bordered boxes,
-   CF link blue, rank colours, interactive charts. */
+/* ─── Codeforces page — same visual language as the rest of the résumé
+   site: Computer Modern serif, black ink, thin grey rules, pill chips.
+   Colour is used sparingly and only where it's actually informative: the
+   CF rank badge (a real identity marker in the CP community) and the
+   AC/fail verdict tags. Charts stay monochrome, matching the site's other
+   data visuals (e.g. the bin-packing SVGs on the blog). ─── */
 
-.cf {
-  --cf-bg: #ffffff;
-  --cf-ink: #000000;
-  --cf-muted: #777777;
-  --cf-link: #0a48a3;          /* Codeforces link blue */
-  --cf-border: #cccccc;
-  --cf-border-2: #e1e1e1;
-  --cf-box-shadow: 0 0 0 1px rgba(0,0,0,0.02), 1px 1px 5px rgba(0,0,0,0.10);
+.cf-page .section-body { max-width: 68rem; margin: 0 auto; }
 
-  /* Exact Codeforces font stack */
-  font-family: Tahoma, Arial, sans-serif;
-  font-size: 13px;
-  line-height: 1.45;
-  color: var(--cf-ink);
-  background:
-    linear-gradient(180deg, #e8e8e8 0, #e8e8e8 160px, transparent 160px),
-    #ffffff;
-  min-height: 100vh;
-  width: 100%;
-  margin: 0 auto;
-  padding: 14px 20px 60px;
-}
-.cf * { box-sizing: border-box; }
-.cf a { color: var(--cf-link); text-decoration: none; }
-.cf a:hover { text-decoration: underline; }
-.cf b { font-weight: bold; }
-
-/* ── Top tab bar ────────────────────────────────────────────────────── */
-.cf-bar {
+.cf-toprow {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   justify-content: space-between;
-  margin-bottom: 14px;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin: 0.55rem 0 0.9rem;
 }
-.cf-tab {
-  display: inline-block;
-  padding: 5px 14px;
-  border: 1px solid #888;
-  border-radius: 4px;
-  font-weight: bold;
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  text-decoration: none !important;
+.cf-toprow .edu-note { margin: 0; }
+.cf-external {
+  font-size: 0.82em;
+  color: #777;
+  white-space: nowrap;
 }
-.cf-tab-active {
-  background: #e3e3e3;
-  color: #222 !important;
-  box-shadow: inset 0 1px 0 #fff;
-}
-.cf-tab-active:hover { background: #d5d5d5; }
-.cf-home { font-size: 12px; color: var(--cf-muted) !important; }
-.cf-home:hover { color: var(--cf-link) !important; }
+.cf-external:hover { color: var(--link-hover); }
 
 /* ── Two-column layout ──────────────────────────────────────────────── */
 .cf-twocol {
   display: grid;
-  grid-template-columns: 1fr 300px;
-  gap: 0 20px;
+  grid-template-columns: 1fr 19rem;
+  gap: 0 1.4rem;
   align-items: start;
 }
 .cf-main { min-width: 0; }
-.cf-sidebar { position: sticky; top: 14px; }
+.cf-sidebar { position: sticky; top: 1rem; }
 
-/* ── Rounded boxes ──────────────────────────────────────────────────── */
-.cf-roundbox {
-  background: var(--cf-bg);
-  border: 1px solid var(--cf-border);
-  border-radius: 6px;
-  box-shadow: var(--cf-box-shadow);
-  padding: 1.5em;
-  margin-bottom: 1.4em;
+/* ── Card block (mirrors .edu-entry) ──────────────────────────────────── */
+.cf-block {
+  border: 0.6px solid #d8d8d8;
+  border-left: 3px solid var(--ink);
+  border-radius: 4px;
+  padding: 1rem 1.2rem;
+  background: #fcfcfc;
+  margin-bottom: 1rem;
 }
-.cf-msg { color: var(--cf-muted); }
+.cf-block-title {
+  font-size: 0.72em;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: #888;
+  margin: 0 0 0.7rem;
+}
+.cf-empty { color: #777; font-size: 0.88em; }
+.cf-msg { color: #777; }
 
-/* ── Profile box ────────────────────────────────────────────────────── */
-.cf-profile {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 24px;
-  align-items: start;
-}
-.cf-rank-title { font-size: 13px; font-weight: bold; margin-bottom: 1px; }
-.cf-username {
-  font-size: 22px;
-  font-weight: bold;
-  margin: 0 0 6px;
-  line-height: 1.1;
-}
-.cf-place { color: #444; margin-bottom: 2px; }
+/* ── Profile card ──────────────────────────────────────────────────── */
+.cf-profile { display: grid; grid-template-columns: 1fr auto; gap: 1.4rem; align-items: start; }
+.cf-rank-title { font-size: 0.78em; font-weight: 700; letter-spacing: 0.3px; text-transform: uppercase; margin-bottom: 0.1rem; }
+.cf-username { font-size: 1.55em; font-weight: 700; margin: 0.05rem 0 0.35rem; line-height: 1.15; }
+.cf-profile-cflink { font-size: 0.78em; color: #888; margin-bottom: 0.35rem; }
+.cf-profile-cflink a { color: #888; }
+.cf-profile-cflink a:hover { color: var(--link-hover); text-decoration: underline; }
+.cf-place { color: #444; font-size: 0.9em; margin-bottom: 0.15rem; }
 .cf-realname { color: #000; }
-.cf-link { color: var(--cf-link); }
-.cf-profile-cflink {
-  font-size: 12px;
-  color: var(--cf-muted);
-  margin-bottom: 6px;
-}
-.cf-profile-cflink a { color: var(--cf-muted); font-size: 12px; }
-.cf-profile-cflink a:hover { color: var(--cf-link); text-decoration: underline; }
+.cf-link { color: var(--ink); border-bottom: 1px dotted #aaa; }
+.cf-link:hover { color: var(--link-hover); border-bottom-color: currentColor; text-decoration: none; }
 
-.cf-props { list-style: none; margin: 14px 0 0; padding: 0; }
+.cf-props { list-style: none; margin: 0.85rem 0 0; padding: 0; }
 .cf-props li {
   display: flex;
   align-items: flex-start;
-  gap: 9px;
-  padding: 5px 0;
+  gap: 0.55rem;
+  padding: 0.3rem 0;
+  font-size: 0.92em;
   line-height: 1.5;
+  border-top: 0.6px solid #ececec;
 }
-.cf-ico { flex: 0 0 auto; margin-top: 2px; }
-.cf-muted { color: var(--cf-muted); font-weight: normal; }
+.cf-props li:first-child { border-top: none; }
+.cf-ico { flex: 0 0 auto; margin-top: 2px; opacity: 0.75; }
+.cf-muted { color: #777; font-weight: 400; }
 
 .cf-photo img {
-  width: 220px;
+  width: 6.5rem;
   height: auto;
-  border: 1px solid var(--cf-border);
+  border: 0.6px solid #ccc;
   border-radius: 3px;
   display: block;
+  filter: grayscale(0.15);
 }
 
-/* ── Activity heatmap ───────────────────────────────────────────────── */
+/* ── Activity heatmap + stat row ──────────────────────────────────────── */
 .cf-heatwrap { overflow-x: auto; padding-bottom: 4px; }
 .cf-heat { display: block; width: 100%; height: auto; min-width: 560px; }
-.cf-heat-label { fill: #767676; font-size: 10px; font-family: Tahoma, Arial, sans-serif; }
-.cf-heat-cell {
-  transition: opacity 0.12s ease;
-  cursor: default;
-}
-.cf-heat-cell:hover { opacity: 0.7; }
+.cf-heat-label { fill: #999; font-size: 9.5px; font-family: var(--cm); }
+.cf-heat-cell { transition: opacity 0.12s ease; cursor: default; }
+.cf-heat-cell:hover { opacity: 0.6; }
 
 .cf-actstats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 18px 24px;
-  margin-top: 18px;
-  padding-top: 4px;
+  gap: 0.9rem 1.4rem;
+  margin-top: 1.1rem;
+  padding-top: 0.7rem;
+  border-top: 0.6px solid #e2e2e2;
 }
-.cf-bignum { font-size: 26px; font-weight: normal; color: #111; line-height: 1.15; }
-.cf-actsub { color: #c08a3e; font-size: 12px; margin-top: 1px; }
-
-/* ── Section heading inside boxes ───────────────────────────────────── */
-.cf-h2 { font-size: 18px; font-weight: bold; margin: 0 0 12px; color: #111; }
-.cf-empty { color: var(--cf-muted); }
+.cf-bignum { font-size: 1.5em; font-weight: 700; color: var(--ink); line-height: 1.15; font-variant-numeric: tabular-nums; }
+.cf-actsub { color: #777; font-size: 0.76em; margin-top: 0.1rem; }
 
 /* ── Charts ─────────────────────────────────────────────────────────── */
 .cf-legend-top {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: #333;
-  border: 1px solid var(--cf-border-2);
-  border-radius: 3px;
-  padding: 3px 9px;
-  margin-bottom: 8px;
+  gap: 0.4rem;
+  font-size: 0.78em;
+  color: #555;
+  border: 0.6px solid #ddd;
+  border-radius: 999px;
+  padding: 0.15em 0.7em;
+  margin-bottom: 0.6rem;
 }
-.cf-legend-swatch {
-  width: 22px; height: 11px;
-  border: 1px solid #bbb;
-  display: inline-block;
-}
+.cf-legend-swatch { width: 1.1em; height: 0.6em; background: var(--ink); display: inline-block; border-radius: 1px; }
 .cf-chartwrap { width: 100%; overflow-x: auto; }
 .cf-chart { width: 100%; height: auto; min-width: 560px; display: block; }
-.cf-grid { stroke: #ededed; stroke-width: 1; }
-.cf-axis { fill: #888; font-size: 11px; font-family: Tahoma, Arial, sans-serif; }
+.cf-grid { stroke: #eee; stroke-width: 1; }
+.cf-axis { fill: #888; font-size: 10.5px; font-family: var(--cm); }
 
-/* Interactive bar chart */
 .cf-bar-rect {
   cursor: pointer;
-  transition: opacity 0.12s ease, filter 0.12s ease;
+  transition: opacity 0.12s ease;
   transform-origin: bottom center;
 }
-.cf-bar-rect:hover {
-  opacity: 0.78;
-  filter: brightness(1.08);
-}
+.cf-bar-rect:hover { opacity: 0.65; }
 
 /* ── Tags donut + legend ────────────────────────────────────────────── */
 .cf-tagsbody {
   display: grid;
-  grid-template-columns: 240px 1fr;
-  gap: 28px;
+  grid-template-columns: 13rem 1fr;
+  gap: 1.6rem;
   align-items: center;
 }
-.cf-donut { width: 240px; height: 240px; overflow: visible; }
-.cf-donut-slice {
-  cursor: pointer;
-  transition: opacity 0.12s ease, filter 0.12s ease;
-  transform-origin: 120px 120px;
-}
-.cf-donut-slice:hover {
-  opacity: 0.82;
-  filter: brightness(1.1) drop-shadow(0 0 4px rgba(0,0,0,0.25));
-}
+.cf-donut { width: 13rem; height: 13rem; overflow: visible; }
+.cf-donut-slice { cursor: pointer; transition: opacity 0.12s ease; transform-origin: 120px 120px; }
+.cf-donut-slice:hover { opacity: 0.72; }
 .cf-taglegend {
   list-style: none;
   margin: 0;
-  padding: 0 6px 0 0;
-  max-height: 240px;
+  padding: 0 0.4rem 0 0;
+  max-height: 13rem;
   overflow-y: auto;
   columns: 2;
-  column-gap: 28px;
+  column-gap: 1.6rem;
 }
 .cf-taglegend li {
   display: flex;
   align-items: center;
-  gap: 7px;
-  padding: 2px 0;
-  font-size: 12.5px;
+  gap: 0.45rem;
+  padding: 0.14rem 0;
+  font-size: 0.82em;
   break-inside: avoid;
 }
-.cf-dot { width: 11px; height: 11px; border-radius: 2px; flex: 0 0 auto; }
+.cf-dot { width: 0.65rem; height: 0.65rem; border-radius: 2px; flex: 0 0 auto; }
 .cf-legend-name { color: #222; }
-.cf-legend-count { color: var(--cf-muted); }
+.cf-legend-count { color: #999; }
 
 /* ── Floating tooltip ───────────────────────────────────────────────── */
 .cf-tooltip {
   position: fixed;
-  background: rgba(30, 30, 30, 0.92);
+  background: rgba(20, 20, 20, 0.92);
   color: #fff;
-  font-family: Tahoma, Arial, sans-serif;
-  font-size: 12px;
+  font-family: var(--cm);
+  font-size: 0.82em;
   line-height: 1.5;
-  padding: 6px 10px;
-  border-radius: 4px;
+  padding: 0.4em 0.7em;
+  border-radius: 3px;
   pointer-events: none;
   z-index: 9999;
   white-space: nowrap;
   opacity: 0;
   transition: opacity 0.1s ease;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
 }
 .cf-tooltip.cf-tip-visible { opacity: 1; }
 
@@ -240,73 +185,54 @@
 .cf-subrow {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
-  padding: 6px 0;
-  border-bottom: 1px solid var(--cf-border-2);
+  gap: 0.55rem;
+  padding: 0.5rem 0;
+  border-top: 0.6px solid #ececec;
 }
-.cf-subrow:last-child { border-bottom: none; }
+.cf-subrow:first-child { border-top: none; }
 
 .cf-verdict {
   display: inline-block;
-  min-width: 32px;
-  padding: 1px 5px;
+  min-width: 2.1rem;
+  padding: 0.06em 0.35em;
   border-radius: 3px;
-  font-size: 11px;
-  font-weight: bold;
+  font-size: 0.72em;
+  font-weight: 700;
   text-align: center;
   flex: 0 0 auto;
   margin-top: 1px;
 }
-.cf-verdict-ok {
-  background: #d4edda;
-  color: #1a7c34;
-  border: 1px solid #b0d9bc;
-}
-.cf-verdict-fail {
-  background: #fde8e8;
-  color: #c0392b;
-  border: 1px solid #f5b7b1;
-}
+.cf-verdict-ok { background: #e8f0e6; color: #2c5e2e; border: 0.6px solid #cfe3cb; }
+.cf-verdict-fail { background: #fbeceb; color: #a13d34; border: 0.6px solid #eecac6; }
 
 .cf-subinfo { flex: 1; min-width: 0; }
 .cf-subproblem {
   display: block;
-  font-size: 12px;
-  font-weight: bold;
-  color: var(--cf-link);
+  font-size: 0.85em;
+  font-weight: 700;
+  color: var(--ink);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   line-height: 1.4;
 }
-.cf-subproblem:hover { text-decoration: underline; }
-.cf-submeta {
-  font-size: 11px;
-  color: var(--cf-muted);
-  margin-top: 1px;
-}
-.cf-sub-rating {
-  font-weight: bold;
-  margin-right: 3px;
-}
-.cf-subtime { }
+.cf-subproblem:hover { color: var(--link-hover); text-decoration: underline; }
+.cf-submeta { font-size: 0.76em; color: #999; margin-top: 0.05rem; }
+.cf-sub-rating { font-weight: 700; margin-right: 0.2rem; }
 
-.cf-sidebar-more {
-  margin-top: 10px;
-  text-align: right;
-  font-size: 12px;
-}
+.cf-sidebar-more { margin-top: 0.6rem; text-align: right; font-size: 0.82em; }
+.cf-sidebar-more a { color: #777; }
+.cf-sidebar-more a:hover { color: var(--link-hover); }
 
 /* ── Mobile ─────────────────────────────────────────────────────────── */
 @media (max-width: 900px) {
-  .cf { background: #fff; padding: 12px 12px 50px; }
   .cf-twocol { grid-template-columns: 1fr; }
   .cf-sidebar { position: static; }
   .cf-profile { grid-template-columns: 1fr; }
   .cf-photo { order: -1; }
-  .cf-photo img { width: 140px; }
-  .cf-actstats { grid-template-columns: repeat(2, 1fr); gap: 14px; }
-  .cf-bignum { font-size: 22px; }
+  .cf-photo img { width: 5rem; }
+  .cf-actstats { grid-template-columns: repeat(2, 1fr); gap: 0.7rem; }
+  .cf-bignum { font-size: 1.3em; }
   .cf-tagsbody { grid-template-columns: 1fr; justify-items: center; }
   .cf-taglegend { columns: 1; max-height: none; width: 100%; }
 }
