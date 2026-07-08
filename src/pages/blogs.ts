@@ -4,6 +4,7 @@ import { BLOG_POSTS, formatBlogDate, estimateReadingMinutes, getAllTags, type Bl
 import { SCROLL_TOP_BUTTON_HTML, initScrollTopButton } from "../lib/scroll-top";
 import { SUBSCRIBE_FORM_HTML, wireSubscribeForm } from "../lib/subscribe";
 import { mountBlogGraph } from "../lib/blog-graph";
+import { toggleSpotifyPlayer, isSpotifyPlayerOpen } from "../lib/spotify-player";
 
 function esc(s: string): string {
   return s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c] as string));
@@ -66,60 +67,29 @@ function controlsHtml(): string {
 function brandHtml(): string {
   return `
     <header class="blog-brand">
-      <div class="blog-emblem" aria-hidden="true">
-        <span class="blog-emblem-arrow">&darr;</span>
-      </div>
+      <img class="blog-mark" src="/blog-mark.png" alt="" width="150" height="210" />
       <h2 class="blog-logo">
-        <span class="blog-logo-row">
-          <span class="blog-logo-word blog-logo-ink">let</span>
-          <span class="blog-logo-word blog-logo-orange blog-logo-tilt">down</span>
-        </span>
+        <span class="blog-logo-main">let down</span>
         <span class="blog-logo-and">and</span>
-        <span class="blog-logo-row">
-          <span class="blog-logo-word blog-logo-green blog-logo-highlight">hanging</span>
-          <span class="blog-logo-word blog-logo-outline blog-logo-tilt">around</span>
-          <span class="blog-logo-arrow">&rarr;</span>
-        </span>
+        <span class="blog-logo-main blog-logo-main-2">hanging around</span>
       </h2>
-      <p class="blog-brand-tagline">
-        Priyanshu's blog — competitive programming, math, and the projects I build and occasionally break.
-      </p>
     </header>`;
 }
 
-function readmeHtml(): string {
+function aboutHtml(): string {
   const tags = getAllTags();
-  const latest = BLOG_POSTS[0];
-  const postCount = BLOG_POSTS.length;
+  const playing = isSpotifyPlayerOpen();
   return `
-    <section class="blog-readme" aria-label="About this blog">
-      <div class="blog-readme-titlebar">
-        <span class="blog-readme-dots" aria-hidden="true">
-          <span class="blog-readme-dot" style="background:#ff5f56"></span>
-          <span class="blog-readme-dot" style="background:#ffbd2e"></span>
-          <span class="blog-readme-dot" style="background:#27c93f"></span>
-        </span>
-        <span class="blog-readme-filename">README.md</span>
-      </div>
-      <div class="blog-readme-body">
-        <h3 class="blog-readme-h"># let down and hanging around</h3>
-        <blockquote class="blog-readme-quote">
-          "...shell smash, juicy fields, <strong>letdown and hanging around</strong>..." — Radiohead, <em>Let Down</em>.
-          Borrowed the name for the stuff that gets stuck in my head long after I close the laptop.
-        </blockquote>
-        <h4 class="blog-readme-h">## what's here</h4>
-        <p>Write-ups from competitive programming, some math I found interesting, and postmortems on things
-        I built (and occasionally broke) — Hackathon-Squad and friends.</p>
-        ${tags.length ? `
-        <h4 class="blog-readme-h">## topics</h4>
-        <p class="blog-readme-tags">${tags.map((t) => `<code>${esc(t.toLowerCase())}</code>`).join(" ")}</p>` : ""}
-        <h4 class="blog-readme-h">## stats</h4>
-        <ul class="blog-readme-list">
-          <li><code>posts</code> — ${postCount}</li>
-          ${latest?.date ? `<li><code>last updated</code> — ${esc(formatBlogDate(latest.date))}</li>` : ""}
-          <li><code>feed</code> — <a class="link" href="/feed.xml" target="_blank" rel="noopener noreferrer">/feed.xml</a></li>
-        </ul>
-      </div>
+    <section class="blog-about" aria-label="About this blog">
+      <p class="blog-about-text">
+        <strong>let down and hanging around</strong> — a line from Radiohead's <em>Let Down</em>, borrowed
+        for the stuff that gets stuck in my head long after I close the laptop. Expect competitive
+        programming write-ups, some math I found interesting, and postmortems on things I've built
+        (and occasionally broken)${tags.length ? ` — mostly ${tags.slice(0, 3).map((t) => t.toLowerCase()).join(", ")}` : ""}.
+      </p>
+      <button type="button" id="spotify-toggle-btn" class="blog-spotify-btn" aria-pressed="${playing ? "true" : "false"}">
+        ${spotifyBtnHtml(playing)}
+      </button>
     </section>`;
 }
 
@@ -135,11 +105,11 @@ function pageHtml(): string {
       </nav>
       <div class="section-body">
         ${brandHtml()}
+        ${aboutHtml()}
 
+        <h3 class="blog-section-label">featured</h3>
         ${controlsHtml()}
         ${body}
-
-        ${readmeHtml()}
 
         <div class="blog-subscribe-wrap">
           ${SUBSCRIBE_FORM_HTML}
@@ -178,10 +148,25 @@ function wireFilters(container: HTMLElement): void {
   tagSelect?.addEventListener("change", apply);
 }
 
+function spotifyBtnHtml(playing: boolean): string {
+  return `<span class="blog-spotify-icon" aria-hidden="true">${playing ? "&#10073;&#10073;" : "&#9658;"}</span>
+    ${playing ? "playing" : "play"} &ldquo;Let Down&rdquo; while you read`;
+}
+
+function wireSpotifyToggle(container: HTMLElement): void {
+  const btn = container.querySelector<HTMLButtonElement>("#spotify-toggle-btn");
+  btn?.addEventListener("click", () => {
+    const playing = toggleSpotifyPlayer();
+    btn.setAttribute("aria-pressed", playing ? "true" : "false");
+    btn.innerHTML = spotifyBtnHtml(playing);
+  });
+}
+
 export function mountBlogs(container: HTMLElement): void {
   container.innerHTML = pageHtml();
   initScrollTopButton(container);
   wireSubscribeForm(container);
   wireFilters(container);
+  wireSpotifyToggle(container);
   mountBlogGraph();
 }
