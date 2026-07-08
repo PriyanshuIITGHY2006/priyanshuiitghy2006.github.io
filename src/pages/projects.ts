@@ -11,6 +11,9 @@ function chips(stack: string[]): string {
 
 function linkBtn(p: DetailedProject): string {
   const parts: string[] = [];
+  if (p.body) {
+    parts.push(`<a class="pj-link" href="#/project?id=${encodeURIComponent(p.id)}">Full write-up →</a>`);
+  }
   if (p.github) {
     parts.push(`<a class="pj-link" href="${p.github}" target="_blank" rel="noopener">View on GitHub ↗</a>`);
   } else if (p.link) {
