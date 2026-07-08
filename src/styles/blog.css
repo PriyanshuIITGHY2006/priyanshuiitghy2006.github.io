@@ -87,7 +87,7 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-.blog-card-tags, .blog-post-tags { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: auto; padding-top: 0.2rem; }
+.blog-card-tags, .blog-post-tags { position: relative; display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: auto; padding-top: 0.2rem; }
 .blog-tag {
   font-size: 0.7em; letter-spacing: 0.2px;
   background: var(--bg-inset); color: var(--ink-soft);
@@ -104,6 +104,7 @@
 .blog-post-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 0.7rem; }
 .blog-post-date { font-size: 0.82em; color: var(--muted-2); }
 .blog-post-cover {
+  position: relative; /* stays above the particle background — src/lib/blog-graph.ts */
   margin: 0.8rem 0 1.2rem;
   border-radius: 6px;
   overflow: hidden;
@@ -134,7 +135,7 @@
 .blog-content li { margin: 0.25rem 0; }
 .blog-content a { color: var(--link); border-bottom: 1px dotted currentColor; text-decoration: none; }
 .blog-content a:hover { color: var(--link-hover); }
-.blog-content img { max-width: 100%; height: auto; border-radius: 5px; margin: 0.6rem 0; display: block; }
+.blog-content img { position: relative; max-width: 100%; height: auto; border-radius: 5px; margin: 0.6rem 0; display: block; }
 .blog-content blockquote {
   margin: 0.9rem 0;
   padding: 0.3rem 1rem;
@@ -209,7 +210,7 @@
 }
 
 /* ─── Engagement: views, like button, comments ───────────────────────── */
-.blog-engagement { margin-top: 2rem; border-top: 0.6px solid var(--border); padding-top: 1.2rem; }
+.blog-engagement { position: relative; margin-top: 2rem; border-top: 0.6px solid var(--border); padding-top: 1.2rem; }
 .blog-engagement-bar {
   display: flex;
   align-items: center;
@@ -257,6 +258,7 @@
 
 /* ─── Subscribe form ──────────────────────────────────────────────────── */
 .blog-subscribe {
+  position: relative; /* stays above the particle background — src/lib/blog-graph.ts */
   margin: 2rem 0;
   padding: 1.2rem 1.4rem;
   border: 0.6px solid var(--border);
@@ -310,6 +312,7 @@
 }
 /* ─── Editorial spoiler / hint blocks ────────────────────────────────── */
 .blog-spoiler {
+  position: relative; /* stays above the particle background — src/lib/blog-graph.ts */
   margin: 1rem 0;
   border: 0.6px solid var(--border);
   border-radius: 6px;
@@ -356,6 +359,7 @@
 
 /* ─── GitHub Gist embeds ─────────────────────────────────────────────── */
 .blog-gist {
+  position: relative; /* stays above the particle background — src/lib/blog-graph.ts */
   margin: 1.4rem 0;
   border: 0.6px solid var(--border);
   border-radius: 6px;
@@ -529,6 +533,7 @@
 
 /* ─── Table of contents ──────────────────────────────────────────────────── */
 .blog-toc {
+  position: relative; /* stays above the particle background — src/lib/blog-graph.ts */
   border: 0.6px solid var(--border);
   border-radius: 7px;
   padding: 0.6rem 0.9rem;
@@ -560,6 +565,7 @@
 
 /* ─── Share buttons ───────────────────────────────────────────────────────── */
 .blog-share {
+  position: relative; /* stays above the particle background — src/lib/blog-graph.ts */
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -582,6 +588,7 @@
 
 /* ─── Test-case panel ─────────────────────────────────────────────────────── */
 .blog-testcases-panel {
+  position: relative; /* stays above the particle background — src/lib/blog-graph.ts */
   border: 0.6px solid var(--border);
   border-radius: 6px;
   margin: -0.8rem 0 1.5rem;
@@ -629,6 +636,7 @@
 
 /* ─── Blog index: search + tag filter ────────────────────────────────────── */
 .blog-controls {
+  position: relative; /* stays above the particle background — src/lib/blog-graph.ts */
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -673,6 +681,7 @@
 
 /* ─── Bin-packing algorithm visualizations (:::binviz) ────────────────────── */
 .blog-binviz {
+  position: relative; /* stays above the particle background — src/lib/blog-graph.ts */
   margin: 1.4rem 0;
   padding: 1rem 1.1rem 0.9rem;
   border: 0.6px solid var(--border);
