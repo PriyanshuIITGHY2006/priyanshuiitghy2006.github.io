@@ -9,12 +9,30 @@
       content="Priyanshu Debnath — B.Tech EEE, IIT Guwahati. Interactive résumé: ML research, quantitative finance, competitive programming."
     />
     <meta name="author" content="Priyanshu Debnath" />
-    <meta name="theme-color" content="#ffffff" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0c0c0e" media="(prefers-color-scheme: dark)" />
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    <script>
+      // Set the theme before first paint so there's no flash of the wrong
+      // theme — kept in sync with src/lib/theme.ts's storage key/logic.
+      (function () {
+        try {
+          var stored = localStorage.getItem("site-theme");
+          var theme =
+            stored === "light" || stored === "dark"
+              ? stored
+              : window.matchMedia("(prefers-color-scheme: dark)").matches
+                ? "dark"
+                : "light";
+          document.documentElement.dataset.theme = theme;
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="app"></div>
+    <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle dark mode" title="Toggle dark mode"></button>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

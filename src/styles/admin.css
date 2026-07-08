@@ -3,7 +3,8 @@
 .admin-root {
   font-family: Tahoma, Geneva, Verdana, sans-serif;
   font-size: 14px;
-  background: #f5f5f5;
+  background: var(--bg-inset);
+  color: var(--ink);
   min-height: 100vh;
   margin: 0;
   padding: 0;
@@ -18,39 +19,41 @@
 }
 
 .admin-login-card {
-  background: #fff;
-  border: 1px solid #ccc;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
   border-radius: 6px;
   padding: 32px 40px;
   width: 320px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 2px 8px var(--shadow);
 }
 
 .admin-login-card h2 {
   margin: 0 0 20px 0;
   font-size: 18px;
-  color: #333;
+  color: var(--ink-soft);
 }
 
 .admin-login-card label {
   display: block;
   margin-bottom: 6px;
-  color: #555;
+  color: var(--muted);
 }
 
 .admin-login-card input[type="password"] {
   width: 100%;
   padding: 8px 10px;
-  border: 1px solid #bbb;
+  border: 1px solid var(--border-strong);
   border-radius: 4px;
   font-size: 14px;
   font-family: inherit;
+  background: var(--bg-card);
+  color: var(--ink);
   box-sizing: border-box;
   margin-bottom: 12px;
 }
 
 .admin-login-error {
-  color: #c00;
+  color: var(--danger-ink);
   font-size: 13px;
   margin-bottom: 10px;
 }
@@ -72,14 +75,14 @@
 .admin-header h1 {
   margin: 0;
   font-size: 20px;
-  color: #222;
+  color: var(--ink);
 }
 
 /* Tab bar */
 .admin-tab-bar {
   display: flex;
   gap: 4px;
-  border-bottom: 2px solid #ccc;
+  border-bottom: 2px solid var(--border);
   margin-bottom: 20px;
 }
 
@@ -91,20 +94,20 @@
   font-family: inherit;
   font-size: 14px;
   cursor: pointer;
-  color: #555;
+  color: var(--muted);
   border-radius: 4px 4px 0 0;
   margin-bottom: -2px;
 }
 
 .admin-tab-bar button:hover {
-  background: #eee;
+  background: var(--bg-hover);
 }
 
 .admin-tab-bar button.active {
-  background: #fff;
-  border-color: #ccc;
-  border-bottom-color: #fff;
-  color: #000;
+  background: var(--bg-card);
+  border-color: var(--border);
+  border-bottom-color: var(--bg-card);
+  color: var(--ink);
   font-weight: bold;
 }
 
@@ -112,27 +115,27 @@
 .admin-table {
   width: 100%;
   border-collapse: collapse;
-  background: #fff;
+  background: var(--bg-card);
   margin-bottom: 24px;
   font-size: 13px;
 }
 
 .admin-table th,
 .admin-table td {
-  border: 1px solid #ddd;
+  border: 1px solid var(--border);
   padding: 7px 10px;
   text-align: left;
   vertical-align: top;
 }
 
 .admin-table th {
-  background: #f0f0f0;
+  background: var(--bg-inset);
   font-weight: bold;
   white-space: nowrap;
 }
 
 .admin-table tr:hover td {
-  background: #fafafa;
+  background: var(--bg-hover);
 }
 
 /* Buttons */
@@ -141,17 +144,17 @@
   padding: 5px 12px;
   font-family: inherit;
   font-size: 13px;
-  border: 1px solid #999;
+  border: 1px solid var(--border-strong);
   border-radius: 3px;
   cursor: pointer;
-  background: #f0f0f0;
-  color: #333;
+  background: var(--bg-inset);
+  color: var(--ink-soft);
   text-decoration: none;
   white-space: nowrap;
 }
 
 .admin-btn:hover {
-  background: #e0e0e0;
+  background: var(--bg-hover);
 }
 
 .admin-btn-primary {
@@ -180,8 +183,8 @@
 
 /* Form */
 .admin-form-section {
-  background: #fff;
-  border: 1px solid #ddd;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
   border-radius: 4px;
   padding: 16px 20px;
   margin-bottom: 20px;
@@ -190,7 +193,7 @@
 .admin-form-section h3 {
   margin: 0 0 14px 0;
   font-size: 15px;
-  color: #333;
+  color: var(--ink-soft);
 }
 
 .admin-form {
@@ -202,7 +205,7 @@
   display: block;
   font-weight: bold;
   margin-bottom: 3px;
-  color: #444;
+  color: var(--muted);
   font-size: 13px;
 }
 
@@ -210,10 +213,12 @@
 .admin-form textarea {
   width: 100%;
   padding: 6px 8px;
-  border: 1px solid #bbb;
+  border: 1px solid var(--border-strong);
   border-radius: 3px;
   font-size: 13px;
   font-family: inherit;
+  background: var(--bg-card);
+  color: var(--ink);
   box-sizing: border-box;
 }
 
@@ -262,19 +267,19 @@
 }
 
 .admin-status-ok {
-  background: #d1fae5;
-  color: #065f46;
-  border: 1px solid #6ee7b7;
+  background: var(--success-bg);
+  color: var(--success-ink);
+  border: 1px solid var(--success-border);
 }
 
 .admin-status-err {
-  background: #fee2e2;
-  color: #991b1b;
-  border: 1px solid #fca5a5;
+  background: var(--danger-bg);
+  color: var(--danger-ink);
+  border: 1px solid var(--danger-border);
 }
 
 .admin-loading {
-  color: #888;
+  color: var(--muted-2);
   font-style: italic;
   padding: 12px 0;
 }
