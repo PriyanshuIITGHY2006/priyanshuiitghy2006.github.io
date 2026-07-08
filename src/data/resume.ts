@@ -16,7 +16,7 @@ export const resume: ResumeData = {
     [{ text: LINKS.emailPersonal, href: `mailto:${LINKS.emailPersonal}`, detail: "email" }],
     [{ text: LINKS.emailInstitute, href: `mailto:${LINKS.emailInstitute}`, detail: "email" }],
     [
-      { text: "Github", href: LINKS.github, external: true, detail: "github" },
+      { text: "Github", href: "#/github", detail: "github" },
       { text: " | " },
       { text: "Website", href: LINKS.website, external: true, detail: "website" },
       { text: " | " },

@@ -13,6 +13,32 @@
 
 .about-links { margin-top: 0.7rem; }
 
+/* ─── Currently-building list (bordered, matches .edu-entry's accent bar) ── */
+.about-list {
+  list-style: none;
+  margin: 0.6rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.7rem;
+}
+.about-list li { border-left: 3px solid var(--ink); padding-left: 0.7rem; }
+.about-list a.link { font-weight: 700; font-size: 0.98em; }
+.about-list-note {
+  font-size: 0.86em;
+  color: var(--muted);
+  margin: 0.2rem 0 0;
+  line-height: 1.4;
+}
+
+/* ─── Site directory: compact, label + inline note per line ──────────── */
+.about-list-compact { gap: 0.3rem; }
+.about-list-compact li { border-left: none; padding-left: 0; }
+.about-list-note-inline {
+  font-size: 0.86em;
+  color: var(--muted-2);
+  margin-left: 0.4em;
+}
+
 .about-contact-direct {
   display: flex;
   flex-wrap: wrap;
