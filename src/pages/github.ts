@@ -58,15 +58,25 @@ function render(user: GHUser, commits: GHCommit[], activity: Record<string, numb
 }
 
 // Built from real commit history (see lib/github.ts), capped to the most
-// recent 100 commits per scanned repo rather than a fixed calendar window
-// — so the window shown is deliberately generic instead of claiming a
-// specific day count that varies with how active each repo actually is.
+// recent 100 commits per scanned repo — how far back that actually reaches
+// varies a lot with how active the repos are, so a fixed 13/52-week grid
+// (like the Codeforces page, backed by a full submission history) left
+// most of the grid empty here. Size the window to the real data span
+// instead, clamped to a sane range, so the heatmap is mostly signal.
 function renderHeatmap(activity: Record<string, number>): string {
   return `
     <div class="gh-block">
       <p class="gh-block-title">Recent Activity</p>
-      ${renderActivityHeatmap(activity, { weeks: 13, ariaLabel: "GitHub commit activity" })}
+      ${renderActivityHeatmap(activity, { weeks: weeksSpan(activity), ariaLabel: "GitHub commit activity" })}
     </div>`;
+}
+
+function weeksSpan(activity: Record<string, number>): number {
+  const dates = Object.keys(activity);
+  if (!dates.length) return 6;
+  const oldest = dates.reduce((min, d) => (d < min ? d : min));
+  const days = (Date.now() - Date.parse(oldest)) / (1000 * 60 * 60 * 24);
+  return Math.min(26, Math.max(4, Math.ceil(days / 7) + 1));
 }
 
 function renderProfile(user: GHUser): string {
