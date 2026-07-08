@@ -3,6 +3,7 @@ import { resume } from "../data/resume";
 import { BLOG_POSTS, formatBlogDate, estimateReadingMinutes, getAllTags, type BlogPost } from "../lib/blog";
 import { SCROLL_TOP_BUTTON_HTML, initScrollTopButton } from "../lib/scroll-top";
 import { SUBSCRIBE_FORM_HTML, wireSubscribeForm } from "../lib/subscribe";
+import { mountBlogGraph } from "../lib/blog-graph";
 
 function esc(s: string): string {
   return s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c] as string));
@@ -124,4 +125,5 @@ export function mountBlogs(container: HTMLElement): void {
   initScrollTopButton(container);
   wireSubscribeForm(container);
   wireFilters(container);
+  mountBlogGraph();
 }
