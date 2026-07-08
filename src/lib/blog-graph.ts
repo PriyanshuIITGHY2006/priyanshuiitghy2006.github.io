@@ -1,7 +1,7 @@
-// Subtle, mouse-reactive force graph rendered as a full-viewport background
-// behind the blog list — nodes are the real blog posts and their real tags
-// (not decorative filler), edges are post↔tag membership, so posts sharing
-// tags naturally cluster together.
+// Ambient particle-network background behind the blog list, in the style of
+// libraries like particles.js: a dense field of small dots drifting slowly,
+// connected by lines whenever two are close enough, with the whole field
+// deflecting away from the cursor.
 //
 // Self-terminating by design: since this canvas is appended to <body>
 // directly (so it can sit fixed behind the page) rather than inside #app,
@@ -10,52 +10,21 @@
 // itself down the moment the visitor navigates away from #/blogs. No
 // unmount wiring needed in main.ts.
 
-import { BLOG_POSTS, getAllTags } from "./blog";
-
-interface GraphNode {
+interface Particle {
   x: number;
   y: number;
   vx: number;
   vy: number;
-  r: number;
-  kind: "post" | "tag";
 }
 
-interface GraphEdge {
-  a: number;
-  b: number;
-}
-
-const REPULSION = 26000;
-const SPRING_LEN = 160;
-const SPRING_K = 0.01;
-const CENTER_K = 0.0004;
-const DAMPING = 0.92;
-const MOUSE_RADIUS = 160;
-const MOUSE_FORCE = 40000;
-
-function buildGraph(width: number, height: number): { nodes: GraphNode[]; edges: GraphEdge[] } {
-  const tags = getAllTags();
-  const nodes: GraphNode[] = [];
-  const tagIndex = new Map<string, number>();
-
-  tags.forEach((tag) => {
-    tagIndex.set(tag.toLowerCase(), nodes.length);
-    nodes.push({ x: Math.random() * width, y: Math.random() * height, vx: 0, vy: 0, r: 4, kind: "tag" });
-  });
-
-  const edges: GraphEdge[] = [];
-  BLOG_POSTS.forEach((post) => {
-    const postIdx = nodes.length;
-    nodes.push({ x: Math.random() * width, y: Math.random() * height, vx: 0, vy: 0, r: 6, kind: "post" });
-    post.tags.forEach((t) => {
-      const ti = tagIndex.get(t.toLowerCase());
-      if (ti !== undefined) edges.push({ a: postIdx, b: ti });
-    });
-  });
-
-  return { nodes, edges };
-}
+const AREA_PER_PARTICLE = 9000; // px^2 per particle — density knob
+const MAX_PARTICLES = 110;
+const MIN_PARTICLES = 40;
+const DRIFT_SPEED = 0.18;
+const LINK_DIST = 150;
+const MOUSE_RADIUS = 150;
+const MOUSE_FORCE = 3.2;
+const PARTICLE_RADIUS = 2;
 
 function hexToRgba(hex: string, alpha: number): string {
   const h = hex.trim().replace("#", "");
@@ -66,18 +35,32 @@ function hexToRgba(hex: string, alpha: number): string {
   return `rgba(${r},${g},${b},${alpha})`;
 }
 
-function readPalette(): { line: string; tag: string; post: string } {
+function readPalette(): { line: string; dot: string } {
   const style = getComputedStyle(document.documentElement);
   return {
     line: style.getPropertyValue("--border-strong") || "#999999",
-    tag: style.getPropertyValue("--muted-2") || "#888888",
-    post: style.getPropertyValue("--muted") || "#555555",
+    dot: style.getPropertyValue("--muted") || "#555555",
   };
 }
 
 function currentPath(): string {
   const raw = location.hash.slice(1) || "/";
   return raw.split("?")[0] || "/";
+}
+
+function makeParticles(width: number, height: number): Particle[] {
+  const count = Math.max(MIN_PARTICLES, Math.min(MAX_PARTICLES, Math.round((width * height) / AREA_PER_PARTICLE)));
+  const particles: Particle[] = [];
+  for (let i = 0; i < count; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    particles.push({
+      x: Math.random() * width,
+      y: Math.random() * height,
+      vx: Math.cos(angle) * DRIFT_SPEED,
+      vy: Math.sin(angle) * DRIFT_SPEED,
+    });
+  }
+  return particles;
 }
 
 export function mountBlogGraph(): void {
@@ -88,12 +71,17 @@ export function mountBlogGraph(): void {
 
   const canvas = document.createElement("canvas");
   canvas.className = "blog-graph-canvas";
-  document.body.appendChild(canvas);
+  // Inserted as the *first* child of <body> (not appended, not negative
+  // z-index) so it paints behind everything else purely by DOM order — a
+  // negative z-index here got silently swallowed by some stacking context
+  // elsewhere on the page and never painted at all.
+  document.body.insertBefore(canvas, document.body.firstChild);
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
 
   let width = window.innerWidth;
   let height = Math.max(window.innerHeight, 600);
+  let particles: Particle[] = [];
 
   function resize(): void {
     width = window.innerWidth;
@@ -104,10 +92,9 @@ export function mountBlogGraph(): void {
     canvas.style.width = `${width}px`;
     canvas.style.height = `${height}px`;
     ctx!.setTransform(dpr, 0, 0, dpr, 0, 0);
+    particles = makeParticles(width, height);
   }
   resize();
-
-  const { nodes, edges } = buildGraph(width, height);
 
   let palette = readPalette();
   const themeObserver = new MutationObserver(() => {
@@ -130,66 +117,58 @@ export function mountBlogGraph(): void {
   window.addEventListener("resize", resize);
 
   function step(): void {
-    for (let i = 0; i < nodes.length; i++) {
-      for (let j = i + 1; j < nodes.length; j++) {
-        const a = nodes[i], b = nodes[j];
-        const dx = a.x - b.x, dy = a.y - b.y;
-        const distSq = Math.max(dx * dx + dy * dy, 25);
-        const force = REPULSION / distSq;
-        const dist = Math.sqrt(distSq);
-        const fx = (dx / dist) * force, fy = (dy / dist) * force;
-        a.vx += fx; a.vy += fy;
-        b.vx -= fx; b.vy -= fy;
-      }
-    }
-
-    for (const e of edges) {
-      const a = nodes[e.a], b = nodes[e.b];
-      const dx = b.x - a.x, dy = b.y - a.y;
-      const dist = Math.max(Math.sqrt(dx * dx + dy * dy), 1);
-      const stretch = dist - SPRING_LEN;
-      const fx = (dx / dist) * stretch * SPRING_K, fy = (dy / dist) * stretch * SPRING_K;
-      a.vx += fx; a.vy += fy;
-      b.vx -= fx; b.vy -= fy;
-    }
-
-    for (const n of nodes) {
-      n.vx += (width / 2 - n.x) * CENTER_K;
-      n.vy += (height / 2 - n.y) * CENTER_K;
-
-      const dx = n.x - mouseX, dy = n.y - mouseY;
+    for (const p of particles) {
+      const dx = p.x - mouseX, dy = p.y - mouseY;
       const distSq = dx * dx + dy * dy;
       if (distSq < MOUSE_RADIUS * MOUSE_RADIUS) {
         const dist = Math.max(Math.sqrt(distSq), 1);
-        const force = MOUSE_FORCE / (distSq + 400);
-        n.vx += (dx / dist) * force;
-        n.vy += (dy / dist) * force;
+        const push = (1 - dist / MOUSE_RADIUS) * MOUSE_FORCE;
+        p.vx += (dx / dist) * push;
+        p.vy += (dy / dist) * push;
       }
 
-      n.vx *= DAMPING;
-      n.vy *= DAMPING;
-      n.x = Math.max(10, Math.min(width - 10, n.x + n.vx));
-      n.y = Math.max(10, Math.min(height - 10, n.y + n.vy));
+      p.x += p.vx;
+      p.y += p.vy;
+
+      // Bounce off the edges so the field stays full instead of thinning out.
+      if (p.x < 0 || p.x > width) p.vx *= -1;
+      if (p.y < 0 || p.y > height) p.vy *= -1;
+      p.x = Math.max(0, Math.min(width, p.x));
+      p.y = Math.max(0, Math.min(height, p.y));
+
+      // Bleed off the mouse-kick energy so drift returns to a steady baseline speed.
+      const speed = Math.hypot(p.vx, p.vy);
+      if (speed > DRIFT_SPEED) {
+        const decay = 0.96;
+        p.vx *= decay;
+        p.vy *= decay;
+      }
     }
   }
 
   function draw(): void {
     ctx!.clearRect(0, 0, width, height);
 
-    ctx!.strokeStyle = hexToRgba(palette.line, 0.4);
-    ctx!.lineWidth = 1.2;
-    for (const e of edges) {
-      const a = nodes[e.a], b = nodes[e.b];
-      ctx!.beginPath();
-      ctx!.moveTo(a.x, a.y);
-      ctx!.lineTo(b.x, b.y);
-      ctx!.stroke();
+    ctx!.lineWidth = 1;
+    for (let i = 0; i < particles.length; i++) {
+      for (let j = i + 1; j < particles.length; j++) {
+        const a = particles[i], b = particles[j];
+        const dx = a.x - b.x, dy = a.y - b.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < LINK_DIST) {
+          ctx!.strokeStyle = hexToRgba(palette.line, 0.5 * (1 - dist / LINK_DIST));
+          ctx!.beginPath();
+          ctx!.moveTo(a.x, a.y);
+          ctx!.lineTo(b.x, b.y);
+          ctx!.stroke();
+        }
+      }
     }
 
-    for (const n of nodes) {
+    ctx!.fillStyle = hexToRgba(palette.dot, 0.7);
+    for (const p of particles) {
       ctx!.beginPath();
-      ctx!.arc(n.x, n.y, n.r, 0, Math.PI * 2);
-      ctx!.fillStyle = n.kind === "post" ? hexToRgba(palette.post, 0.8) : hexToRgba(palette.tag, 0.65);
+      ctx!.arc(p.x, p.y, PARTICLE_RADIUS, 0, Math.PI * 2);
       ctx!.fill();
     }
   }
