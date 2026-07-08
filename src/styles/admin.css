@@ -1,292 +1,232 @@
-/* ─── Admin panel styles ────────────────────────────────────────────── */
+/* ─── Admin panel — same visual language as the rest of the site: Computer
+   Modern serif, thin hairline borders, monochrome ink-on-paper buttons,
+   colour used sparingly. The login screen reuses resume.css's page/section
+   components directly so it reads as part of the site, not a bolted-on
+   tool. ─────────────────────────────────────────────────────────────── */
 
-.admin-root {
-  font-family: Tahoma, Geneva, Verdana, sans-serif;
-  font-size: 14px;
-  background: var(--bg-inset);
-  color: var(--ink);
-  min-height: 100vh;
-  margin: 0;
-  padding: 0;
-}
+.admin-login-page { max-width: 26rem; margin: 3rem auto 0; }
+.admin-login-page .section-body { text-align: left; }
 
-/* Password screen */
-.admin-login {
+.admin-login-form {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
+  flex-direction: column;
+  gap: 0.8rem;
+  margin-top: 1rem;
 }
-
-.admin-login-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 32px 40px;
-  width: 320px;
-  box-shadow: 0 2px 8px var(--shadow);
-}
-
-.admin-login-card h2 {
-  margin: 0 0 20px 0;
-  font-size: 18px;
-  color: var(--ink-soft);
-}
-
-.admin-login-card label {
+.admin-login-form label {
   display: block;
-  margin-bottom: 6px;
+  font-size: 0.78em;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
   color: var(--muted);
+  margin-bottom: 0.25rem;
 }
-
-.admin-login-card input[type="password"] {
+.admin-login-form input {
   width: 100%;
-  padding: 8px 10px;
-  border: 1px solid var(--border-strong);
-  border-radius: 4px;
-  font-size: 14px;
-  font-family: inherit;
-  background: var(--bg-card);
+  font-family: var(--cm);
+  font-size: 0.95em;
   color: var(--ink);
+  border: 0.6px solid var(--border);
+  border-radius: 4px;
+  padding: 0.5em 0.65em;
+  background: var(--bg-card);
   box-sizing: border-box;
-  margin-bottom: 12px;
 }
-
+.admin-login-form input:focus { outline: none; border-color: var(--border-strong); }
+.admin-login-actions { margin-top: 0.2rem; }
+.admin-login-submit { width: 100%; text-align: center; cursor: pointer; }
+.admin-login-submit:disabled { opacity: 0.6; cursor: default; }
 .admin-login-error {
+  font-size: 0.86em;
+  border-radius: 4px;
+  padding: 0.5em 0.7em;
+  background: var(--danger-bg);
   color: var(--danger-ink);
-  font-size: 13px;
-  margin-bottom: 10px;
+  border: 0.6px solid var(--danger-border);
 }
 
-/* Wrap */
-.admin-wrap {
-  max-width: 960px;
-  margin: 0 auto;
-  padding: 24px 16px 48px;
-}
+/* ─── Panel shell ──────────────────────────────────────────────────────── */
+.admin-page .section-body { max-width: 62rem; margin: 0 auto; }
 
-.admin-header {
+.admin-panel-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 20px;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin: 0.5rem 0 1rem;
 }
+.admin-panel-actions { display: flex; align-items: center; gap: 0.5rem; }
 
-.admin-header h1 {
-  margin: 0;
-  font-size: 20px;
-  color: var(--ink);
-}
-
-/* Tab bar */
-.admin-tab-bar {
+/* Tab bar — same small-caps underline treatment as the Codeforces page. */
+.admin-tabbar {
   display: flex;
-  gap: 4px;
-  border-bottom: 2px solid var(--border);
-  margin-bottom: 20px;
+  gap: 1.4rem;
+  flex-wrap: wrap;
+  border-bottom: 0.6px solid var(--border);
+  margin: 0.8rem 0 1.3rem;
 }
-
-.admin-tab-bar button {
+.admin-tab-btn {
   background: none;
-  border: 1px solid transparent;
-  border-bottom: none;
-  padding: 8px 18px;
-  font-family: inherit;
-  font-size: 14px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  font-family: var(--cm);
+  font-size: 0.85em;
+  font-variant: small-caps;
+  letter-spacing: 0.5px;
+  color: var(--muted-2);
+  padding: 0.45rem 0.05rem;
   cursor: pointer;
-  color: var(--muted);
-  border-radius: 4px 4px 0 0;
-  margin-bottom: -2px;
 }
+.admin-tab-btn:hover { color: var(--ink-soft); }
+.admin-tab-btn.active { color: var(--ink); border-bottom-color: var(--ink); font-weight: 700; }
 
-.admin-tab-bar button:hover {
-  background: var(--bg-hover);
-}
-
-.admin-tab-bar button.active {
+/* ─── Form sections (add project / achievement / ...) ────────────────── */
+.admin-form-section {
   background: var(--bg-card);
-  border-color: var(--border);
-  border-bottom-color: var(--bg-card);
-  color: var(--ink);
-  font-weight: bold;
+  border: 0.6px solid var(--border);
+  border-radius: 6px;
+  padding: 1.1rem 1.3rem;
+  margin-bottom: 1.4rem;
+}
+.admin-form-section h3 {
+  margin: 0 0 0.8rem;
+  font-family: var(--cm);
+  font-variant: small-caps;
+  font-size: 1.05em;
+  letter-spacing: 0.3px;
+  color: var(--ink-soft);
+  font-weight: 400;
 }
 
-/* Table */
+.admin-form { display: grid; gap: 0.7rem; }
+.admin-form label {
+  display: block;
+  font-size: 0.76em;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+  margin-bottom: 0.25rem;
+}
+.admin-form input[type="text"],
+.admin-form textarea {
+  width: 100%;
+  font-family: var(--cm);
+  font-size: 0.92em;
+  color: var(--ink);
+  border: 0.6px solid var(--border);
+  border-radius: 4px;
+  padding: 0.45em 0.6em;
+  background: var(--bg-card);
+  box-sizing: border-box;
+}
+.admin-form input[type="text"]:focus,
+.admin-form textarea:focus { outline: none; border-color: var(--border-strong); }
+.admin-form input[readonly] { color: var(--muted-2); background: var(--bg-inset); }
+.admin-form textarea { resize: vertical; min-height: 4.2rem; }
+.admin-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem; }
+.admin-form-actions { display: flex; gap: 0.6rem; margin-top: 0.2rem; }
+
+/* Bullets sub-form */
+.admin-bullet-list { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.5rem; }
+.admin-bullet-row { display: flex; gap: 0.5rem; align-items: flex-start; }
+.admin-bullet-row textarea { flex: 1; min-height: 3rem; }
+
+/* ─── Buttons — reuse .pj-link's bordered-pill look; primary/danger are
+   just tints of the same shape, not a different visual system. ────────── */
+.admin-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  font-family: var(--cm);
+  font-size: 0.85em;
+  font-weight: 600;
+  color: var(--ink);
+  text-decoration: none;
+  border: 0.6px solid var(--border);
+  border-radius: 4px;
+  padding: 0.3em 0.85em;
+  background: var(--bg-card);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.12s ease, border-color 0.12s ease, opacity 0.12s ease;
+}
+.admin-btn:hover { background: var(--bg-hover); border-color: var(--border-strong); }
+.admin-btn:disabled { opacity: 0.55; cursor: default; }
+.admin-btn + .admin-btn { margin-left: 0; }
+
+.admin-btn-primary { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+.admin-btn-primary:hover { background: var(--ink-soft); border-color: var(--ink-soft); }
+
+.admin-btn-danger { color: var(--danger-ink); border-color: var(--danger-border); background: var(--danger-bg); }
+.admin-btn-danger:hover { background: var(--danger-border); border-color: var(--danger-ink); }
+
+/* ─── Tables ───────────────────────────────────────────────────────────── */
+.admin-table-wrap { overflow-x: auto; border-radius: 6px; }
 .admin-table {
   width: 100%;
   border-collapse: collapse;
   background: var(--bg-card);
-  margin-bottom: 24px;
-  font-size: 13px;
+  border: 0.6px solid var(--border);
+  border-radius: 6px;
+  margin-bottom: 1.6rem;
+  font-size: 0.85em;
 }
-
 .admin-table th,
 .admin-table td {
-  border: 1px solid var(--border);
-  padding: 7px 10px;
+  border-bottom: 0.6px solid var(--border-soft);
+  padding: 0.55em 0.7em;
   text-align: left;
   vertical-align: top;
 }
-
 .admin-table th {
   background: var(--bg-inset);
-  font-weight: bold;
+  font-family: var(--cm);
+  font-weight: 700;
   white-space: nowrap;
+  font-size: 0.92em;
 }
+.admin-table tbody tr:hover td { background: var(--bg-hover); }
+.admin-table tbody tr:last-child td { border-bottom: none; }
+.admin-table-empty { text-align: center !important; color: var(--muted-2); font-style: italic; padding: 1.4rem 0.7em !important; }
 
-.admin-table tr:hover td {
-  background: var(--bg-hover);
-}
+.truncate { max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-/* Buttons */
-.admin-btn {
-  display: inline-block;
-  padding: 5px 12px;
-  font-family: inherit;
-  font-size: 13px;
-  border: 1px solid var(--border-strong);
-  border-radius: 3px;
-  cursor: pointer;
-  background: var(--bg-inset);
-  color: var(--ink-soft);
-  text-decoration: none;
-  white-space: nowrap;
-}
-
-.admin-btn:hover {
-  background: var(--bg-hover);
-}
-
-.admin-btn-primary {
-  background: #2563eb;
-  border-color: #1d4ed8;
-  color: #fff;
-}
-
-.admin-btn-primary:hover {
-  background: #1d4ed8;
-}
-
-.admin-btn-danger {
-  background: #dc2626;
-  border-color: #b91c1c;
-  color: #fff;
-}
-
-.admin-btn-danger:hover {
-  background: #b91c1c;
-}
-
-.admin-btn + .admin-btn {
-  margin-left: 6px;
-}
-
-/* Form */
-.admin-form-section {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 16px 20px;
-  margin-bottom: 20px;
-}
-
-.admin-form-section h3 {
-  margin: 0 0 14px 0;
-  font-size: 15px;
-  color: var(--ink-soft);
-}
-
-.admin-form {
-  display: grid;
-  gap: 10px;
-}
-
-.admin-form label {
-  display: block;
-  font-weight: bold;
-  margin-bottom: 3px;
-  color: var(--muted);
-  font-size: 13px;
-}
-
-.admin-form input[type="text"],
-.admin-form textarea {
-  width: 100%;
-  padding: 6px 8px;
-  border: 1px solid var(--border-strong);
-  border-radius: 3px;
-  font-size: 13px;
-  font-family: inherit;
-  background: var(--bg-card);
-  color: var(--ink);
-  box-sizing: border-box;
-}
-
-.admin-form textarea {
-  resize: vertical;
-  min-height: 60px;
-}
-
-.admin-form-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-
-.admin-form-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 4px;
-}
-
-/* Bullets sub-form */
-.admin-bullet-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-bottom: 8px;
-}
-
-.admin-bullet-row {
-  display: flex;
-  gap: 6px;
-  align-items: flex-start;
-}
-
-.admin-bullet-row textarea {
-  flex: 1;
-  min-height: 48px;
-}
-
-/* Status messages */
+/* ─── Status messages ──────────────────────────────────────────────────── */
 .admin-status {
-  font-size: 13px;
-  padding: 6px 10px;
-  border-radius: 3px;
-  margin-bottom: 10px;
+  font-size: 0.86em;
+  padding: 0.5em 0.7em;
+  border-radius: 4px;
+  margin-bottom: 0.7rem;
+  border: 0.6px solid transparent;
+}
+.admin-status-ok { background: var(--success-bg); color: var(--success-ink); border-color: var(--success-border); }
+.admin-status-err { background: var(--danger-bg); color: var(--danger-ink); border-color: var(--danger-border); }
+
+.admin-loading { color: var(--muted-2); font-style: italic; padding: 0.8rem 0; }
+.admin-empty-note { color: var(--muted-2); font-style: italic; padding: 0.6rem 0 1.2rem; }
+
+/* ─── Change password panel ────────────────────────────────────────────── */
+.admin-account-panel {
+  background: var(--bg-card);
+  border: 0.6px solid var(--border);
+  border-radius: 6px;
+  padding: 1.1rem 1.3rem;
+  margin-bottom: 1.4rem;
+  max-width: 26rem;
+}
+.admin-account-panel h3 {
+  margin: 0 0 0.8rem;
+  font-family: var(--cm);
+  font-variant: small-caps;
+  font-size: 1.05em;
+  letter-spacing: 0.3px;
+  color: var(--ink-soft);
+  font-weight: 400;
 }
 
-.admin-status-ok {
-  background: var(--success-bg);
-  color: var(--success-ink);
-  border: 1px solid var(--success-border);
-}
-
-.admin-status-err {
-  background: var(--danger-bg);
-  color: var(--danger-ink);
-  border: 1px solid var(--danger-border);
-}
-
-.admin-loading {
-  color: var(--muted-2);
-  font-style: italic;
-  padding: 12px 0;
-}
-
-.truncate {
-  max-width: 220px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+@media (max-width: 640px) {
+  .admin-form-row { grid-template-columns: 1fr; }
+  .admin-panel-header { flex-direction: column; align-items: flex-start; }
 }
