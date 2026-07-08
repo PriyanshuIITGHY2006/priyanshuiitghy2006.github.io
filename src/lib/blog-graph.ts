@@ -43,9 +43,15 @@ function readPalette(): { line: string; dot: string } {
   };
 }
 
+const BLOG_ROUTES = new Set(["/blogs", "/blog"]);
+
 function currentPath(): string {
   const raw = location.hash.slice(1) || "/";
   return raw.split("?")[0] || "/";
+}
+
+function onBlogRoute(): boolean {
+  return BLOG_ROUTES.has(currentPath());
 }
 
 function makeParticles(width: number, height: number): Particle[] {
@@ -174,7 +180,7 @@ export function mountBlogGraph(): void {
   }
 
   function loop(): void {
-    if (!canvas.isConnected || currentPath() !== "/blogs") {
+    if (!canvas.isConnected || !onBlogRoute()) {
       window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("mouseout", onMouseLeave);
       window.removeEventListener("resize", resize);

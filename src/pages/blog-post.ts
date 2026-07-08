@@ -27,6 +27,7 @@ import {
 import { SCROLL_TOP_BUTTON_HTML, initScrollTopButton } from "../lib/scroll-top";
 import { SUBSCRIBE_FORM_HTML, wireSubscribeForm } from "../lib/subscribe";
 import { renderTurnstileWidget, resetTurnstileWidget, getTurnstileToken } from "../lib/turnstile";
+import { mountBlogGraph } from "../lib/blog-graph";
 
 // ─── Monaco Editor Setup ────────────────────────────────────────────────────
 let monacoLoaderPromise: Promise<any> | null = null;
@@ -262,6 +263,7 @@ export function mountBlogPost(container: HTMLElement, slug: string | null): void
   wireAlgoViz(container);
   wireSubscribeForm(container);
   initScrollTopButton(container);
+  mountBlogGraph();
 
   void initEditors(container);
 }
