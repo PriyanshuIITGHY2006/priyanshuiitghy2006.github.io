@@ -1,5 +1,14 @@
 /* ─── Blog list page (reuses .gl-* card shell conventions) ───────────── */
-.blogs-page { max-width: 60rem; margin: 0 auto; }
+.blogs-page { max-width: 60rem; margin: 0 auto; background: transparent; }
+
+/* ─── Force-graph background (src/lib/blog-graph.ts) ─────────────────── */
+.blog-graph-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  display: block;
+}
 
 .blog-grid {
   display: grid;
