@@ -3,6 +3,7 @@
 // is not wired up yet — this only stores signups.
 
 import { subscribeToBlog } from "./blog-engagement";
+import { renderTurnstileWidget, resetTurnstileWidget, getTurnstileToken } from "./turnstile";
 
 export const SUBSCRIBE_FORM_HTML = `
   <div class="blog-subscribe">
@@ -18,8 +19,9 @@ export const SUBSCRIBE_FORM_HTML = `
         <label for="bs-email">Email</label>
         <input id="bs-email" name="email" type="email" maxlength="200" required autocomplete="email" />
       </div>
+      <div class="cf-turnstile" data-sitekey="${import.meta.env.VITE_TURNSTILE_SITE_KEY}"></div>
       <div class="contact-actions">
-        <button type="submit" class="pj-link contact-submit">Subscribe</button>
+        <button type="submit" class="pj-link contact-submit" disabled>Subscribe</button>
       </div>
     </form>
   </div>`;
@@ -29,17 +31,20 @@ export function wireSubscribeForm(container: HTMLElement): void {
   const status = container.querySelector<HTMLElement>("#blog-subscribe-status");
   if (!form || !status) return;
 
+  const submitBtn = form.querySelector<HTMLButtonElement>(".contact-submit")!;
+  renderTurnstileWidget(form, () => { submitBtn.disabled = false; });
+
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     const name = container.querySelector<HTMLInputElement>("#bs-name")!.value.trim();
     const email = container.querySelector<HTMLInputElement>("#bs-email")!.value.trim();
-    if (!name || !email) return;
+    const turnstileToken = getTurnstileToken(form);
+    if (!name || !email || !turnstileToken) return;
 
-    const submitBtn = form.querySelector<HTMLButtonElement>(".contact-submit")!;
     submitBtn.disabled = true;
     status.style.display = "none";
     try {
-      const { alreadySubscribed } = await subscribeToBlog(name, email);
+      const { alreadySubscribed } = await subscribeToBlog(name, email, turnstileToken);
       status.textContent = alreadySubscribed
         ? "You're already subscribed with that email."
         : "Subscribed — you'll get an email when a new post goes up.";
@@ -51,7 +56,8 @@ export function wireSubscribeForm(container: HTMLElement): void {
       status.className = "contact-status contact-status-err";
       status.style.display = "block";
     } finally {
-      submitBtn.disabled = false;
+      resetTurnstileWidget(form);
+      submitBtn.disabled = true;
     }
   });
 }

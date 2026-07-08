@@ -26,6 +26,7 @@ import {
 } from "../lib/blog-engagement";
 import { SCROLL_TOP_BUTTON_HTML, initScrollTopButton } from "../lib/scroll-top";
 import { SUBSCRIBE_FORM_HTML, wireSubscribeForm } from "../lib/subscribe";
+import { renderTurnstileWidget, resetTurnstileWidget, getTurnstileToken } from "../lib/turnstile";
 
 // ─── Monaco Editor Setup ────────────────────────────────────────────────────
 let monacoLoaderPromise: Promise<any> | null = null;
@@ -153,8 +154,9 @@ function engagementShell(): string {
             <label for="bc-message">Comment</label>
             <textarea id="bc-message" name="message" maxlength="1000" required></textarea>
           </div>
+          <div class="cf-turnstile" data-sitekey="${import.meta.env.VITE_TURNSTILE_SITE_KEY}"></div>
           <div class="contact-actions">
-            <button type="submit" class="pj-link contact-submit">Post comment</button>
+            <button type="submit" class="pj-link contact-submit" disabled>Post comment</button>
           </div>
           <p class="blog-comment-note">Comments are reviewed before they appear publicly.</p>
         </form>
@@ -473,17 +475,20 @@ function wireCommentForm(container: HTMLElement, slug: string): void {
   const status = container.querySelector<HTMLElement>("#blog-comment-status");
   if (!form || !status) return;
 
+  const submitBtn = form.querySelector<HTMLButtonElement>(".contact-submit")!;
+  renderTurnstileWidget(form, () => { submitBtn.disabled = false; });
+
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     const name = container.querySelector<HTMLInputElement>("#bc-name")!.value.trim();
     const message = container.querySelector<HTMLTextAreaElement>("#bc-message")!.value.trim();
-    if (!name || !message) return;
+    const turnstileToken = getTurnstileToken(form);
+    if (!name || !message || !turnstileToken) return;
 
-    const submitBtn = form.querySelector<HTMLButtonElement>(".contact-submit")!;
     submitBtn.disabled = true;
     status.style.display = "none";
     try {
-      await submitComment(slug, name, message);
+      await submitComment(slug, name, message, turnstileToken);
       status.textContent = "Thanks — your comment is awaiting review and will appear once approved.";
       status.className = "contact-status contact-status-ok";
       status.style.display = "block";
@@ -493,7 +498,8 @@ function wireCommentForm(container: HTMLElement, slug: string): void {
       status.className = "contact-status contact-status-err";
       status.style.display = "block";
     } finally {
-      submitBtn.disabled = false;
+      resetTurnstileWidget(form);
+      submitBtn.disabled = true;
     }
   });
 }
@@ -546,9 +552,7 @@ async function executeCode(
   stdin: string,
 ): Promise<CompilerResult> {
   const session = getRunSession();
-  const turnstileToken = session
-    ? undefined
-    : (runPanel?.querySelector('[name="cf-turnstile-response"]') as HTMLInputElement | null)?.value;
+  const turnstileToken = session ? undefined : (runPanel ? getTurnstileToken(runPanel) : undefined);
 
   const result = await runCode(compilerId, sourceCode, stdin, {
     runSession: session?.token,
@@ -560,27 +564,6 @@ async function executeCode(
   }
 
   return result;
-}
-
-function renderTurnstileWidget(panel: HTMLElement, onSolved: () => void): void {
-  const el = panel.querySelector<HTMLElement>(".cf-turnstile");
-  if (!el) return;
-
-  const tryRender = () => {
-    const ts = (window as any).turnstile;
-    if (!ts) {
-      setTimeout(tryRender, 100);
-      return;
-    }
-    if (el.dataset.tsRendered === "1") return;
-    el.dataset.tsRendered = "1";
-    const widgetId = ts.render(el, {
-      sitekey: el.dataset.sitekey,
-      callback: onSolved,
-    });
-    el.dataset.tsWidgetId = widgetId;
-  };
-  tryRender();
 }
 
 function wireRunnableCode(container: HTMLElement): void {
