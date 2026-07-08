@@ -14,7 +14,12 @@
 export const GH_USERNAME = "PriyanshuIITGHY2006";
 const API = "https://api.github.com";
 const CACHE_TTL_MS = 10 * 60 * 1000; // 10 min
-const REPOS_TO_SCAN = 5;
+// Scanning only the most-recently-pushed repos misses activity on repos
+// that had commits months ago but haven't been touched since — exactly
+// the kind of older activity the profile's own year-long contribution
+// graph includes. 100 covers every repo for an account this size in one
+// request (GitHub's max page size); a personal site won't have more.
+const REPOS_TO_SCAN = 100;
 const COMMITS_PER_REPO = 100; // GitHub's max page size — one request per repo either way
 
 export interface GHUser {
