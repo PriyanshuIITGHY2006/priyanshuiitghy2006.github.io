@@ -1,17 +1,24 @@
 /// <reference types="vite/client" />
 
+interface YTPlayerInstance {
+  playVideo(): void;
+  pauseVideo(): void;
+}
+
 declare global {
   interface Window {
     YT: {
       Player: new (
-        elementId: string,
+        elementIdOrElement: string | HTMLElement,
         options: {
+          videoId?: string;
+          playerVars?: Record<string, unknown>;
           events?: {
-            onReady?: (event: { target: unknown }) => void;
-            onStateChange?: (event: { data: number; target: unknown }) => void;
+            onReady?: (event: { target: YTPlayerInstance }) => void;
+            onStateChange?: (event: { data: number; target: YTPlayerInstance }) => void;
           };
         }
-      ) => unknown;
+      ) => YTPlayerInstance;
       PlayerState: {
         UNSTARTED: -1;
         ENDED: 0;
