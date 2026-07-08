@@ -16,12 +16,15 @@ import { loadCodeforces, rankName } from "./lib/codeforces";
 import { loadResumeFromDB } from "./lib/supabase";
 import { route, start } from "./lib/router";
 import { mountThemeToggle } from "./lib/theme";
+import { initMatrixRainEasterEgg } from "./lib/matrix-rain";
 
 const app = document.querySelector<HTMLElement>("#app");
 if (!app) throw new Error("Missing #app");
 
 const themeToggleBtn = document.querySelector<HTMLButtonElement>("#theme-toggle");
 if (themeToggleBtn) mountThemeToggle(themeToggleBtn);
+
+initMatrixRainEasterEgg();
 
 document.addEventListener("click", (e) => {
   const target = (e.target as HTMLElement).closest<HTMLElement>("[data-detail]");
