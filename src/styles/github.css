@@ -1,0 +1,89 @@
+/* ─── GitHub activity page — same visual language as the Codeforces page:
+   Computer Modern serif, bordered cards, monochrome icons via currentColor
+   so dark mode needs no extra overrides. Deliberately minimal — profile
+   plus recent commits, nothing else. ─── */
+
+.gh-page .section-body { max-width: 40rem; margin: 0 auto; }
+
+.gh-toprow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin: 0.55rem 0 0.9rem;
+}
+.gh-toprow .edu-note { margin: 0; }
+.gh-external { font-size: 0.82em; color: var(--muted-2); white-space: nowrap; }
+.gh-external:hover { color: var(--link-hover); }
+
+.gh-block {
+  border: 0.6px solid var(--border);
+  border-left: 3px solid var(--ink);
+  border-radius: 4px;
+  padding: 1rem 1.2rem;
+  background: var(--bg-card);
+  margin-bottom: 1rem;
+}
+.gh-block-title {
+  font-size: 0.72em;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--muted-2);
+  margin: 0 0 0.7rem;
+}
+.gh-empty { color: var(--muted-2); font-size: 0.88em; }
+.gh-msg { color: var(--muted-2); }
+
+/* ── Profile ────────────────────────────────────────────────────────── */
+.gh-profile { display: grid; grid-template-columns: auto 1fr; gap: 1rem; align-items: start; }
+.gh-avatar {
+  width: 4.2rem;
+  height: 4.2rem;
+  border-radius: 50%;
+  border: 0.6px solid var(--border);
+  display: block;
+}
+.gh-name { font-size: 1.2em; font-weight: 700; display: flex; align-items: center; gap: 0.4rem; margin: 0 0 0.1rem; }
+.gh-mark { color: var(--ink); flex: 0 0 auto; }
+.gh-login { font-size: 0.85em; color: var(--muted-2); margin-bottom: 0.4rem; }
+.gh-login a { color: var(--muted-2); }
+.gh-login a:hover { color: var(--link-hover); }
+.gh-bio { font-size: 0.9em; color: var(--ink-soft); margin: 0.3rem 0 0.6rem; line-height: 1.45; }
+.gh-metarow { display: flex; flex-wrap: wrap; gap: 0.4rem 1rem; font-size: 0.82em; color: var(--muted); margin-bottom: 0.5rem; }
+.gh-stats { display: flex; gap: 1.4rem; font-size: 0.88em; margin-top: 0.4rem; }
+.gh-stats b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.gh-stats span { color: var(--muted-2); }
+
+/* ── Recent commits ─────────────────────────────────────────────────── */
+.gh-commit-list { display: flex; flex-direction: column; }
+.gh-commit-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.5rem 0;
+  border-top: 0.6px solid var(--border-soft);
+}
+.gh-commit-row:first-child { border-top: none; }
+.gh-commit-ico { flex: 0 0 auto; margin-top: 3px; color: var(--muted-2); }
+.gh-commit-info { flex: 1; min-width: 0; }
+.gh-commit-msg {
+  display: block;
+  font-size: 0.88em;
+  font-weight: 600;
+  color: var(--ink);
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gh-commit-msg:hover { color: var(--link-hover); }
+.gh-commit-meta { font-size: 0.76em; color: var(--muted-2); margin-top: 0.1rem; }
+.gh-commit-repo { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+
+@media (max-width: 480px) {
+  .gh-profile { grid-template-columns: 1fr; text-align: center; }
+  .gh-avatar { margin: 0 auto; }
+  .gh-metarow, .gh-stats { justify-content: center; }
+}

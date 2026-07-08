@@ -41,8 +41,10 @@ function pageHtml(): string {
         <h2 class="section about-sub">Elsewhere</h2>
         <div class="pj-links about-links">
           <a class="pj-link" href="${LINKS.github}" target="_blank" rel="noopener">GitHub ↗</a>
+          <a class="pj-link" href="#/github">GitHub Activity →</a>
           <a class="pj-link" href="${LINKS.linkedin}" target="_blank" rel="noopener">LinkedIn ↗</a>
           <a class="pj-link" href="${LINKS.codeforces}" target="_blank" rel="noopener">Codeforces ↗</a>
+          <a class="pj-link" href="#/codeforces">Codeforces Stats →</a>
           <a class="pj-link" href="#/blogs">Blog →</a>
         </div>
 
