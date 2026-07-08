@@ -29,6 +29,14 @@ export interface GHCommit {
   date: string;
 }
 
+export interface GHRepo {
+  name: string;
+  html_url: string;
+  description: string | null;
+  language: string | null;
+  pushed_at: string;
+}
+
 interface GHEvent {
   type: string;
   created_at: string;
@@ -39,6 +47,15 @@ interface GHEvent {
 export interface GithubData {
   user: GHUser;
   commits: GHCommit[];
+  /**
+   * Only populated when `commits` comes back empty. The public events feed
+   * (used for commits) only covers push activity on PUBLIC repos within a
+   * ~90-day retention window — it silently omits private-repo pushes
+   * entirely, so an account that's actually active can still show zero
+   * events. Repos sorted by push date are a much harder signal to fake
+   * empty, so they're the fallback rather than just showing nothing.
+   */
+  recentRepos: GHRepo[];
 }
 
 async function fetchJSON<T>(path: string): Promise<T> {
@@ -93,5 +110,13 @@ export async function loadGithub(): Promise<GithubData> {
     }
   }
 
-  return { user, commits: commits.slice(0, 15) };
+  const trimmed = commits.slice(0, 15);
+  if (trimmed.length > 0) {
+    return { user, commits: trimmed, recentRepos: [] };
+  }
+
+  const recentRepos = await cached("repos", () =>
+    fetchJSON<GHRepo[]>(`/users/${GH_USERNAME}/repos?sort=pushed&direction=desc&per_page=6`),
+  );
+  return { user, commits: trimmed, recentRepos };
 }
