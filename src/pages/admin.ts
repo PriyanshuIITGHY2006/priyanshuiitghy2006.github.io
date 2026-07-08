@@ -83,13 +83,14 @@ function renderLogin(container: HTMLElement, notice?: string): void {
 }
 
 // ── Main panel ───────────────────────────────────────────────────────────────
-type Tab = "projects" | "achievements" | "skills" | "positions" | "comments";
+type Tab = "projects" | "achievements" | "skills" | "positions" | "comments" | "blog-editor";
 const TABS: { id: Tab; label: string }[] = [
   { id: "projects", label: "Projects" },
   { id: "achievements", label: "Achievements" },
   { id: "skills", label: "Skills" },
   { id: "positions", label: "Positions" },
   { id: "comments", label: "Blog Comments" },
+  { id: "blog-editor", label: "New Blog Post" },
 ];
 
 let currentTab: Tab = "projects";
@@ -198,6 +199,9 @@ function loadTab(container: HTMLElement): void {
     case "skills":       void renderSkills(content);       break;
     case "positions":    void renderPositions(content);    break;
     case "comments":     void renderComments(content);     break;
+    case "blog-editor":
+      void import("./admin-blog-editor").then(({ renderBlogEditor }) => renderBlogEditor(content));
+      break;
   }
 }
 
