@@ -4,6 +4,7 @@ import { BLOG_POSTS, formatBlogDate, estimateReadingMinutes, getAllTags, type Bl
 import { SCROLL_TOP_BUTTON_HTML, initScrollTopButton } from "../lib/scroll-top";
 import { SUBSCRIBE_FORM_HTML, wireSubscribeForm } from "../lib/subscribe";
 import { mountBlogGraph } from "../lib/blog-graph";
+import { toggleSpotifyPlayer, isSpotifyPlayerOpen } from "../lib/spotify-player";
 
 function esc(s: string): string {
   return s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c] as string));
@@ -63,6 +64,27 @@ function controlsHtml(): string {
     <p class="blog-empty-filtered" id="blog-empty-filtered" hidden>No posts match your search or filters.</p>`;
 }
 
+function brandHtml(): string {
+  const playing = isSpotifyPlayerOpen();
+  return `
+    <header class="blog-brand">
+      <div class="blog-brand-logo">
+        <img class="blog-mark" src="/blog-mark.png" alt="" width="150" height="210" />
+        <h2 class="blog-logo">
+          <span class="blog-logo-main">let down</span>
+          <span class="blog-logo-and">and</span>
+          <span class="blog-logo-main blog-logo-main-2">hanging around</span>
+        </h2>
+      </div>
+      <p class="blog-about-text">
+        Notes on competitive programming, mathematics, and the projects I'm building.
+      </p>
+      <button type="button" id="spotify-toggle-btn" class="blog-spotify-btn" aria-pressed="${playing ? "true" : "false"}">
+        ${spotifyBtnHtml(playing)}
+      </button>
+    </header>`;
+}
+
 function pageHtml(): string {
   const body = BLOG_POSTS.length
     ? `<div class="blog-grid" id="blog-grid">${BLOG_POSTS.map(card).join("")}</div>`
@@ -74,16 +96,13 @@ function pageHtml(): string {
         <span class="section-crumb">${esc(resume.name)} · Blog</span>
       </nav>
       <div class="section-body">
-        <h2 class="section">Blog</h2>
-        <p class="edu-note">
-          Notes on competitive programming, mathematics, and the projects I'm building.
-        </p>
+        ${brandHtml()}
 
+        <h3 class="blog-section-label">featured</h3>
         ${controlsHtml()}
         ${body}
-        
-        <!-- Subscribe form moved after all blogs -->
-        <div style="margin-top: 4rem; padding-top: 2rem; border-top: 1px solid #eaeaea;">
+
+        <div class="blog-subscribe-wrap">
           ${SUBSCRIBE_FORM_HTML}
         </div>
       </div>
@@ -120,10 +139,25 @@ function wireFilters(container: HTMLElement): void {
   tagSelect?.addEventListener("change", apply);
 }
 
+function spotifyBtnHtml(playing: boolean): string {
+  return `<span class="blog-spotify-icon" aria-hidden="true">${playing ? "&#10073;&#10073;" : "&#9658;"}</span>
+    ${playing ? "playing" : "play"} &ldquo;Let Down&rdquo; while you read`;
+}
+
+function wireSpotifyToggle(container: HTMLElement): void {
+  const btn = container.querySelector<HTMLButtonElement>("#spotify-toggle-btn");
+  btn?.addEventListener("click", () => {
+    const playing = toggleSpotifyPlayer();
+    btn.setAttribute("aria-pressed", playing ? "true" : "false");
+    btn.innerHTML = spotifyBtnHtml(playing);
+  });
+}
+
 export function mountBlogs(container: HTMLElement): void {
   container.innerHTML = pageHtml();
   initScrollTopButton(container);
   wireSubscribeForm(container);
   wireFilters(container);
+  wireSpotifyToggle(container);
   mountBlogGraph();
 }
