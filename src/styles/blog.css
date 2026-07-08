@@ -51,7 +51,7 @@
   margin: 0.25rem 0;
 }
 
-/* ─── About text + Spotify toggle ─────────────────────────────────────── */
+/* ─── About text + background-audio toggle ────────────────────────────── */
 .blog-about-text {
   max-width: 26rem;
   margin: 1rem 0 0;
@@ -59,7 +59,7 @@
   line-height: 1.55;
   color: var(--ink-soft);
 }
-.blog-spotify-btn {
+.blog-audio-btn {
   margin-top: 0.8rem;
   display: inline-flex;
   align-items: center;
@@ -74,9 +74,9 @@
   cursor: pointer;
   transition: border-color 0.14s ease, background 0.14s ease;
 }
-.blog-spotify-btn:hover { border-color: var(--border-strong); background: var(--bg-hover); }
-.blog-spotify-btn[aria-pressed="true"] { border-color: #1db954; color: #1db954; }
-.blog-spotify-icon { font-size: 0.85em; }
+.blog-audio-btn:hover { border-color: var(--border-strong); background: var(--bg-hover); }
+.blog-audio-btn[aria-pressed="true"] { border-color: var(--success-ink); color: var(--success-ink); }
+.blog-audio-icon { font-size: 0.85em; }
 
 .blog-section-label {
   margin: 2.2rem 0 0.2rem;

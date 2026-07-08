@@ -4,7 +4,7 @@ import { BLOG_POSTS, formatBlogDate, estimateReadingMinutes, getAllTags, type Bl
 import { SCROLL_TOP_BUTTON_HTML, initScrollTopButton } from "../lib/scroll-top";
 import { SUBSCRIBE_FORM_HTML, wireSubscribeForm } from "../lib/subscribe";
 import { mountBlogGraph } from "../lib/blog-graph";
-import { toggleSpotifyPlayer, isSpotifyPlayerOpen } from "../lib/spotify-player";
+import { toggleBgAudio, isBgAudioPlaying, onBgAudioChange } from "../lib/bg-audio";
 
 function esc(s: string): string {
   return s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c] as string));
@@ -65,7 +65,7 @@ function controlsHtml(): string {
 }
 
 function brandHtml(): string {
-  const playing = isSpotifyPlayerOpen();
+  const playing = isBgAudioPlaying();
   return `
     <header class="blog-brand">
       <div class="blog-brand-logo">
@@ -79,8 +79,8 @@ function brandHtml(): string {
       <p class="blog-about-text">
         Notes on competitive programming, mathematics, and the projects I'm building.
       </p>
-      <button type="button" id="spotify-toggle-btn" class="blog-spotify-btn" aria-pressed="${playing ? "true" : "false"}">
-        ${spotifyBtnHtml(playing)}
+      <button type="button" id="bg-audio-btn" class="blog-audio-btn" aria-pressed="${playing ? "true" : "false"}">
+        ${bgAudioBtnHtml(playing)}
       </button>
     </header>`;
 }
@@ -139,17 +139,21 @@ function wireFilters(container: HTMLElement): void {
   tagSelect?.addEventListener("change", apply);
 }
 
-function spotifyBtnHtml(playing: boolean): string {
-  return `<span class="blog-spotify-icon" aria-hidden="true">${playing ? "&#10073;&#10073;" : "&#9658;"}</span>
+function bgAudioBtnHtml(playing: boolean): string {
+  return `<span class="blog-audio-icon" aria-hidden="true">${playing ? "&#10073;&#10073;" : "&#9658;"}</span>
     ${playing ? "playing" : "play"} &ldquo;Let Down&rdquo; while you read`;
 }
 
-function wireSpotifyToggle(container: HTMLElement): void {
-  const btn = container.querySelector<HTMLButtonElement>("#spotify-toggle-btn");
-  btn?.addEventListener("click", () => {
-    const playing = toggleSpotifyPlayer();
+let unsubscribeBgAudio: (() => void) | null = null;
+
+function wireBgAudioToggle(container: HTMLElement): void {
+  unsubscribeBgAudio?.();
+  const btn = container.querySelector<HTMLButtonElement>("#bg-audio-btn");
+  if (!btn) return;
+  btn.addEventListener("click", () => void toggleBgAudio());
+  unsubscribeBgAudio = onBgAudioChange((playing) => {
     btn.setAttribute("aria-pressed", playing ? "true" : "false");
-    btn.innerHTML = spotifyBtnHtml(playing);
+    btn.innerHTML = bgAudioBtnHtml(playing);
   });
 }
 
@@ -158,6 +162,6 @@ export function mountBlogs(container: HTMLElement): void {
   initScrollTopButton(container);
   wireSubscribeForm(container);
   wireFilters(container);
-  wireSpotifyToggle(container);
+  wireBgAudioToggle(container);
   mountBlogGraph();
 }
