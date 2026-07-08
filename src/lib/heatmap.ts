@@ -48,6 +48,13 @@ export function renderActivityHeatmap(activity: Record<string, number>, opts: He
   const cells: string[] = [];
   const monthLabels: string[] = [];
   let lastMonth = -1;
+  let lastLabelCol = -Infinity;
+  // A 3-letter month label is wider than one column step (STEP=14px), so
+  // two labels in adjacent (or near-adjacent) columns overlap into
+  // unreadable text. Require a minimum gap since the last placed label,
+  // not just "the month changed" — a short span can otherwise cross two
+  // month boundaries within a couple of columns.
+  const MIN_LABEL_GAP_COLS = 3;
 
   days.forEach((day, i) => {
     const col = Math.floor(i / 7);
@@ -59,11 +66,14 @@ export function renderActivityHeatmap(activity: Record<string, number>, opts: He
     );
     if (row === 0) {
       const m = day.date.getMonth();
-      if (m !== lastMonth) {
+      if (m !== lastMonth && col - lastLabelCol >= MIN_LABEL_GAP_COLS) {
         lastMonth = m;
+        lastLabelCol = col;
         monthLabels.push(
           `<text x="${x}" y="${padTop - 6}" class="heat-label">${day.date.toLocaleString("en-US", { month: "short" })}</text>`,
         );
+      } else if (m !== lastMonth) {
+        lastMonth = m; // still track the month change, just skip the crowded label
       }
     }
   });
