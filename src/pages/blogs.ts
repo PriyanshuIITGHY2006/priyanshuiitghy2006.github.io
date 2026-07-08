@@ -66,15 +66,19 @@ function controlsHtml(): string {
 function brandHtml(): string {
   return `
     <header class="blog-brand">
+      <div class="blog-emblem" aria-hidden="true">
+        <span class="blog-emblem-arrow">&darr;</span>
+      </div>
       <h2 class="blog-logo">
         <span class="blog-logo-row">
-          <span class="blog-logo-word blog-logo-solid">let</span>
-          <span class="blog-logo-word blog-logo-outline blog-logo-tilt">down</span>
+          <span class="blog-logo-word blog-logo-ink">let</span>
+          <span class="blog-logo-word blog-logo-orange blog-logo-tilt">down</span>
         </span>
         <span class="blog-logo-and">and</span>
         <span class="blog-logo-row">
-          <span class="blog-logo-word blog-logo-outline">hanging</span>
-          <span class="blog-logo-word blog-logo-solid blog-logo-tilt blog-logo-accent">around</span>
+          <span class="blog-logo-word blog-logo-green blog-logo-highlight">hanging</span>
+          <span class="blog-logo-word blog-logo-outline blog-logo-tilt">around</span>
+          <span class="blog-logo-arrow">&rarr;</span>
         </span>
       </h2>
       <p class="blog-brand-tagline">
