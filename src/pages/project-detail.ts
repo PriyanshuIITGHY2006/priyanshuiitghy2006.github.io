@@ -3,6 +3,7 @@ import "katex/dist/katex.min.css";
 import { resume } from "../data/resume";
 import { PROJECTS, type DetailedProject } from "../data/projects";
 import { renderMarkdown, wireGistEmbeds } from "../lib/blog";
+import { setPageMeta } from "../lib/seo";
 
 function esc(s: string): string {
   return s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c] as string));
@@ -54,6 +55,11 @@ function pageHtml(project: DetailedProject): string {
 
 export function mountProjectDetail(container: HTMLElement, id: string | null): void {
   const project = PROJECTS.find((p) => p.id === id && p.body);
+  if (project) {
+    setPageMeta({ title: project.title, description: project.tagline, type: "article" });
+  } else {
+    setPageMeta({ title: "Write-up Not Found", noindex: true });
+  }
   container.innerHTML = project ? pageHtml(project) : notFoundHtml();
   if (project) wireGistEmbeds(container);
 }

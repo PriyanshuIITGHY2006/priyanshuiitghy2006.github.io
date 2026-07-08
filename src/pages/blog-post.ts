@@ -28,6 +28,7 @@ import { SCROLL_TOP_BUTTON_HTML, initScrollTopButton } from "../lib/scroll-top";
 import { SUBSCRIBE_FORM_HTML, wireSubscribeForm } from "../lib/subscribe";
 import { renderTurnstileWidget, resetTurnstileWidget, getTurnstileToken } from "../lib/turnstile";
 import { mountBlogGraph } from "../lib/blog-graph";
+import { setPageMeta } from "../lib/seo";
 
 // ─── Monaco Editor Setup ────────────────────────────────────────────────────
 let monacoLoaderPromise: Promise<any> | null = null;
@@ -247,7 +248,17 @@ export function mountBlogPost(container: HTMLElement, slug: string | null): void
   container.innerHTML = pageHtml(slug);
 
   const post = getPost(slug);
-  if (!post) return;
+  if (!post) {
+    setPageMeta({ title: "Post Not Found", noindex: true });
+    return;
+  }
+
+  setPageMeta({
+    title: post.title,
+    description: post.excerpt || undefined,
+    image: post.cover ? `${location.origin}/${post.cover.replace(/^\//, "")}` : undefined,
+    type: "article",
+  });
 
   void recordView(post.slug);
   void loadEngagement(container, post.slug);

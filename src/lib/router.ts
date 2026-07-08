@@ -1,5 +1,7 @@
 // Minimal hash router. Works on GitHub Pages without server-side rewrites.
 
+import { trackPageView } from "./analytics";
+
 type Handler = (params: URLSearchParams) => void | Promise<void>;
 
 const routes = new Map<string, Handler>();
@@ -25,6 +27,7 @@ export function start(): void {
     const handler = routes.get(path) ?? fallback;
     // Reset scroll on every navigation so each "page" starts at the top.
     window.scrollTo(0, 0);
+    trackPageView(location.hash.slice(1) || "/");
     handler?.(params);
   };
   window.addEventListener("hashchange", dispatch);

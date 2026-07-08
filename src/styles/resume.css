@@ -201,6 +201,12 @@ body {
 .section-body .section { font-size: 1.5em; }
 .section-more { margin-top: 1rem; font-size: 0.95em; }
 
+/* ─── 404 page ────────────────────────────────────────────────────────── */
+.not-found-page { max-width: 40rem; margin: 0 auto; }
+.not-found-body { text-align: center; padding: 3rem 0; }
+.not-found-code { border: none; display: inline-block; font-size: 3em; margin: 0; }
+.not-found-msg { font-size: 1.05em; margin-top: 0.5rem; }
+
 /* ─── Elaborated Education page ─────────────────────────────────────── */
 .edu-page { max-width: 56rem; margin: 0 auto; }
 .edu-sub { margin-top: 1.6rem; }
@@ -657,6 +663,44 @@ body {
   .link { color: var(--ink) !important; border-bottom: none !important; }
   .section-link { color: var(--ink) !important; border-bottom: none !important; }
   .section-arrow, .section-nav, .theme-toggle { display: none !important; }
+
+  /* Heatmap cells (Codeforces/GitHub) use hardcoded dark-mode fills meant
+     to read against a near-black page background — on white paper those
+     go near-invisible, so force the light-mode grayscale ramp regardless
+     of which theme was active when printing. */
+  :root[data-theme="dark"] .heat-0 { fill: #eeeeee; }
+  :root[data-theme="dark"] .heat-1 { fill: #c9c9c9; }
+  :root[data-theme="dark"] .heat-2 { fill: #999999; }
+  :root[data-theme="dark"] .heat-3 { fill: #555555; }
+  :root[data-theme="dark"] .heat-4 { fill: #111111; }
+
+  /* Decorative/interactive chrome that means nothing on paper: easter-egg
+     overlays, tab bars, buttons, forms, code-run panels, and embeds that
+     can't render without JS anyway. */
+  #theme-toggle,
+  .blog-graph-canvas,
+  .term-backdrop,
+  .cf-tabbar,
+  .admin-tabbar,
+  .admin-panel-actions,
+  .admin-account-panel,
+  .admin-btn,
+  .pj-link,
+  .blog-controls,
+  .blog-share,
+  .blog-subscribe,
+  .blog-engagement,
+  .blog-progress-bar,
+  .scroll-top-btn,
+  .blog-code-copy-btn,
+  .blog-run-panel,
+  .cf-turnstile,
+  .contact-form,
+  .blog-gist,
+  .blog-binviz-controls,
+  .blog-testcases-panel {
+    display: none !important;
+  }
 }
 
 /* ─── Phones: pull padding in tighter, keep the same proportions ────── */
