@@ -1,0 +1,39 @@
+# Flags dead external links (GitHub repos, LinkedIn, etc.) in blog posts
+# and the site's data files before they rot silently. Runs on every PR/push
+# so a bad link gets caught in review, plus weekly to catch links that go
+# dead after merge.
+name: Check links
+
+on:
+  pull_request:
+  push:
+    branches: ["Website"]
+  schedule:
+    - cron: "0 6 * * 1" # every Monday 06:00 UTC
+  workflow_dispatch:
+
+jobs:
+  lychee:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Link Checker
+        id: lychee
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: >-
+            --no-progress
+            --exclude-mail
+            --exclude "^https://(www\.)?linkedin\.com"
+            --exclude "^https://codeforces\.com"
+            --exclude "^https://x\.com"
+            --exclude "^https://twitter\.com"
+            'src/data/**/*.ts'
+            'src/data/blogs/*.md'
+            'index.html'
+          format: markdown
+          fail: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

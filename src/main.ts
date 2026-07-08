@@ -14,10 +14,12 @@ import { mountAchievements } from "./pages/achievements";
 import { mountAbout } from "./pages/about";
 import { loadCodeforces, rankName } from "./lib/codeforces";
 import { loadResumeFromDB } from "./lib/supabase";
-import { route, start } from "./lib/router";
+import { route, start, notFound } from "./lib/router";
 import { mountThemeToggle } from "./lib/theme";
 import { initFallingSymbolsEasterEgg } from "./lib/falling-symbols";
 import { initTerminalEasterEgg } from "./lib/terminal";
+import { setPageMeta } from "./lib/seo";
+import { mountNotFound } from "./pages/not-found";
 
 const app = document.querySelector<HTMLElement>("#app");
 if (!app) throw new Error("Missing #app");
@@ -36,6 +38,7 @@ document.addEventListener("click", (e) => {
 
 // ─── Home (résumé) ──────────────────────────────────────────────────────
 route("/", () => {
+  setPageMeta({ title: `${resume.name} — Résumé`, bare: true });
   app.innerHTML = "";
   const page = document.createElement("article");
   page.className = "page";
@@ -59,14 +62,17 @@ route("/", () => {
 
 // ─── Section detail pages (one per résumé heading) ──────────────────────
 route("/education", () => {
+  setPageMeta({ title: "Education" });
   app.innerHTML = "";
   mountEducation(app);
 });
 route("/projects", () => {
+  setPageMeta({ title: "Projects", description: "Selected projects, explained in depth — machine learning, quantitative finance, and competitive programming." });
   app.innerHTML = "";
   mountProjects(app);
 });
 route("/gallery", (params) => {
+  setPageMeta({ title: "Gallery" });
   app.innerHTML = "";
   mountGallery(app, params.get("img"));
 });
@@ -78,26 +84,31 @@ route("/project", async (params) => {
   mountProjectDetail(app, params.get("id"));
 });
 route("/skills", () => {
+  setPageMeta({ title: "Skills" });
   app.innerHTML = "";
   mountSection(app, "skills");
 });
 route("/positions", () => {
+  setPageMeta({ title: "Positions" });
   app.innerHTML = "";
   mountSection(app, "positions");
 });
 route("/achievements", () => {
+  setPageMeta({ title: "Achievements" });
   app.innerHTML = "";
   mountAchievements(app);
 });
 
 // ─── About page (clickable name in the header links here) ──────────────
 route("/about", () => {
+  setPageMeta({ title: "About", description: `About ${resume.name} — B.Tech EEE student at IIT Guwahati, working across algorithms, machine learning, and quantitative finance.` });
   app.innerHTML = "";
   mountAbout(app);
 });
 
 // ─── Blog (code-split: Markdown/highlighting deps only load when visited) ──
 route("/blogs", async () => {
+  setPageMeta({ title: "Blog", description: "Notes on competitive programming, mathematics, and the projects I'm building." });
   app.innerHTML = "";
   const { mountBlogs } = await import("./pages/blogs");
   mountBlogs(app);
@@ -110,20 +121,29 @@ route("/blog", async (params) => {
 
 // ─── Codeforces detail ──────────────────────────────────────────────────
 route("/codeforces", () => {
+  setPageMeta({ title: "Codeforces", description: `${resume.name}'s Codeforces rating, activity, and problem breakdown.` });
   app.innerHTML = "";
   void mountCodeforces(app);
 });
 
 // ─── GitHub activity ──────────────────────────────────────────────────
 route("/github", () => {
+  setPageMeta({ title: "GitHub", description: `${resume.name}'s GitHub profile and recent commit activity.` });
   app.innerHTML = "";
   void mountGithub(app);
 });
 
 // ─── Admin panel ────────────────────────────────────────────────────────
 route("/admin", () => {
+  setPageMeta({ title: "Admin", noindex: true });
   app.innerHTML = "";
   mountAdmin(app);
+});
+
+notFound((params) => {
+  void params;
+  app.innerHTML = "";
+  mountNotFound(app);
 });
 
 start();

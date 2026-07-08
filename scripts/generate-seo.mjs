@@ -1,20 +1,24 @@
 // Runs after `vite build`. Generates:
-//   - dist/blog/<slug>/index.html   (static, crawlable OG/Twitter preview per post,
-//                                     redirects real visitors into the SPA hash route)
+//   - dist/blog/<slug>/index.html      (static, crawlable OG/Twitter preview per post)
+//   - dist/project/<id>/index.html     (same, for project deep-dive pages)
 //   - dist/sitemap.xml
 //   - dist/robots.txt
+//   - dist/feed.xml
 //
 // Why this exists: the site is a hash-routed SPA (see src/lib/router.ts), so
 // "https://.../#/blog?slug=x" is never sent to the server and social-media/
 // search crawlers that don't execute JS only ever see the one static
 // index.html with generic meta tags. This script produces one small static
-// HTML file per post at a real path, with per-post title/description/image,
-// so shared blog links preview correctly. Human visitors who land on it get
-// redirected straight into the SPA.
+// HTML file per post/project at a real path, with per-page title/description/
+// image, so shared links preview correctly. Human visitors who land on it get
+// redirected straight into the SPA. Project data is loaded from the real
+// src/data/projects.ts (via esbuild) rather than duplicated here, so there's
+// one source of truth.
 
-import { readdirSync, readFileSync, mkdirSync, writeFileSync } from "node:fs";
+import { readdirSync, readFileSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { build } from "esbuild";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, "..");
@@ -105,10 +109,72 @@ function postPreviewHtml(post) {
 `;
 }
 
-function sitemapXml(posts) {
+// Loads the real PROJECTS array from src/data/projects.ts (bundled with
+// esbuild since it's plain TS with no runtime deps) rather than
+// duplicating project data in this script.
+async function loadProjects() {
+  const tmpFile = join(DIST, ".tmp-projects.mjs");
+  try {
+    await build({
+      entryPoints: [join(ROOT, "src/data/projects.ts")],
+      bundle: true,
+      platform: "node",
+      format: "esm",
+      outfile: tmpFile,
+      logLevel: "silent",
+    });
+    const mod = await import(`file://${tmpFile}?t=${Date.now()}`);
+    return (mod.PROJECTS ?? []).filter((p) => p.body);
+  } catch (err) {
+    console.warn("generate-seo: failed to load projects.ts, skipping project preview pages:", err.message);
+    return [];
+  } finally {
+    try { rmSync(tmpFile, { force: true }); } catch { /* best-effort cleanup */ }
+  }
+}
+
+function projectPreviewHtml(project) {
+  const url = `${SITE_ORIGIN}/project/${project.id}/`;
+  const target = `/#/project?id=${encodeURIComponent(project.id)}`;
+  const title = escAttr(project.title);
+  const description = escAttr(project.tagline || "A project by Priyanshu Debnath.");
+  const image = `${SITE_ORIGIN}/profile.jpg`;
+
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>${title} — Priyanshu Debnath</title>
+    <meta name="description" content="${description}" />
+    <link rel="canonical" href="${escAttr(url)}" />
+
+    <meta property="og:type" content="article" />
+    <meta property="og:title" content="${title}" />
+    <meta property="og:description" content="${description}" />
+    <meta property="og:image" content="${escAttr(image)}" />
+    <meta property="og:url" content="${escAttr(url)}" />
+
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="${title}" />
+    <meta name="twitter:description" content="${description}" />
+    <meta name="twitter:image" content="${escAttr(image)}" />
+
+    <meta http-equiv="refresh" content="0; url=${escAttr(target)}" />
+    <script>location.replace(${JSON.stringify(target)});</script>
+  </head>
+  <body>
+    <p>Redirecting to <a href="${escAttr(target)}">${title}</a>…</p>
+  </body>
+</html>
+`;
+}
+
+function sitemapXml(posts, projects) {
   const staticUrls = [`${SITE_ORIGIN}/`];
   const postUrls = posts.map((p) => `${SITE_ORIGIN}/blog/${p.slug}/`);
-  const urls = [...staticUrls, ...postUrls];
+  const projectUrls = projects.map((p) => `${SITE_ORIGIN}/project/${p.id}/`);
+  const urls = [...staticUrls, ...postUrls, ...projectUrls];
 
   const entries = urls
     .map((u) => `  <url>\n    <loc>${escAttr(u)}</loc>\n  </url>`)
@@ -159,8 +225,9 @@ ${items}
 `;
 }
 
-function main() {
+async function main() {
   const posts = loadPosts();
+  const projects = await loadProjects();
 
   for (const post of posts) {
     const dir = join(DIST, "blog", post.slug);
@@ -168,11 +235,22 @@ function main() {
     writeFileSync(join(dir, "index.html"), postPreviewHtml(post), "utf-8");
   }
 
-  writeFileSync(join(DIST, "sitemap.xml"), sitemapXml(posts), "utf-8");
+  for (const project of projects) {
+    const dir = join(DIST, "project", project.id);
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, "index.html"), projectPreviewHtml(project), "utf-8");
+  }
+
+  writeFileSync(join(DIST, "sitemap.xml"), sitemapXml(posts, projects), "utf-8");
   writeFileSync(join(DIST, "robots.txt"), robotsTxt(), "utf-8");
   writeFileSync(join(DIST, "feed.xml"), feedXml(posts), "utf-8");
 
-  console.log(`generate-seo: wrote ${posts.length} blog preview page(s), sitemap.xml, robots.txt, feed.xml`);
+  console.log(
+    `generate-seo: wrote ${posts.length} blog preview page(s), ${projects.length} project preview page(s), sitemap.xml, robots.txt, feed.xml`,
+  );
 }
 
-main();
+main().catch((err) => {
+  console.error("generate-seo failed:", err);
+  process.exit(1);
+});

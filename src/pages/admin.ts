@@ -1,6 +1,7 @@
 import "../styles/admin.css";
 import { supabase } from "../lib/supabase";
 import { confirmDialog } from "../lib/confirm-dialog";
+import { getPageViews } from "../lib/analytics";
 
 function esc(s: string): string {
   return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
@@ -83,7 +84,7 @@ function renderLogin(container: HTMLElement, notice?: string): void {
 }
 
 // ── Main panel ───────────────────────────────────────────────────────────────
-type Tab = "projects" | "achievements" | "skills" | "positions" | "comments" | "blog-editor";
+type Tab = "projects" | "achievements" | "skills" | "positions" | "comments" | "blog-editor" | "analytics";
 const TABS: { id: Tab; label: string }[] = [
   { id: "projects", label: "Projects" },
   { id: "achievements", label: "Achievements" },
@@ -91,6 +92,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "positions", label: "Positions" },
   { id: "comments", label: "Blog Comments" },
   { id: "blog-editor", label: "New Blog Post" },
+  { id: "analytics", label: "Analytics" },
 ];
 
 let currentTab: Tab = "projects";
@@ -202,6 +204,7 @@ function loadTab(container: HTMLElement): void {
     case "blog-editor":
       void import("./admin-blog-editor").then(({ renderBlogEditor }) => renderBlogEditor(content));
       break;
+    case "analytics":    void renderAnalytics(content);      break;
   }
 }
 
@@ -666,4 +669,30 @@ async function renderComments(el: HTMLElement): Promise<void> {
       void renderComments(el);
     });
   });
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ANALYTICS TAB
+// ══════════════════════════════════════════════════════════════════════════════
+async function renderAnalytics(el: HTMLElement): Promise<void> {
+  const rows = await getPageViews();
+  const total = rows.reduce((sum, r) => sum + r.views, 0);
+
+  el.innerHTML = `
+    <p class="edu-note" style="margin-top:0;">
+      Pageviews per route, tracked with no IP address, user agent, or fingerprint — just a counter per path.
+      ${total.toLocaleString()} total view${total === 1 ? "" : "s"} across ${rows.length} route${rows.length === 1 ? "" : "s"}.
+    </p>
+    <div class="admin-table-wrap">
+    <table class="admin-table">
+      <thead><tr><th>Path</th><th>Views</th></tr></thead>
+      <tbody>
+        ${rows.length ? rows.map((r) => `
+          <tr>
+            <td>${esc(r.path)}</td>
+            <td>${r.views.toLocaleString()}</td>
+          </tr>`).join("") : emptyRow(2, "No pageviews recorded yet.")}
+      </tbody>
+    </table>
+    </div>`;
 }
