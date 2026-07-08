@@ -344,6 +344,29 @@
   border: 0;
 }
 
+/* ─── GitHub Gist embeds ─────────────────────────────────────────────── */
+.blog-gist {
+  margin: 1.4rem 0;
+  border: 0.6px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--bg-card);
+}
+.blog-gist-loading {
+  margin: 0;
+  padding: 1.4rem;
+  font-family: var(--cm);
+  font-size: 0.85em;
+  color: var(--muted);
+  text-align: center;
+}
+.blog-gist-frame {
+  display: block;
+  width: 100%;
+  border: 0;
+  min-height: 80px;
+}
+
 /* ─── Runnable code panels (Judge0) ──────────────────────────────────── */
 .blog-run-panel {
   margin: 0 0 1rem;

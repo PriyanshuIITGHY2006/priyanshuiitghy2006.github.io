@@ -19,7 +19,167 @@ export interface DetailedProject {
   detail: string[];
   /** Headline results / key features. */
   highlights: string[];
+  /**
+   * Optional long-form deep-dive, rendered as markdown on its own page
+   * (#/project?id=<id>) via the same pipeline as the blog — separate from
+   * the blog itself, but reusable across any project that has one.
+   */
+  body?: string;
 }
+
+// Long-form deep-dive for the Hackathon-Squad project page (#/project?id=hackathon-squad).
+// Kept out of the PROJECTS array literal just so the markdown block reads cleanly.
+const HACKATHON_SQUAD_BODY = `
+## The problem
+
+Give every vertex in a graph a weight, then pick the highest-weight subset of
+vertices such that no two chosen vertices share an edge. That's the
+**Maximum Weight Independent Set (MWIS)** problem — and it's NP-hard, which
+means no algorithm is known to solve it exactly on large graphs in a
+reasonable amount of time. The best you can do is engineer a pipeline that
+gets as close to optimal as possible under a hard budget. This solver had
+290 seconds per instance.
+
+The approach here follows the standard playbook for hard combinatorial
+optimization under a real time limit: shrink the problem as much as
+possible with provably-correct rules, solve what you can exactly, and spend
+the remaining time on heuristic search for the rest.
+
+## Phase 1 — Kernelization
+
+Before any search begins, the solver applies a battery of **reduction
+rules** that are safe by construction — each one either fixes a vertex's
+membership in the optimal solution outright, or folds part of the graph
+into a smaller equivalent piece, without ever losing the true optimum:
+
+- **Degree-0 isolation** — an isolated vertex has no conflicts, so it's
+  always worth taking; add it and remove it from further consideration.
+- **Degree-1 folding** — a vertex with a single neighbor can be resolved
+  by comparing weights and folding the pair into one reduced vertex.
+- **Degree-2 triangle handling** — degree-2 vertices sitting inside a
+  triangle admit a similar, slightly more involved folding.
+- **Dominance checks** — if one vertex's neighborhood is a superset of
+  another's for no greater weight, the dominated vertex can be discarded.
+- **V-shape folding** — a small structural pattern that folds cleanly into
+  a smaller instance.
+
+Applied to a fixed point, these rules shrink the input graph down to a much
+harder residual "core" — often a small fraction of the original size — that
+the rest of the pipeline actually has to fight over.
+
+## Phase 2 — LP relaxation via Nemhauser–Trotter
+
+MWIS is equivalent to Vertex Cover under complementation, and Vertex
+Cover's **linear-programming relaxation** has a special property: its
+optimal solution is always **half-integral** — every variable settles at
+exactly 0, 1, or ½. The **Nemhauser–Trotter theorem** goes further and
+proves a *persistency* result: vertices that reach 0 or 1 in the LP optimum
+are guaranteed to hold that same value in *some* integral optimum, too.
+That means the LP relaxation alone can safely fix a chunk of the solution
+without ever calling a combinatorial solver on those vertices — only the
+½-valued vertices need to be fought over exactly.
+
+The trick is that this particular LP doesn't need a general-purpose LP
+solver at all — it can be computed with **max-flow**. Split every vertex
+\`v\` into a left copy \`v_L\` and a right copy \`v_R\`, wire the source to
+every \`v_L\` and every \`v_R\` to the sink with capacity equal to the
+vertex's weight, and add an infinite-capacity edge \`u_R → v_L\` for every
+edge \`(u, v)\` in the graph. A **minimum cut** in this network reads off
+exactly the LP-optimal 0 / ½ / 1 assignment, and it can be computed
+efficiently with **Dinic's algorithm** — here's a compact reference
+implementation of that max-flow (the same core building block used in the
+actual solver's LP-relaxation step):
+
+\`\`\`cpp
+// Dinic's algorithm — O(V^2 * E) max-flow, used to compute the
+// Nemhauser-Trotter LP relaxation via the vertex-split min-cut construction
+// described above.
+struct Dinic {
+    struct Edge { int to; long long cap; int rev; };
+    vector<vector<Edge>> g;
+    vector<int> level, it;
+
+    Dinic(int n) : g(n), level(n), it(n) {}
+
+    void addEdge(int from, int to, long long cap) {
+        g[from].push_back({to, cap, (int)g[to].size()});
+        g[to].push_back({from, 0, (int)g[from].size() - 1});
+    }
+
+    bool bfs(int s, int t) {
+        fill(level.begin(), level.end(), -1);
+        queue<int> q;
+        level[s] = 0;
+        q.push(s);
+        while (!q.empty()) {
+            int v = q.front(); q.pop();
+            for (auto& e : g[v])
+                if (e.cap > 0 && level[e.to] < 0) {
+                    level[e.to] = level[v] + 1;
+                    q.push(e.to);
+                }
+        }
+        return level[t] >= 0;
+    }
+
+    long long dfs(int v, int t, long long f) {
+        if (v == t) return f;
+        for (int& i = it[v]; i < (int)g[v].size(); i++) {
+            Edge& e = g[v][i];
+            if (e.cap > 0 && level[v] < level[e.to]) {
+                long long d = dfs(e.to, t, min(f, e.cap));
+                if (d > 0) {
+                    e.cap -= d;
+                    g[e.to][e.rev].cap += d;
+                    return d;
+                }
+            }
+        }
+        return 0;
+    }
+
+    long long maxflow(int s, int t) {
+        long long flow = 0;
+        while (bfs(s, t)) {
+            fill(it.begin(), it.end(), 0);
+            long long f;
+            while ((f = dfs(s, t, LLONG_MAX)) > 0) flow += f;
+        }
+        return flow;
+    }
+};
+\`\`\`
+
+## Phase 3 — Hybrid exact / heuristic solve
+
+Whatever core survives kernelization and LP fixing still has to be solved.
+The solver splits on structure:
+
+- **Tree components** get solved **exactly** with a textbook tree DP —
+  there's no reason to guess when a component's shape guarantees a fast
+  exact answer.
+- **General-graph components** are handed to **Iterated Local Search
+  (ILS)**, built around a move called **PROBE**: a 1→k swap that lets a
+  single vertex outside the current set replace several of its neighbours
+  inside it, whenever the weight gained beats the weight given up. Plain
+  local search stalls in local optima quickly, so ILS adds **adaptive
+  perturbation** — when the current solution stops improving, it kicks a
+  controlled amount of randomness into the working set to jump to a new
+  starting point and keeps searching from there.
+
+Because a hackathon time budget is a hard wall clock, not a suggestion, the
+solver installs **SIGTERM/SIGINT handlers** so that whatever the current
+best feasible set is gets printed immediately if the process is about to be
+killed — the design is *anytime*: it always has a valid answer ready, and
+that answer only gets better the longer it's allowed to run.
+
+## Results
+
+Across the benchmark set, the pipeline produced **23 / 23 valid solutions**
+with zero invalid outputs, **beat the expected value on 8 test cases**, and
+never failed to return a feasible answer inside the 290-second limit — the
+anytime design paying off exactly as intended.
+`.trim();
 
 export const PROJECTS: DetailedProject[] = [
   {
@@ -79,6 +239,7 @@ export const PROJECTS: DetailedProject[] = [
       "Beat the expected value on 8 test cases",
       "Anytime design: always returns a feasible answer within the 290s limit",
     ],
+    body: HACKATHON_SQUAD_BODY,
   },
   {
     id: "min-variance",

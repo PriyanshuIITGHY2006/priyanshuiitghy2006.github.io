@@ -65,6 +65,13 @@ route("/gallery", (params) => {
   app.innerHTML = "";
   mountGallery(app, params.get("img"));
 });
+// Project deep-dive pages: separate from the blog, but reusable across any
+// project in data/projects.ts that has a `body` field.
+route("/project", async (params) => {
+  app.innerHTML = "";
+  const { mountProjectDetail } = await import("./pages/project-detail");
+  mountProjectDetail(app, params.get("id"));
+});
 route("/skills", () => {
   app.innerHTML = "";
   mountSection(app, "skills");
