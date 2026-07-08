@@ -1,10 +1,21 @@
 // GitHub public API client with sessionStorage caching, mirroring
 // src/lib/codeforces.ts's approach: unauthenticated GET requests are
 // CORS-friendly, so this runs entirely in the browser.
+//
+// Commits and the activity heatmap are built from each repo's actual
+// commit history (`/repos/{owner}/{repo}/commits`), not the public events
+// feed (`/users/{username}/events/public`). The events feed is documented
+// by GitHub as eventually-consistent, and in practice it can lag or miss
+// activity entirely for accounts with heavy push volume — the profile
+// page's own "Contribution activity" timeline pulls from a more complete
+// internal source that the public REST events endpoint doesn't expose.
+// Commit history has no such gap: it's the source of truth.
 
 export const GH_USERNAME = "PriyanshuIITGHY2006";
 const API = "https://api.github.com";
 const CACHE_TTL_MS = 10 * 60 * 1000; // 10 min
+const REPOS_TO_SCAN = 5;
+const COMMITS_PER_REPO = 100; // GitHub's max page size — one request per repo either way
 
 export interface GHUser {
   login: string;
@@ -29,21 +40,21 @@ export interface GHCommit {
   date: string;
 }
 
-interface GHEvent {
-  type: string;
-  created_at: string;
-  repo: { name: string };
-  payload: { commits?: { sha: string; message: string }[] };
+interface GHRepoBasic {
+  name: string;
+  fork: boolean;
+}
+
+interface GHRawCommit {
+  sha: string;
+  html_url: string;
+  commit: { message: string; author: { date: string } };
 }
 
 export interface GithubData {
   user: GHUser;
   commits: GHCommit[];
-  /**
-   * date "YYYY-MM-DD" → number of commits pushed that day, for the
-   * heatmap. Derived from the same events feed as `commits`, so it shares
-   * its ~90-day coverage window rather than a full year like Codeforces.
-   */
+  /** date "YYYY-MM-DD" → number of commits that day, for the heatmap. */
   activity: Record<string, number>;
 }
 
@@ -86,32 +97,40 @@ function isoDay(ms: number): string {
 }
 
 export async function loadGithub(): Promise<GithubData> {
-  const [user, events] = await Promise.all([
+  const [user, repos] = await Promise.all([
     cached("user", () => fetchJSON<GHUser>(`/users/${GH_USERNAME}`)),
-    cached("events", () => fetchJSON<GHEvent[]>(`/users/${GH_USERNAME}/events/public?per_page=100`)),
+    cached("repos", () => fetchJSON<GHRepoBasic[]>(`/users/${GH_USERNAME}/repos?sort=pushed&direction=desc&per_page=${REPOS_TO_SCAN}`)),
   ]);
 
-  // The events feed already comes newest-first; flatten each push event's
-  // commit list (GitHub doesn't expose a plain "recent commits across all
-  // repos" endpoint, so this is the standard way to build one). The
-  // heatmap counts every pushed commit, not just the ones kept in the
-  // trimmed `commits` list shown below.
+  // Own repos only — a fork's commit history is mostly someone else's work.
+  const ownRepos = repos.filter((r) => !r.fork);
+
+  const perRepo = await Promise.all(
+    ownRepos.map((r) =>
+      cached(`commits:${r.name}`, () =>
+        fetchJSON<GHRawCommit[]>(`/repos/${GH_USERNAME}/${r.name}/commits?per_page=${COMMITS_PER_REPO}`),
+      ).catch(() => [] as GHRawCommit[]),
+    ),
+  );
+
   const commits: GHCommit[] = [];
   const activity: Record<string, number> = {};
-  for (const e of events) {
-    if (e.type !== "PushEvent" || !e.payload.commits) continue;
-    const day = isoDay(Date.parse(e.created_at));
-    activity[day] = (activity[day] ?? 0) + e.payload.commits.length;
-    for (const c of e.payload.commits) {
+  ownRepos.forEach((r, i) => {
+    for (const c of perRepo[i]) {
+      const date = c.commit.author.date;
       commits.push({
-        repo: e.repo.name,
+        repo: `${GH_USERNAME}/${r.name}`,
         sha: c.sha,
-        message: c.message.split("\n")[0],
-        url: `https://github.com/${e.repo.name}/commit/${c.sha}`,
-        date: e.created_at,
+        message: c.commit.message.split("\n")[0],
+        url: c.html_url,
+        date,
       });
+      const day = isoDay(Date.parse(date));
+      activity[day] = (activity[day] ?? 0) + 1;
     }
-  }
+  });
+
+  commits.sort((a, b) => Date.parse(b.date) - Date.parse(a.date));
 
   return { user, commits: commits.slice(0, 15), activity };
 }

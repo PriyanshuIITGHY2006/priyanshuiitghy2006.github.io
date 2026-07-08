@@ -57,14 +57,15 @@ function render(user: GHUser, commits: GHCommit[], activity: Record<string, numb
   return pageShell(`${renderProfile(user)}${renderHeatmap(activity)}${renderCommits(commits)}`);
 }
 
-// The events feed only reaches back ~90 days (vs. a full year on the
-// Codeforces page), so the heatmap window matches what the API actually
-// covers instead of implying a full year of data that isn't there.
+// Built from real commit history (see lib/github.ts), capped to the most
+// recent 100 commits per scanned repo rather than a fixed calendar window
+// — so the window shown is deliberately generic instead of claiming a
+// specific day count that varies with how active each repo actually is.
 function renderHeatmap(activity: Record<string, number>): string {
   return `
     <div class="gh-block">
-      <p class="gh-block-title">Activity (last ~90 days)</p>
-      ${renderActivityHeatmap(activity, { weeks: 13, ariaLabel: "GitHub push activity" })}
+      <p class="gh-block-title">Recent Activity</p>
+      ${renderActivityHeatmap(activity, { weeks: 13, ariaLabel: "GitHub commit activity" })}
     </div>`;
 }
 
