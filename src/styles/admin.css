@@ -207,6 +207,52 @@
 .admin-loading { color: var(--muted-2); font-style: italic; padding: 0.8rem 0; }
 .admin-empty-note { color: var(--muted-2); font-style: italic; padding: 0.6rem 0 1.2rem; }
 
+/* ─── Blog post editor: markdown / live-preview split ─────────────────── */
+.admin-editor-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  align-items: start;
+}
+.admin-editor-pane { display: flex; flex-direction: column; min-width: 0; }
+.admin-editor-pane-label {
+  display: block;
+  font-size: 0.76em;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+  margin-bottom: 0.35rem;
+}
+.admin-editor-textarea {
+  width: 100%;
+  height: 32rem;
+  resize: vertical;
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 0.84em;
+  line-height: 1.55;
+  color: var(--ink);
+  border: 0.6px solid var(--border);
+  border-radius: 6px;
+  padding: 0.8rem 0.9rem;
+  background: var(--bg-card);
+  box-sizing: border-box;
+}
+.admin-editor-textarea:focus { outline: none; border-color: var(--border-strong); }
+.admin-editor-preview {
+  height: 32rem;
+  overflow-y: auto;
+  border: 0.6px solid var(--border);
+  border-radius: 6px;
+  padding: 0.9rem 1.1rem;
+  background: var(--bg-card);
+  box-sizing: border-box;
+}
+
+@media (max-width: 860px) {
+  .admin-editor-split { grid-template-columns: 1fr; }
+  .admin-editor-textarea, .admin-editor-preview { height: 22rem; }
+}
+
 /* ─── Change password panel ────────────────────────────────────────────── */
 .admin-account-panel {
   background: var(--bg-card);
