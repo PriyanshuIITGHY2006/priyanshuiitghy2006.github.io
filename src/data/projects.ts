@@ -48,27 +48,8 @@ optimization under a real time limit: shrink the problem as much as
 possible with provably-correct rules, solve what you can exactly, and spend
 the remaining time on heuristic search for whatever's left.
 
-\`\`\`
-Input graph
-    │
-    ▼
-Kernelization
-    ├─ Phase 1: Basic reductions (deg-0/1/2, dominance) — safe pre-LP
-    ├─ Phase 2: LP / NT reduction (Nemhauser-Trotter via Dinic max-flow)
-    └─ Phase 3: Basic reductions + V-fold re-run post-LP
-    │
-    ▼
-Kernel (every remaining vertex has LP value exactly ½)
-    │
-    ├─ Tree components   ──→  exact tree DP
-    └─ General components ──→  ILS + PROBE local search
-    │
-    ▼
-Unfold solution (reverse the fold records)
-    │
-    ▼
-Output
-\`\`\`
+:::gist PriyanshuIITGHY2006/56cd11848703208538c523e77d6c56bd
+:::
 
 ## Phase 1 — Kernelization
 
@@ -95,65 +76,8 @@ branch-and-reduce work [2016]:
 
 Here's the real degree-0/1/2 + dominance sweep from \`kernelize()\`:
 
-\`\`\`cpp
-// ── Basic reductions (deg-0/1/2 + dominance) ─────────────────────────────
-int d = live_deg[v];
-
-// Degree-0: isolated vertex, always include
-if (d == 0) {
-    include_vertex(v);
-    continue;
-}
-
-// Degree-1
-if (d == 1) {
-    int u = single_neighbor(v);
-    if (W[v] >= W[u]) {
-        enqueue_neighbors(u);
-        include_vertex(v);
-    } else {
-        // N-fold: W[v] < W[u]; fold leaf v away
-        // opt({v,u}) = W[v] + opt_kernel(u'), where W[u'] = W[u]-W[v]
-        fold_records.push_back({1, v, u, -1});
-        fold_offset += W[v];
-        W[u] -= W[v];
-        enqueue_neighbors(v);
-        if (!in_queue[u]) { Q.push(u); in_queue[u] = true; }
-        mark_removed(v);
-    }
-    continue;
-}
-
-// Degree-2
-if (d == 2) {
-    int a = -1, b = -1;
-    for (int u : adj[v]) {
-        if (!removed[u]) {
-            if (a == -1) a = u;
-            else { b = u; break; }
-        }
-    }
-    // Triangle: at most one of {v,a,b} in IS — pick the heaviest
-    if (has_edge(a, b)) {
-        long long best = max({W[v], W[a], W[b]});
-        int winner = (W[v] == best) ? v : (W[a] == best) ? a : b;
-        enqueue_neighbors(winner);
-        for (int x : {v, a, b}) enqueue_neighbors(x);
-        include_vertex(winner);
-        continue;
-    }
-    // Path a-v-b: include v if W[v] >= W[a]+W[b]
-    if (W[v] >= W[a] + W[b]) {
-        enqueue_neighbors(v);
-        enqueue_neighbors(a);
-        enqueue_neighbors(b);
-        include_vertex(v);
-        continue;
-    }
-    // W[v] < W[a]+W[b]: leave for LP reduction; V-fold only valid post-LP
-    continue;
-}
-\`\`\`
+:::gist PriyanshuIITGHY2006/fbb5e67c9aaf68117e44f8d863d45102
+:::
 
 Applied to a fixed point, these rules shrink the input graph down to a much
 harder residual "core" that the rest of the pipeline actually has to fight
@@ -185,44 +109,8 @@ otherwise it's ½ and stays in the kernel.
 This is the actual \`lp_reduce()\` function — the exact NT-reduction step
 used in the solver, network construction and all:
 
-\`\`\`cpp
-// LP (Nemhauser-Trotter) reduction: forces LP=1 vertices in, LP=0 vertices out.
-// Returns number of vertices decided.  Re-enqueues affected nodes for basic rules.
-static int lp_reduce(queue<int>& Q, vector<bool>& inQ) {
-    const long long INF = (long long)4e18;
-    const int S = 0, T = 2*N+1;
-    Dinic din(2*N+2);
-    for (int v = 1; v <= N; v++) {
-        if (removed[v]) continue;
-        din.add_edge(S,   v,   W[v]);
-        din.add_edge(N+v, T,   W[v]);
-    }
-    for (int v = 1; v <= N; v++) {
-        if (removed[v]) continue;
-        for (int u : adj[v]) {
-            if (removed[u] || u <= v) continue;
-            din.add_edge(v,   N+u, INF);
-            din.add_edge(u,   N+v, INF);
-        }
-    }
-    din.max_flow(S, T);
-    auto R = din.reachable(S);  // R[node] = reachable in residual from s
-
-    auto enq = [&](int u) { if (!removed[u]&&!inQ[u]) { Q.push(u); inQ[u]=true; } };
-
-    int decided = 0;
-    vector<int> inc, exc;
-    for (int v = 1; v <= N; v++) {
-        if (removed[v]) continue;
-        bool lv = R[v], rv = R[N+v];
-        if (lv && !rv)  inc.push_back(v);   // LP IS=1 → force in
-        if (!lv && rv)  exc.push_back(v);   // LP IS=0 → force out
-    }
-    for (int v : exc) if (!removed[v]) { for (int u:adj[v]) enq(u); mark_removed(v); decided++; }
-    for (int v : inc) if (!removed[v]) { for (int u:adj[v]) enq(u); include_vertex(v); decided++; }
-    return decided;
-}
-\`\`\`
+:::gist PriyanshuIITGHY2006/7e60be22c496b813094fcff5c3c55543
+:::
 
 On real instances this alone reduces the graph by 90–99%; whatever survives
 is the genuinely hard part.
@@ -235,19 +123,8 @@ solved, and the solver splits on structure.
 **Tree components** are solved **exactly** in O(n) with a textbook DP —
 there's no reason to guess when the shape guarantees a fast exact answer:
 
-\`\`\`cpp
-for (int i = (int)order.size() - 1; i >= 0; i--) {
-    int v = order[i];
-    dp_in[v]  = W[v];
-    dp_out[v] = 0;
-    for (int u : adj[v]) {
-        if (!removed[u] && u != par[v]) {
-            dp_in[v]  += dp_out[u];
-            dp_out[v] += max(dp_in[u], dp_out[u]);
-        }
-    }
-}
-\`\`\`
+:::gist PriyanshuIITGHY2006/1014df39a34a25d4554f81c4485395bb
+:::
 
 **General-graph components** get **Iterated Local Search (ILS)**
 [Lourenço et al., 2003], applied to MWIS the way Lamm et al.'s ReduMIS
@@ -262,36 +139,8 @@ generalization that plain (1,2)/(2,3)-swaps miss, and in practice gives the
 largest gains on sparse graphs where ½-valued vertices have many
 individually-light IS-neighbors:
 
-\`\`\`cpp
-// PROBE: for each non-IS vertex u, check if W[u] > sum of IS-neighbor weights.
-// If so, remove all IS-neighbors and add u — a profitable (1→k) swap.
-// Handles the cases missed by the (1,2) and (2,3) passes.
-bool probe_pass(const vector<int>& comp) {
-    bool improved = false;
-    for (int u : comp) {
-        if (in_sol[u] || removed[u]) continue;
-        if (conf[u] == 0) {
-            add_to_sol(u);
-            improved = true;
-            continue;
-        }
-        long long gain = W[u];
-        vector<int> nbrs_in_sol;
-        for (int v : adj[u]) {
-            if (!removed[v] && in_sol[v]) {
-                gain -= W[v];
-                nbrs_in_sol.push_back(v);
-            }
-        }
-        if (gain > 0) {
-            for (int v : nbrs_in_sol) remove_from_sol(v);
-            add_to_sol(u);
-            improved = true;
-        }
-    }
-    return improved;
-}
-\`\`\`
+:::gist PriyanshuIITGHY2006/4aad7f2eef792b6ca8b42ee4b0ec2c97
+:::
 
 When local search stalls (no improvement for 40+ iterations), ILS
 **adaptively increases the perturbation rate** — capped at 35% of the
@@ -303,16 +152,8 @@ solver installs \`SIGTERM\`/\`SIGINT\` handlers so the current best feasible
 set gets unfolded and printed immediately if the process is about to be
 killed:
 
-\`\`\`cpp
-void signal_handler(int) { unfold_solution(); print_solution(); _exit(0); }
-
-int main() {
-    ...
-    signal(SIGTERM, signal_handler);
-    signal(SIGINT,  signal_handler);
-    ...
-}
-\`\`\`
+:::gist PriyanshuIITGHY2006/ab2c3a689ef4f2209395385dbf054188
+:::
 
 The design is *anytime*: there's always a valid answer ready, and it only
 gets better the longer the process is allowed to run — right up to an
@@ -338,6 +179,16 @@ tight relative time budget — exactly the profile the literature flags as
 hardest for this class of method [Gellner et al., 2021]. Every large
 sparse real-world-shaped instance, by contrast, beat the expected value,
 which is where kernelization does the most work.
+
+## Further reading
+
+The full research notes behind this solver — the wider algorithm landscape
+considered (greedy variants, simulated annealing, tabu search, CHILS,
+memetic algorithms), complexity analysis, and the complete bibliography —
+are written up separately:
+
+:::gist PriyanshuIITGHY2006/8c4aea7293ae5c51be762923b8ae9a65
+:::
 `.trim();
 
 export const PROJECTS: DetailedProject[] = [
