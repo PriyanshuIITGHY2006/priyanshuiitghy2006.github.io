@@ -5,22 +5,21 @@
 .blog-brand {
   position: relative; /* stays above the particle background — src/lib/blog-graph.ts */
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 1.6rem;
-  margin: 0.4rem auto 0;
-}
-.blog-brand-mark {
-  display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
+  margin: 0.4rem auto 0;
+}
+.blog-brand-logo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
 }
 .blog-mark {
-  width: 110px;
+  width: 90px;
   height: auto;
-  margin-bottom: 0.4rem;
   display: block;
 }
 :root[data-theme="dark"] .blog-mark { filter: invert(1); }
@@ -31,7 +30,8 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
+  text-align: left;
   font-family: var(--cm);
   color: var(--ink);
   line-height: 1.2;
@@ -52,11 +52,13 @@
 }
 
 /* ─── About text + Spotify toggle ─────────────────────────────────────── */
-.blog-brand-text {
-  max-width: 20rem;
-  text-align: center;
+.blog-about-text {
+  max-width: 26rem;
+  margin: 1rem 0 0;
+  font-size: 0.9em;
+  line-height: 1.55;
+  color: var(--ink-soft);
 }
-.blog-about-text { margin: 0; font-size: 0.9em; line-height: 1.55; color: var(--ink-soft); }
 .blog-spotify-btn {
   margin-top: 0.8rem;
   display: inline-flex;

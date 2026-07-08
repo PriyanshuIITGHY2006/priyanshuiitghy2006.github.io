@@ -68,7 +68,7 @@ function brandHtml(): string {
   const playing = isSpotifyPlayerOpen();
   return `
     <header class="blog-brand">
-      <div class="blog-brand-mark">
+      <div class="blog-brand-logo">
         <img class="blog-mark" src="/blog-mark.png" alt="" width="150" height="210" />
         <h2 class="blog-logo">
           <span class="blog-logo-main">let down</span>
@@ -76,15 +76,12 @@ function brandHtml(): string {
           <span class="blog-logo-main blog-logo-main-2">hanging around</span>
         </h2>
       </div>
-      <div class="blog-brand-text" aria-label="About this blog">
-        <p class="blog-about-text">
-          <strong>let down and hanging around</strong> — a line from Radiohead's <em>Let Down</em>, borrowed
-          for the stuff that gets stuck in my head long after I close the laptop.
-        </p>
-        <button type="button" id="spotify-toggle-btn" class="blog-spotify-btn" aria-pressed="${playing ? "true" : "false"}">
-          ${spotifyBtnHtml(playing)}
-        </button>
-      </div>
+      <p class="blog-about-text">
+        Notes on competitive programming, mathematics, and the projects I'm building.
+      </p>
+      <button type="button" id="spotify-toggle-btn" class="blog-spotify-btn" aria-pressed="${playing ? "true" : "false"}">
+        ${spotifyBtnHtml(playing)}
+      </button>
     </header>`;
 }
 
