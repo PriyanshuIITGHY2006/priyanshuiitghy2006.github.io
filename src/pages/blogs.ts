@@ -65,32 +65,27 @@ function controlsHtml(): string {
 }
 
 function brandHtml(): string {
-  return `
-    <header class="blog-brand">
-      <img class="blog-mark" src="/blog-mark.png" alt="" width="150" height="210" />
-      <h2 class="blog-logo">
-        <span class="blog-logo-main">let down</span>
-        <span class="blog-logo-and">and</span>
-        <span class="blog-logo-main blog-logo-main-2">hanging around</span>
-      </h2>
-    </header>`;
-}
-
-function aboutHtml(): string {
-  const tags = getAllTags();
   const playing = isSpotifyPlayerOpen();
   return `
-    <section class="blog-about" aria-label="About this blog">
-      <p class="blog-about-text">
-        <strong>let down and hanging around</strong> — a line from Radiohead's <em>Let Down</em>, borrowed
-        for the stuff that gets stuck in my head long after I close the laptop. Expect competitive
-        programming write-ups, some math I found interesting, and postmortems on things I've built
-        (and occasionally broken)${tags.length ? ` — mostly ${tags.slice(0, 3).map((t) => t.toLowerCase()).join(", ")}` : ""}.
-      </p>
-      <button type="button" id="spotify-toggle-btn" class="blog-spotify-btn" aria-pressed="${playing ? "true" : "false"}">
-        ${spotifyBtnHtml(playing)}
-      </button>
-    </section>`;
+    <header class="blog-brand">
+      <div class="blog-brand-mark">
+        <img class="blog-mark" src="/blog-mark.png" alt="" width="150" height="210" />
+        <h2 class="blog-logo">
+          <span class="blog-logo-main">let down</span>
+          <span class="blog-logo-and">and</span>
+          <span class="blog-logo-main blog-logo-main-2">hanging around</span>
+        </h2>
+      </div>
+      <div class="blog-brand-text" aria-label="About this blog">
+        <p class="blog-about-text">
+          <strong>let down and hanging around</strong> — a line from Radiohead's <em>Let Down</em>, borrowed
+          for the stuff that gets stuck in my head long after I close the laptop.
+        </p>
+        <button type="button" id="spotify-toggle-btn" class="blog-spotify-btn" aria-pressed="${playing ? "true" : "false"}">
+          ${spotifyBtnHtml(playing)}
+        </button>
+      </div>
+    </header>`;
 }
 
 function pageHtml(): string {
@@ -105,7 +100,6 @@ function pageHtml(): string {
       </nav>
       <div class="section-body">
         ${brandHtml()}
-        ${aboutHtml()}
 
         <h3 class="blog-section-label">featured</h3>
         ${controlsHtml()}
