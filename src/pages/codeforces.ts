@@ -16,6 +16,7 @@ export async function mountCodeforces(container: HTMLElement): Promise<void> {
   try {
     const data = await loadCodeforces();
     container.innerHTML = render(data);
+    wireTabs(container);
     initInteractions(container);
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Failed to load";
@@ -59,29 +60,49 @@ function renderError(msg: string): string {
     </div>`);
 }
 
+// Three tabs instead of stacking every chart and list on one page: the
+// overview (profile + recent activity) is what you actually want at a
+// glance, the breakdown charts and full activity heatmap are one click
+// away rather than always-on visual weight.
 function render(data: CFData): string {
   return pageShell(`
     <div class="cf-tooltip" id="cf-tip"></div>
-    <div class="cf-twocol">
-      <div class="cf-main">
-        ${renderProfile(data.user)}
-        ${renderActivity(data)}
-        ${renderProblemRatings(data.stats.ratingBuckets)}
-        ${renderTags(data.stats.tagCounts)}
-      </div>
-      <aside class="cf-sidebar">
-        ${renderSidebar(data.recentSubmissions)}
-      </aside>
+    <div class="cf-tabbar" role="tablist">
+      <button type="button" class="cf-tab-btn active" data-tab="overview">Overview</button>
+      <button type="button" class="cf-tab-btn" data-tab="problems">Problems</button>
+      <button type="button" class="cf-tab-btn" data-tab="activity">Activity</button>
+    </div>
+    <div class="cf-tabpanel" data-tab-panel="overview">
+      ${renderProfile(data.user)}
+      ${renderRecentSubmissions(data.recentSubmissions)}
+    </div>
+    <div class="cf-tabpanel" data-tab-panel="problems" hidden>
+      ${renderProblemRatings(data.stats.ratingBuckets)}
+      ${renderTags(data.stats.tagCounts)}
+    </div>
+    <div class="cf-tabpanel" data-tab-panel="activity" hidden>
+      ${renderActivity(data)}
     </div>`);
 }
 
-// ── Sidebar: Latest Submissions ─────────────────────────────────────────
-function renderSidebar(submissions: CFSubmission[]): string {
+function wireTabs(root: HTMLElement): void {
+  const btns = Array.from(root.querySelectorAll<HTMLButtonElement>(".cf-tab-btn"));
+  const panels = Array.from(root.querySelectorAll<HTMLElement>("[data-tab-panel]"));
+  btns.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      btns.forEach((b) => b.classList.toggle("active", b === btn));
+      panels.forEach((p) => { p.hidden = p.dataset.tabPanel !== btn.dataset.tab; });
+    });
+  });
+}
+
+// ── Overview tab: latest submissions, capped short ───────────────────────
+function renderRecentSubmissions(submissions: CFSubmission[]): string {
   if (!submissions || submissions.length === 0) {
     return `<div class="cf-block"><p class="cf-block-title">Latest Submissions</p><p class="cf-empty">No submissions yet.</p></div>`;
   }
 
-  const rows = submissions.slice(0, 20).map((s) => {
+  const rows = submissions.slice(0, 6).map((s) => {
     const verdict = s.verdict ?? "UNKNOWN";
     const isOk = verdict === "OK";
     const verdictClass = isOk ? "cf-verdict-ok" : "cf-verdict-fail";
@@ -174,38 +195,30 @@ function renderProfile(user: CFUser): string {
     </div>`;
 }
 
-// ── Activity heatmap + the 3-column problems/streak stats ───────────────
+// Trimmed to the three numbers that actually answer "how active is this
+// account right now" — the full year/month breakdown of all six was mostly
+// near-duplicate noise (see PR discussion: crowded page feedback).
 function renderActivity(data: CFData): string {
-  const { activity, stats } = data;
+  const { activity, stats, recentSubmissions } = data;
   const heat = heatmap(activity);
+  const lastActive = recentSubmissions.length ? relTime(recentSubmissions[0].creationTimeSeconds) : "—";
 
   return `
     <div class="cf-block cf-activity">
+      <p class="cf-block-title">Activity</p>
       ${heat}
       <div class="cf-actstats">
         <div class="cf-actcol">
-          <div class="cf-bignum">${stats.solvedCount} problems</div>
-          <div class="cf-actsub">solved for all time</div>
+          <div class="cf-bignum">${stats.solvedCount}</div>
+          <div class="cf-actsub">problems solved</div>
         </div>
         <div class="cf-actcol">
-          <div class="cf-bignum">${stats.solvedLastYear} problems</div>
-          <div class="cf-actsub">solved for the last year</div>
+          <div class="cf-bignum">${stats.maxStreak}</div>
+          <div class="cf-actsub">day streak, best</div>
         </div>
         <div class="cf-actcol">
-          <div class="cf-bignum">${stats.solvedLastMonth} problems</div>
-          <div class="cf-actsub">solved for the last month</div>
-        </div>
-        <div class="cf-actcol">
-          <div class="cf-bignum">${stats.maxStreak} days</div>
-          <div class="cf-actsub">in a row max.</div>
-        </div>
-        <div class="cf-actcol">
-          <div class="cf-bignum">${stats.streakLastYear} days</div>
-          <div class="cf-actsub">in a row for the last year</div>
-        </div>
-        <div class="cf-actcol">
-          <div class="cf-bignum">${stats.streakLastMonth} days</div>
-          <div class="cf-actsub">in a row for the last month</div>
+          <div class="cf-bignum">${lastActive}</div>
+          <div class="cf-actsub">last active</div>
         </div>
       </div>
     </div>`;

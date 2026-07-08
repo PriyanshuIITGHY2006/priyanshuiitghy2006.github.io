@@ -5,7 +5,7 @@
    AC/fail verdict tags. Charts stay monochrome, matching the site's other
    data visuals (e.g. the bin-packing SVGs on the blog). ─── */
 
-.cf-page .section-body { max-width: 68rem; margin: 0 auto; }
+.cf-page .section-body { max-width: 44rem; margin: 0 auto; }
 
 .cf-toprow {
   display: flex;
@@ -23,15 +23,30 @@
 }
 .cf-external:hover { color: var(--link-hover); }
 
-/* ── Two-column layout ──────────────────────────────────────────────── */
-.cf-twocol {
-  display: grid;
-  grid-template-columns: 1fr 19rem;
-  gap: 0 1.4rem;
-  align-items: start;
+/* ── Tab bar — one section visible at a time instead of stacking every
+   chart/list on the page at once. ────────────────────────────────────── */
+.cf-tabbar {
+  display: flex;
+  gap: 1.5rem;
+  border-bottom: 0.6px solid var(--border);
+  margin: 0.8rem 0 1.2rem;
 }
-.cf-main { min-width: 0; }
-.cf-sidebar { position: sticky; top: 1rem; }
+.cf-tab-btn {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  font-family: var(--cm);
+  font-size: 0.85em;
+  font-variant: small-caps;
+  letter-spacing: 0.5px;
+  color: var(--muted-2);
+  padding: 0.4rem 0;
+  cursor: pointer;
+}
+.cf-tab-btn:hover { color: var(--ink-soft); }
+.cf-tab-btn.active { color: var(--ink); border-bottom-color: var(--ink); font-weight: 700; }
+.cf-tabpanel[hidden] { display: none; }
 
 /* ── Card block (mirrors .edu-entry) ──────────────────────────────────── */
 .cf-block {
@@ -245,14 +260,13 @@
 .cf-sidebar-more a:hover { color: var(--link-hover); }
 
 /* ── Mobile ─────────────────────────────────────────────────────────── */
-@media (max-width: 900px) {
-  .cf-twocol { grid-template-columns: 1fr; }
-  .cf-sidebar { position: static; }
+@media (max-width: 640px) {
   .cf-profile { grid-template-columns: 1fr; }
   .cf-photo { order: -1; }
   .cf-photo img { width: 5rem; }
-  .cf-actstats { grid-template-columns: repeat(2, 1fr); gap: 0.7rem; }
-  .cf-bignum { font-size: 1.3em; }
+  .cf-actstats { gap: 0.5rem; }
+  .cf-bignum { font-size: 1.2em; }
   .cf-tagsbody { grid-template-columns: 1fr; justify-items: center; }
   .cf-taglegend { columns: 1; max-height: none; width: 100%; }
+  .cf-tabbar { gap: 1rem; }
 }

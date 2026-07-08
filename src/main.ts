@@ -4,6 +4,7 @@ import "./styles/about.css";
 import { resume } from "./data/resume";
 import { renderResume } from "./render/resume";
 import { mountCodeforces } from "./pages/codeforces";
+import { mountGithub } from "./pages/github";
 import { mountAdmin } from "./pages/admin";
 import { mountSection } from "./pages/section";
 import { mountEducation } from "./pages/education";
@@ -99,6 +100,12 @@ route("/blog", async (params) => {
 route("/codeforces", () => {
   app.innerHTML = "";
   void mountCodeforces(app);
+});
+
+// ─── GitHub activity ──────────────────────────────────────────────────
+route("/github", () => {
+  app.innerHTML = "";
+  void mountGithub(app);
 });
 
 // ─── Admin panel ────────────────────────────────────────────────────────
