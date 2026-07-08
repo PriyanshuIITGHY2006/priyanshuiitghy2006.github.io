@@ -1,5 +1,10 @@
 import "../styles/admin.css";
 import { supabase } from "../lib/supabase";
+import { confirmDialog } from "../lib/confirm-dialog";
+
+function esc(s: string): string {
+  return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
+}
 
 // ── Entry point ──────────────────────────────────────────────────────────────
 // Real auth: a Supabase session (created via supabase.auth.signInWithPassword)
@@ -7,6 +12,7 @@ import { supabase } from "../lib/supabase";
 // This client-side check only decides which screen to render — it grants
 // nothing by itself.
 export function mountAdmin(container: HTMLElement): void {
+  container.innerHTML = `<article class="page section-page admin-login-page"><div class="section-body"><p class="admin-loading">Loading…</p></div></article>`;
   void supabase.auth.getSession().then(({ data }) => {
     if (data.session) {
       renderPanel(container);
@@ -16,36 +22,54 @@ export function mountAdmin(container: HTMLElement): void {
   });
 }
 
-// ── Login screen ─────────────────────────────────────────────────────────────
-function renderLogin(container: HTMLElement): void {
+// ── Login screen — same page/section chrome as every other page on the
+// site, not a separate visual system. ──────────────────────────────────────
+function renderLogin(container: HTMLElement, notice?: string): void {
   container.innerHTML = `
-    <div class="admin-root admin-login">
-      <div class="admin-login-card">
-        <h2>Portfolio Admin</h2>
-        <div id="admin-login-err" class="admin-login-error" style="display:none"></div>
-        <label>Email</label>
-        <input type="email" id="admin-email" placeholder="you@example.com" autocomplete="username"/>
-        <label>Password</label>
-        <input type="password" id="admin-pw" placeholder="Enter password" autocomplete="current-password"/>
-        <button class="admin-btn admin-btn-primary" id="admin-login-btn" style="width:100%">Sign in</button>
+    <article class="page section-page admin-login-page">
+      <nav class="section-nav">
+        <a class="section-back" href="#/">← back to résumé</a>
+        <span class="section-crumb">Admin</span>
+      </nav>
+      <div class="section-body">
+        <h2 class="section">Sign in</h2>
+        ${notice ? `<p class="edu-note">${esc(notice)}</p>` : ""}
+        <form class="admin-login-form" id="admin-login-form">
+          <div id="admin-login-err" class="admin-login-error" style="display:none"></div>
+          <div>
+            <label for="admin-email">Email</label>
+            <input type="email" id="admin-email" placeholder="you@example.com" autocomplete="username" required/>
+          </div>
+          <div>
+            <label for="admin-pw">Password</label>
+            <input type="password" id="admin-pw" placeholder="Enter password" autocomplete="current-password" required/>
+          </div>
+          <div class="admin-login-actions">
+            <button type="submit" class="pj-link admin-login-submit" id="admin-login-btn">Sign in</button>
+          </div>
+        </form>
       </div>
-    </div>`;
+    </article>`;
 
+  const form = container.querySelector<HTMLFormElement>("#admin-login-form")!;
   const email = container.querySelector<HTMLInputElement>("#admin-email")!;
   const pw = container.querySelector<HTMLInputElement>("#admin-pw")!;
   const btn = container.querySelector<HTMLButtonElement>("#admin-login-btn")!;
   const err = container.querySelector<HTMLElement>("#admin-login-err")!;
 
-  async function attempt() {
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
     btn.disabled = true;
+    btn.textContent = "Signing in…";
     err.style.display = "none";
     const { error } = await supabase.auth.signInWithPassword({
       email: email.value.trim(),
       password: pw.value,
     });
-    btn.disabled = false;
 
     if (error) {
+      btn.disabled = false;
+      btn.textContent = "Sign in";
       err.textContent = "Incorrect email or password.";
       err.style.display = "block";
       pw.value = "";
@@ -53,56 +77,116 @@ function renderLogin(container: HTMLElement): void {
       return;
     }
     renderPanel(container);
-  }
+  });
 
-  btn.addEventListener("click", () => void attempt());
-  pw.addEventListener("keydown", (e) => { if (e.key === "Enter") void attempt(); });
-  email.addEventListener("keydown", (e) => { if (e.key === "Enter") pw.focus(); });
   email.focus();
 }
 
 // ── Main panel ───────────────────────────────────────────────────────────────
 type Tab = "projects" | "achievements" | "skills" | "positions" | "comments";
+const TABS: { id: Tab; label: string }[] = [
+  { id: "projects", label: "Projects" },
+  { id: "achievements", label: "Achievements" },
+  { id: "skills", label: "Skills" },
+  { id: "positions", label: "Positions" },
+  { id: "comments", label: "Blog Comments" },
+];
 
 let currentTab: Tab = "projects";
+let accountPanelOpen = false;
 
 function renderPanel(container: HTMLElement): void {
   container.innerHTML = `
-    <div class="admin-root">
-      <div class="admin-wrap">
-        <div class="admin-header">
-          <h1>Portfolio Admin</h1>
-          <div>
-            <a href="#/" class="admin-btn">← Back to résumé</a>
-            <button class="admin-btn admin-btn-danger" id="admin-logout" style="margin-left:8px">Log out</button>
+    <article class="page section-page admin-page">
+      <nav class="section-nav">
+        <a class="section-back" href="#/">← back to résumé</a>
+        <span class="section-crumb">Admin</span>
+      </nav>
+      <div class="section-body">
+        <div class="admin-panel-header">
+          <h2 class="section" style="border:none;margin:0;padding:0;">Portfolio Admin</h2>
+          <div class="admin-panel-actions">
+            <button class="admin-btn" id="admin-account-toggle">Account</button>
+            <button class="admin-btn admin-btn-danger" id="admin-logout">Log out</button>
           </div>
         </div>
-        <div class="admin-tab-bar">
-          <button data-tab="projects"     class="${currentTab === "projects"     ? "active" : ""}">Projects</button>
-          <button data-tab="achievements" class="${currentTab === "achievements" ? "active" : ""}">Achievements</button>
-          <button data-tab="skills"       class="${currentTab === "skills"       ? "active" : ""}">Skills</button>
-          <button data-tab="positions"    class="${currentTab === "positions"    ? "active" : ""}">Positions</button>
-          <button data-tab="comments"     class="${currentTab === "comments"     ? "active" : ""}">Blog Comments</button>
-        </div>
+        <div id="admin-account-panel"></div>
+        <div class="admin-tabbar">
+          ${TABS.map((t) => `<button class="admin-tab-btn ${currentTab === t.id ? "active" : ""}" data-tab="${t.id}">${esc(t.label)}</button>`).join("")}
         </div>
         <div id="admin-content"><p class="admin-loading">Loading…</p></div>
       </div>
-    </div>`;
+    </article>`;
 
-  container.querySelector("#admin-logout")!.addEventListener("click", () => {
-    void supabase.auth.signOut().then(() => renderLogin(container));
+  container.querySelector("#admin-logout")!.addEventListener("click", async () => {
+    if (!(await confirmDialog("Log out of the admin panel?", "Log out"))) return;
+    await supabase.auth.signOut();
+    renderLogin(container);
   });
 
-  container.querySelectorAll<HTMLButtonElement>(".admin-tab-bar button").forEach((btn) => {
+  const accountToggle = container.querySelector<HTMLButtonElement>("#admin-account-toggle")!;
+  accountToggle.addEventListener("click", () => {
+    accountPanelOpen = !accountPanelOpen;
+    renderAccountPanel(container);
+  });
+  renderAccountPanel(container);
+
+  container.querySelectorAll<HTMLButtonElement>(".admin-tab-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       currentTab = btn.dataset.tab as Tab;
-      container.querySelectorAll(".admin-tab-bar button").forEach((b) => b.classList.remove("active"));
+      container.querySelectorAll(".admin-tab-btn").forEach((b) => b.classList.remove("active"));
       btn.classList.add("active");
       loadTab(container);
     });
   });
 
   loadTab(container);
+}
+
+// ── Account panel: change password ──────────────────────────────────────────
+function renderAccountPanel(container: HTMLElement): void {
+  const slot = container.querySelector<HTMLElement>("#admin-account-panel")!;
+  if (!accountPanelOpen) {
+    slot.innerHTML = "";
+    return;
+  }
+  slot.innerHTML = `
+    <div class="admin-account-panel">
+      <h3>Change password</h3>
+      <div id="admin-pw-status" class="admin-status" style="display:none"></div>
+      <div class="admin-form">
+        <div>
+          <label for="admin-new-pw">New password</label>
+          <input type="password" id="admin-new-pw" autocomplete="new-password" placeholder="At least 8 characters"/>
+        </div>
+        <div>
+          <label for="admin-new-pw2">Confirm new password</label>
+          <input type="password" id="admin-new-pw2" autocomplete="new-password"/>
+        </div>
+        <div class="admin-form-actions">
+          <button type="button" class="admin-btn admin-btn-primary" id="admin-pw-save">Update password</button>
+        </div>
+      </div>
+    </div>`;
+
+  const pw1 = slot.querySelector<HTMLInputElement>("#admin-new-pw")!;
+  const pw2 = slot.querySelector<HTMLInputElement>("#admin-new-pw2")!;
+  const saveBtn = slot.querySelector<HTMLButtonElement>("#admin-pw-save")!;
+  const statusEl = slot.querySelector<HTMLElement>("#admin-pw-status")!;
+
+  saveBtn.addEventListener("click", async () => {
+    if (pw1.value.length < 8) { setStatus(statusEl, "Password must be at least 8 characters.", false); return; }
+    if (pw1.value !== pw2.value) { setStatus(statusEl, "Passwords don't match.", false); return; }
+    saveBtn.disabled = true;
+    saveBtn.textContent = "Updating…";
+    const { error } = await supabase.auth.updateUser({ password: pw1.value });
+    saveBtn.disabled = false;
+    saveBtn.textContent = "Update password";
+    if (error) { setStatus(statusEl, "Error: " + error.message, false); return; }
+    pw1.value = "";
+    pw2.value = "";
+    setStatus(statusEl, "Password updated.", true);
+  });
 }
 
 function loadTab(container: HTMLElement): void {
@@ -126,8 +210,8 @@ function setStatus(el: HTMLElement | null, msg: string, ok: boolean): void {
   if (ok) setTimeout(() => { el.style.display = "none"; }, 3000);
 }
 
-function esc(s: string): string {
-  return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
+function emptyRow(colspan: number, label: string): string {
+  return `<tr><td colspan="${colspan}" class="admin-table-empty">${esc(label)}</td></tr>`;
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -148,14 +232,15 @@ async function renderProjects(el: HTMLElement): Promise<void> {
 
   el.innerHTML = `
     <div class="admin-form-section">
-      <h3>Add Project</h3>
+      <h3>Add project</h3>
       <div id="proj-add-status" class="admin-status" style="display:none"></div>
       ${projectForm("add")}
     </div>
+    <div class="admin-table-wrap">
     <table class="admin-table">
       <thead><tr><th>Title</th><th>Date</th><th>Stack</th><th>Bullets</th><th>Actions</th></tr></thead>
       <tbody>
-        ${(projects ?? []).map((p) => `
+        ${(projects ?? []).length ? (projects ?? []).map((p) => `
           <tr id="proj-row-${esc(p.id)}">
             <td class="truncate">${esc(p.title)}</td>
             <td style="white-space:nowrap">${esc(p.date)}</td>
@@ -171,13 +256,14 @@ async function renderProjects(el: HTMLElement): Promise<void> {
               <div id="proj-edit-status-${esc(p.id)}" class="admin-status" style="display:none"></div>
               ${projectForm("edit", p, bulletsByProject.get(p.id) ?? [])}
             </td>
-          </tr>`).join("")}
+          </tr>`).join("") : emptyRow(5, "No projects yet — add one above.")}
       </tbody>
-    </table>`;
+    </table>
+    </div>`;
 
   // Add form submit
-  el.querySelector<HTMLButtonElement>("#proj-add-submit")!.addEventListener("click", async () => {
-    await saveProject(el, "add", null, []);
+  el.querySelector<HTMLButtonElement>("#proj-add-submit")!.addEventListener("click", async (e) => {
+    await saveProject(el, "add", null, e.currentTarget as HTMLButtonElement);
   });
 
   // Edit / delete buttons
@@ -191,20 +277,21 @@ async function renderProjects(el: HTMLElement): Promise<void> {
 
   el.querySelectorAll<HTMLButtonElement>("[data-proj-del]").forEach((btn) => {
     btn.addEventListener("click", async () => {
-      if (!confirm("Delete this project and all its bullets?")) return;
       const id = btn.dataset.projDel!;
+      if (!(await confirmDialog(`Delete project "${id}" and all its bullets? This can't be undone.`))) return;
+      btn.disabled = true;
       const { error } = await supabase.from("projects").delete().eq("id", id);
-      if (error) { alert("Error: " + error.message); return; }
+      if (error) { alert("Error: " + error.message); btn.disabled = false; return; }
       void renderProjects(el);
     });
   });
 
   // Edit form submits
   el.querySelectorAll<HTMLButtonElement>("[data-proj-save]").forEach((btn) => {
-    btn.addEventListener("click", async () => {
+    btn.addEventListener("click", async (e) => {
       const id = btn.dataset.projSave!;
       const proj = (projects ?? []).find((p) => p.id === id)!;
-      await saveProject(el, "edit", proj, bulletsByProject.get(id) ?? []);
+      await saveProject(el, "edit", proj, e.currentTarget as HTMLButtonElement);
     });
   });
 }
@@ -244,7 +331,7 @@ function projectForm(
         <button type="button" class="admin-btn admin-add-bullet">+ Add bullet</button>
       </div>
       <div class="admin-form-actions">
-        <button type="button" class="admin-btn admin-btn-primary" ${id}>${mode === "add" ? "Add Project" : "Save Changes"}</button>
+        <button type="button" class="admin-btn admin-btn-primary" ${id}>${mode === "add" ? "Add project" : "Save changes"}</button>
       </div>
     </div>`;
 }
@@ -253,7 +340,7 @@ async function saveProject(
   el: HTMLElement,
   mode: "add" | "edit",
   existing: Record<string, string | number | null> | null,
-  _existingBullets: { id: number; bullet: string }[],
+  triggerBtn: HTMLButtonElement,
 ): Promise<void> {
   const prefix = mode === "edit" ? `edit-${existing!.id}` : "add";
   const form = el.querySelector<HTMLElement>(`[data-proj-form="${prefix}"]`)!;
@@ -277,8 +364,17 @@ async function saveProject(
     link_detail: g("link_detail") || null,
   };
 
+  triggerBtn.disabled = true;
+  const originalLabel = triggerBtn.textContent;
+  triggerBtn.textContent = "Saving…";
+
   const { error: upsertErr } = await supabase.from("projects").upsert(row);
-  if (upsertErr) { setStatus(statusEl, "Error: " + upsertErr.message, false); return; }
+  if (upsertErr) {
+    setStatus(statusEl, "Error: " + upsertErr.message, false);
+    triggerBtn.disabled = false;
+    triggerBtn.textContent = originalLabel;
+    return;
+  }
 
   // Bullets: delete existing then re-insert
   await supabase.from("project_bullets").delete().eq("project_id", id);
@@ -286,7 +382,12 @@ async function saveProject(
   const newBullets = Array.from(bulletEls).map((t, i) => ({ project_id: id, bullet: t.value.trim(), sort_order: i + 1 })).filter((b) => b.bullet);
   if (newBullets.length > 0) {
     const { error: bErr } = await supabase.from("project_bullets").insert(newBullets);
-    if (bErr) { setStatus(statusEl, "Bullets error: " + bErr.message, false); return; }
+    if (bErr) {
+      setStatus(statusEl, "Bullets error: " + bErr.message, false);
+      triggerBtn.disabled = false;
+      triggerBtn.textContent = originalLabel;
+      return;
+    }
   }
 
   setStatus(statusEl, mode === "add" ? "Project added!" : "Saved!", true);
@@ -317,7 +418,7 @@ async function renderAchievements(el: HTMLElement): Promise<void> {
 
   el.innerHTML = `
     <div class="admin-form-section">
-      <h3>Add Achievement</h3>
+      <h3>Add achievement</h3>
       <div id="ach-add-status" class="admin-status" style="display:none"></div>
       <div class="admin-form" id="ach-add-form">
         <div class="admin-form-row">
@@ -326,14 +427,15 @@ async function renderAchievements(el: HTMLElement): Promise<void> {
         </div>
         <div><label>HTML content</label><textarea id="ach-html" style="min-height:72px" placeholder="&lt;b&gt;Title&lt;/b&gt; Description"></textarea></div>
         <div class="admin-form-actions">
-          <button class="admin-btn admin-btn-primary" id="ach-add-btn">Add Achievement</button>
+          <button class="admin-btn admin-btn-primary" id="ach-add-btn">Add achievement</button>
         </div>
       </div>
     </div>
+    <div class="admin-table-wrap">
     <table class="admin-table">
       <thead><tr><th>ID</th><th>HTML (truncated)</th><th>Date</th><th>Actions</th></tr></thead>
       <tbody>
-        ${(rows ?? []).map((a) => `
+        ${(rows ?? []).length ? (rows ?? []).map((a) => `
           <tr>
             <td>${esc(a.id)}</td>
             <td class="truncate">${esc(a.html)}</td>
@@ -341,27 +443,33 @@ async function renderAchievements(el: HTMLElement): Promise<void> {
             <td>
               <button class="admin-btn admin-btn-danger" data-ach-del="${esc(a.id)}">Delete</button>
             </td>
-          </tr>`).join("")}
+          </tr>`).join("") : emptyRow(4, "No achievements yet — add one above.")}
       </tbody>
-    </table>`;
+    </table>
+    </div>`;
 
-  el.querySelector("#ach-add-btn")!.addEventListener("click", async () => {
+  const addBtn = el.querySelector<HTMLButtonElement>("#ach-add-btn")!;
+  addBtn.addEventListener("click", async () => {
     const id = (el.querySelector<HTMLInputElement>("#ach-id")!.value).trim();
     const html = (el.querySelector<HTMLTextAreaElement>("#ach-html")!.value).trim();
     const date = (el.querySelector<HTMLInputElement>("#ach-date")!.value).trim();
     const statusEl = el.querySelector<HTMLElement>("#ach-add-status");
     if (!id || !html) { setStatus(statusEl, "ID and HTML are required.", false); return; }
+    addBtn.disabled = true;
     const maxOrder = Math.max(0, ...(rows ?? []).map((r) => r.sort_order));
     const { error } = await supabase.from("achievements").insert({ id, html, date, sort_order: maxOrder + 1 });
-    if (error) { setStatus(statusEl, "Error: " + error.message, false); return; }
+    if (error) { setStatus(statusEl, "Error: " + error.message, false); addBtn.disabled = false; return; }
     setStatus(statusEl, "Added!", true);
     void renderAchievements(el);
   });
 
   el.querySelectorAll<HTMLButtonElement>("[data-ach-del]").forEach((btn) => {
     btn.addEventListener("click", async () => {
-      if (!confirm("Delete this achievement?")) return;
-      await supabase.from("achievements").delete().eq("id", btn.dataset.achDel!);
+      const id = btn.dataset.achDel!;
+      if (!(await confirmDialog(`Delete achievement "${id}"?`))) return;
+      btn.disabled = true;
+      const { error } = await supabase.from("achievements").delete().eq("id", id);
+      if (error) { alert("Error: " + error.message); btn.disabled = false; return; }
       void renderAchievements(el);
     });
   });
@@ -375,44 +483,50 @@ async function renderSkills(el: HTMLElement): Promise<void> {
 
   el.innerHTML = `
     <div class="admin-form-section">
-      <h3>Add Skill Line</h3>
+      <h3>Add skill line</h3>
       <div id="skill-add-status" class="admin-status" style="display:none"></div>
       <div class="admin-form">
         <div><label>Label</label><input type="text" id="skill-label" placeholder="Programming"/></div>
         <div><label>Items (HTML allowed)</label><textarea id="skill-items" placeholder="C++, Python, C"></textarea></div>
         <div class="admin-form-actions">
-          <button class="admin-btn admin-btn-primary" id="skill-add-btn">Add Skill Line</button>
+          <button class="admin-btn admin-btn-primary" id="skill-add-btn">Add skill line</button>
         </div>
       </div>
     </div>
+    <div class="admin-table-wrap">
     <table class="admin-table">
       <thead><tr><th>Label</th><th>Items</th><th>Actions</th></tr></thead>
       <tbody>
-        ${(rows ?? []).map((s) => `
+        ${(rows ?? []).length ? (rows ?? []).map((s) => `
           <tr>
             <td>${esc(s.label)}</td>
             <td class="truncate">${esc(s.items)}</td>
             <td><button class="admin-btn admin-btn-danger" data-skill-del="${s.id}">Delete</button></td>
-          </tr>`).join("")}
+          </tr>`).join("") : emptyRow(3, "No skill lines yet — add one above.")}
       </tbody>
-    </table>`;
+    </table>
+    </div>`;
 
-  el.querySelector("#skill-add-btn")!.addEventListener("click", async () => {
+  const addBtn = el.querySelector<HTMLButtonElement>("#skill-add-btn")!;
+  addBtn.addEventListener("click", async () => {
     const label = (el.querySelector<HTMLInputElement>("#skill-label")!.value).trim();
     const items = (el.querySelector<HTMLTextAreaElement>("#skill-items")!.value).trim();
     const statusEl = el.querySelector<HTMLElement>("#skill-add-status");
     if (!label || !items) { setStatus(statusEl, "Label and Items are required.", false); return; }
+    addBtn.disabled = true;
     const maxOrder = Math.max(0, ...(rows ?? []).map((r) => r.sort_order));
     const { error } = await supabase.from("skills").insert({ label, items, sort_order: maxOrder + 1 });
-    if (error) { setStatus(statusEl, "Error: " + error.message, false); return; }
+    if (error) { setStatus(statusEl, "Error: " + error.message, false); addBtn.disabled = false; return; }
     setStatus(statusEl, "Added!", true);
     void renderSkills(el);
   });
 
   el.querySelectorAll<HTMLButtonElement>("[data-skill-del]").forEach((btn) => {
     btn.addEventListener("click", async () => {
-      if (!confirm("Delete this skill line?")) return;
-      await supabase.from("skills").delete().eq("id", Number(btn.dataset.skillDel));
+      if (!(await confirmDialog("Delete this skill line?"))) return;
+      btn.disabled = true;
+      const { error } = await supabase.from("skills").delete().eq("id", Number(btn.dataset.skillDel));
+      if (error) { alert("Error: " + error.message); btn.disabled = false; return; }
       void renderSkills(el);
     });
   });
@@ -426,48 +540,55 @@ async function renderPositions(el: HTMLElement): Promise<void> {
 
   el.innerHTML = `
     <div class="admin-form-section">
-      <h3>Add Position</h3>
+      <h3>Add position</h3>
       <div id="pos-add-status" class="admin-status" style="display:none"></div>
       <div class="admin-form">
         <div><label>HTML content</label><textarea id="pos-html" placeholder="&lt;b&gt;Role,&lt;/b&gt; Organisation"></textarea></div>
         <div><label>Date</label><input type="text" id="pos-date" placeholder="Jan. 2026 - Present"/></div>
         <div class="admin-form-actions">
-          <button class="admin-btn admin-btn-primary" id="pos-add-btn">Add Position</button>
+          <button class="admin-btn admin-btn-primary" id="pos-add-btn">Add position</button>
         </div>
       </div>
     </div>
+    <div class="admin-table-wrap">
     <table class="admin-table">
       <thead><tr><th>HTML</th><th>Date</th><th>Actions</th></tr></thead>
       <tbody>
-        ${(rows ?? []).map((p) => `
+        ${(rows ?? []).length ? (rows ?? []).map((p) => `
           <tr>
             <td class="truncate">${esc(p.html)}</td>
             <td style="white-space:nowrap">${esc(p.date)}</td>
             <td><button class="admin-btn admin-btn-danger" data-pos-del="${p.id}">Delete</button></td>
-          </tr>`).join("")}
+          </tr>`).join("") : emptyRow(3, "No positions yet — add one above.")}
       </tbody>
-    </table>`;
+    </table>
+    </div>`;
 
-  el.querySelector("#pos-add-btn")!.addEventListener("click", async () => {
+  const addBtn = el.querySelector<HTMLButtonElement>("#pos-add-btn")!;
+  addBtn.addEventListener("click", async () => {
     const html = (el.querySelector<HTMLTextAreaElement>("#pos-html")!.value).trim();
     const date = (el.querySelector<HTMLInputElement>("#pos-date")!.value).trim();
     const statusEl = el.querySelector<HTMLElement>("#pos-add-status");
     if (!html) { setStatus(statusEl, "HTML content is required.", false); return; }
+    addBtn.disabled = true;
     const maxOrder = Math.max(0, ...(rows ?? []).map((r) => r.sort_order));
     const { error } = await supabase.from("positions").insert({ html, date, sort_order: maxOrder + 1 });
-    if (error) { setStatus(statusEl, "Error: " + error.message, false); return; }
+    if (error) { setStatus(statusEl, "Error: " + error.message, false); addBtn.disabled = false; return; }
     setStatus(statusEl, "Added!", true);
     void renderPositions(el);
   });
 
   el.querySelectorAll<HTMLButtonElement>("[data-pos-del]").forEach((btn) => {
     btn.addEventListener("click", async () => {
-      if (!confirm("Delete this position?")) return;
-      await supabase.from("positions").delete().eq("id", Number(btn.dataset.posDel));
+      if (!(await confirmDialog("Delete this position?"))) return;
+      btn.disabled = true;
+      const { error } = await supabase.from("positions").delete().eq("id", Number(btn.dataset.posDel));
+      if (error) { alert("Error: " + error.message); btn.disabled = false; return; }
       void renderPositions(el);
     });
   });
 }
+
 interface AdminBlogComment {
   id: number;
   slug: string;
@@ -504,32 +625,39 @@ async function renderComments(el: HTMLElement): Promise<void> {
   }
 
   el.innerHTML = `
-    <h3>Pending review (${pending.length})</h3>
+    <h3 class="section" style="font-size:1.05em;margin-top:0;">Pending review (${pending.length})</h3>
+    <div class="admin-table-wrap">
     <table class="admin-table">
       <thead><tr><th>Post</th><th>Name</th><th>Comment</th><th>Date</th><th>Actions</th></tr></thead>
-      <tbody>${pending.length ? pending.map(commentRow).join("") : `<tr><td colspan="5">Nothing pending.</td></tr>`}</tbody>
+      <tbody>${pending.length ? pending.map(commentRow).join("") : emptyRow(5, "Nothing pending.")}</tbody>
     </table>
-    <h3 style="margin-top:24px">Published (${approved.length})</h3>
+    </div>
+    <h3 class="section" style="font-size:1.05em;margin-top:1.4rem;">Published (${approved.length})</h3>
+    <div class="admin-table-wrap">
     <table class="admin-table">
       <thead><tr><th>Post</th><th>Name</th><th>Comment</th><th>Date</th><th>Actions</th></tr></thead>
-      <tbody>${approved.length ? approved.map(commentRow).join("") : `<tr><td colspan="5">None yet.</td></tr>`}</tbody>
-    </table>`;
+      <tbody>${approved.length ? approved.map(commentRow).join("") : emptyRow(5, "None yet.")}</tbody>
+    </table>
+    </div>`;
 
   el.querySelectorAll<HTMLButtonElement>("[data-comment-approve]").forEach((btn) => {
     btn.addEventListener("click", async () => {
+      btn.disabled = true;
       await supabase.from("blog_comments").update({ approved: true }).eq("id", Number(btn.dataset.commentApprove));
       void renderComments(el);
     });
   });
   el.querySelectorAll<HTMLButtonElement>("[data-comment-unapprove]").forEach((btn) => {
     btn.addEventListener("click", async () => {
+      btn.disabled = true;
       await supabase.from("blog_comments").update({ approved: false }).eq("id", Number(btn.dataset.commentUnapprove));
       void renderComments(el);
     });
   });
   el.querySelectorAll<HTMLButtonElement>("[data-comment-del]").forEach((btn) => {
     btn.addEventListener("click", async () => {
-      if (!confirm("Delete this comment?")) return;
+      if (!(await confirmDialog("Delete this comment?"))) return;
+      btn.disabled = true;
       await supabase.from("blog_comments").delete().eq("id", Number(btn.dataset.commentDel));
       void renderComments(el);
     });
