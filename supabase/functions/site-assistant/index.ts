@@ -6,19 +6,76 @@
 // The model is served by GitHub Models (models.github.ai) rather than Azure
 // OpenAI — Azure OpenAI itself is blocked on Azure for Students subscriptions
 // regardless of region, so this uses GitHub's free inference API instead,
-// which speaks the same OpenAI-style chat-completions shape.
+// which speaks the same OpenAI-style chat-completions shape, including
+// function/tool calling (see TOOLS below).
 //
 // Site knowledge is a hand-maintained snapshot below, not a live fetch —
 // keep it in sync with src/data/resume.ts, src/data/projects.ts, and
-// src/data/blogs/*.md when those change.
+// src/data/blogs/*.md when those change. Anything that actually changes
+// over time (Codeforces rating, new blog posts) is answered via a live
+// tool call instead of being baked into the snapshot.
 
 const SESSION_TTL_MS = 30 * 60 * 1000
 const MAX_TURNS_PER_SESSION = 30
 const MAX_MESSAGE_LENGTH = 500
 const MAX_HISTORY_TURNS = 6
+const MAX_TOOL_ROUNDS = 3
 
 const MODEL = "openai/gpt-4o-mini"
 const GITHUB_MODELS_URL = "https://models.github.ai/inference/chat/completions"
+const CF_HANDLE = "PriyanshuIITGHY2006"
+const SITE_ORIGIN = "https://priyanshuiitghy2006.github.io"
+
+// ─── Tools the model can call mid-conversation ──────────────────────────────
+// Two are genuinely live data (fetched fresh on every call, not baked into
+// SITE_KNOWLEDGE below); the third is a UI side effect — the edge function
+// can't navigate anything itself, so it just reports the requested route
+// back to the frontend, which performs the actual hash change.
+const NAV_ROUTES = [
+  "/", "/education", "/projects", "/gallery", "/skills",
+  "/positions", "/achievements", "/about", "/blogs", "/codeforces", "/github",
+] as const
+
+const TOOLS = [
+  {
+    type: "function",
+    function: {
+      name: "get_codeforces_stats",
+      description: "Fetch Priyanshu's current live Codeforces rating, rank, and max rating. Use this whenever asked about his current/live competitive programming rating or rank, instead of guessing from static knowledge.",
+      parameters: { type: "object", properties: {}, required: [] },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "list_blog_posts",
+      description: "Fetch the current list of published blog posts (title, url, publish date), newest first. Use this whenever asked what Priyanshu has written recently, or to list/recommend blog posts.",
+      parameters: {
+        type: "object",
+        properties: {
+          count: { type: "integer", description: "How many recent posts to return, default 5, max 20." },
+        },
+        required: [],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "navigate_to",
+      description: "Send the visitor to a specific page of the site. Use this whenever the user asks to see, go to, open, or be taken to a page, project, or blog post.",
+      parameters: {
+        type: "object",
+        properties: {
+          route: { type: "string", enum: NAV_ROUTES as unknown as string[], description: "The static route to navigate to." },
+          slug: { type: "string", description: "Blog post slug, only when route is \"/blogs\" and a specific post was requested — will link to #/blog?slug=<slug> instead." },
+          projectId: { type: "string", description: "Project id, only when route is \"/projects\" and a specific project was requested — will link to #/project?id=<projectId> instead." },
+        },
+        required: ["route"],
+      },
+    },
+  },
+]
 
 const SITE_KNOWLEDGE = `
 Priyanshu Debnath — B.Tech in Electronics and Electrical Engineering, minor in
@@ -83,16 +140,18 @@ LinkedIn linkedin.com/in/priyanshu-debnath-3a81711b3, Codeforces handle
 PriyanshuIITGHY2006.
 `.trim()
 
-const SYSTEM_PROMPT = `You are the assistant embedded on Priyanshu Debnath's personal portfolio and blog website. You help visitors find things and answer questions about Priyanshu, his projects, education, skills, achievements, and blog posts.
+const SYSTEM_PROMPT = `You are the assistant embedded on Priyanshu Debnath's personal portfolio and blog website. You help visitors find things and answer questions about Priyanshu, his projects, education, skills, achievements, and blog posts — and you can act, not just answer: you have tools to fetch his live Codeforces stats, list current blog posts, and send the visitor to a specific page.
 
 Rules:
-- Only answer using the information given below. Don't invent facts.
+- Only answer using the information given below, plus whatever your tools return. Don't invent facts, and don't invent numbers a tool could give you — call the tool instead.
+- Use get_codeforces_stats for anything about his current/live rating or rank rather than guessing from the static numbers below (those may be stale).
+- Use list_blog_posts when asked what he's written, recently, or for a recommendation — don't rely on the static list below for that.
+- Use navigate_to whenever the user asks to see, open, go to, or be taken to a page, project, or blog post — actually call it, don't just describe the page in text.
 - If asked something unrelated to Priyanshu or this website, politely say you're only here to help with this site, and don't answer the unrelated question.
 - Keep answers short: 2-4 sentences unless the question genuinely needs more.
-- When it helps, point to the relevant page (e.g. "see the Projects page" or "check out /blogs").
 - Talk about Priyanshu in the third person, like a knowledgeable guide to his site, not as if you are him.
 
-Site knowledge:
+Site knowledge (static; may be stale for anything a tool can fetch live):
 ${SITE_KNOWLEDGE}`
 
 interface SessionPayload {
@@ -171,6 +230,109 @@ function sanitizeHistory(input: unknown): ChatTurn[] {
     .slice(-MAX_HISTORY_TURNS)
 }
 
+// ─── Tool execution ──────────────────────────────────────────────────────
+async function getCodeforcesStats(): Promise<string> {
+  try {
+    const res = await fetch(`https://codeforces.com/api/user.info?handles=${CF_HANDLE}`)
+    const data = await res.json()
+    if (data.status !== "OK") return JSON.stringify({ error: "Codeforces API unavailable right now." })
+    const u = data.result[0]
+    return JSON.stringify({
+      handle: u.handle,
+      rating: u.rating ?? null,
+      rank: u.rank ?? null,
+      maxRating: u.maxRating ?? null,
+      maxRank: u.maxRank ?? null,
+    })
+  } catch {
+    return JSON.stringify({ error: "Codeforces API unavailable right now." })
+  }
+}
+
+function xmlUnescape(s: string): string {
+  return s
+    .replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"').replace(/&apos;/g, "'")
+    .replace(/&amp;/g, "&")
+}
+
+async function listBlogPosts(count: number): Promise<string> {
+  try {
+    const res = await fetch(`${SITE_ORIGIN}/feed.xml`)
+    const xml = await res.text()
+    const items = [...xml.matchAll(/<item>([\s\S]*?)<\/item>/g)].slice(0, count).map((m) => {
+      const block = m[1]
+      const title = xmlUnescape(/<title>([\s\S]*?)<\/title>/.exec(block)?.[1] ?? "")
+      const link = xmlUnescape(/<link>([\s\S]*?)<\/link>/.exec(block)?.[1] ?? "")
+      const pubDate = /<pubDate>([\s\S]*?)<\/pubDate>/.exec(block)?.[1] ?? ""
+      return { title, link, pubDate }
+    })
+    return JSON.stringify({ posts: items })
+  } catch {
+    return JSON.stringify({ error: "Couldn't fetch the blog post list right now." })
+  }
+}
+
+interface NavRequest {
+  route: string
+  slug?: string
+  projectId?: string
+}
+
+function navigateTo(args: NavRequest): { result: string; nav: string | null } {
+  if (!NAV_ROUTES.includes(args.route as (typeof NAV_ROUTES)[number])) {
+    return { result: JSON.stringify({ error: "Unknown route." }), nav: null }
+  }
+  let hash = `#${args.route}`
+  if (args.route === "/blogs" && args.slug) hash = `#/blog?slug=${encodeURIComponent(args.slug)}`
+  if (args.route === "/projects" && args.projectId) hash = `#/project?id=${encodeURIComponent(args.projectId)}`
+  return { result: JSON.stringify({ status: "ok", route: hash }), nav: hash }
+}
+
+interface ToolCall {
+  id: string
+  function: { name: string; arguments: string }
+}
+
+/** Runs every tool call from one model turn, returns their result messages plus any nav route requested. */
+async function runToolCalls(toolCalls: ToolCall[]): Promise<{ messages: Array<Record<string, unknown>>; navigateTo: string | null }> {
+  let nav: string | null = null
+  const messages: Array<Record<string, unknown>> = []
+
+  for (const call of toolCalls) {
+    let args: Record<string, unknown> = {}
+    try {
+      args = JSON.parse(call.function.arguments || "{}")
+    } catch {
+      // malformed arguments — fall through with an empty args object
+    }
+
+    let result: string
+    switch (call.function.name) {
+      case "get_codeforces_stats":
+        result = await getCodeforcesStats()
+        break
+      case "list_blog_posts": {
+        const count = Math.min(Math.max(Number(args.count) || 5, 1), 20)
+        result = await listBlogPosts(count)
+        break
+      }
+      case "navigate_to": {
+        const nr = navigateTo(args as unknown as NavRequest)
+        result = nr.result
+        if (nr.nav) nav = nr.nav
+        break
+      }
+      default:
+        result = JSON.stringify({ error: "Unknown tool." })
+    }
+
+    messages.push({ role: "tool", tool_call_id: call.id, content: result })
+  }
+
+  return { messages, navigateTo: nav }
+}
+
 Deno.serve(async (req) => {
   const corsHeaders = {
     "Access-Control-Allow-Origin": "https://priyanshuiitghy2006.github.io",
@@ -230,39 +392,60 @@ Deno.serve(async (req) => {
     }
     const history = sanitizeHistory(body.history)
 
-    const messages = [
+    const messages: Array<Record<string, unknown>> = [
       { role: "system", content: SYSTEM_PROMPT },
       ...history,
       { role: "user", content: message },
     ]
 
-    const modelResponse = await fetch(GITHUB_MODELS_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${Deno.env.get("GITHUB_MODELS_TOKEN")!}`,
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        messages,
-        temperature: 0.4,
-        max_tokens: 400,
-      }),
-    })
+    let navigateToRoute: string | null = null
+    let finalReply: string | null = null
 
-    if (!modelResponse.ok) {
-      const status = modelResponse.status
-      if (status === 429) {
-        return json({ error: "The assistant is getting a lot of questions right now — try again in a moment." }, 429)
+    for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
+      const modelResponse = await fetch(GITHUB_MODELS_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${Deno.env.get("GITHUB_MODELS_TOKEN")!}`,
+        },
+        body: JSON.stringify({
+          model: MODEL,
+          messages,
+          tools: TOOLS,
+          temperature: 0.4,
+          max_tokens: 400,
+        }),
+      })
+
+      if (!modelResponse.ok) {
+        const status = modelResponse.status
+        if (status === 429) {
+          return json({ error: "The assistant is getting a lot of questions right now — try again in a moment." }, 429)
+        }
+        const errText = await modelResponse.text().catch(() => "")
+        console.error("GitHub Models error", status, errText)
+        return json({ error: "The assistant couldn't answer that just now." }, 502)
       }
-      const errText = await modelResponse.text().catch(() => "")
-      console.error("GitHub Models error", status, errText)
-      return json({ error: "The assistant couldn't answer that just now." }, 502)
+
+      const data = await modelResponse.json()
+      const choice = data?.choices?.[0]?.message
+
+      const toolCalls: ToolCall[] | undefined = choice?.tool_calls
+      if (toolCalls && toolCalls.length > 0) {
+        messages.push({ role: "assistant", content: choice.content ?? null, tool_calls: toolCalls })
+        const { messages: toolResults, navigateTo: nav } = await runToolCalls(toolCalls)
+        if (nav) navigateToRoute = nav
+        messages.push(...toolResults)
+        continue // let the model see the tool results and respond
+      }
+
+      if (typeof choice?.content === "string" && choice.content.trim()) {
+        finalReply = choice.content.trim()
+      }
+      break
     }
 
-    const data = await modelResponse.json()
-    const reply = data?.choices?.[0]?.message?.content
-    if (typeof reply !== "string" || !reply.trim()) {
+    if (!finalReply) {
       return json({ error: "The assistant couldn't answer that just now." }, 502)
     }
 
@@ -270,7 +453,8 @@ Deno.serve(async (req) => {
     const nextToken = await createSessionToken(session)
 
     return json({
-      reply: reply.trim(),
+      reply: finalReply,
+      navigateTo: navigateToRoute,
       session: nextToken,
       sessionExpiresAt: session.exp,
       turnsRemaining: MAX_TURNS_PER_SESSION - session.count,

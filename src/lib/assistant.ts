@@ -10,6 +10,8 @@ export interface ChatTurn {
 
 export interface AssistantReply {
   reply: string;
+  /** Hash route (e.g. "#/projects") the assistant wants the visitor sent to, if it called the navigate_to tool. */
+  navigateTo?: string | null;
   session?: string;
   sessionExpiresAt?: number;
   turnsRemaining?: number;
