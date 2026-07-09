@@ -52,7 +52,7 @@ export function loadMonaco(): Promise<any> {
 
 export const editorInstances = new Map<string, any>();
 
-async function initEditors(container: HTMLElement) {
+export async function initEditors(container: HTMLElement) {
   const editorContainers = container.querySelectorAll('.monaco-editor-container');
   if (editorContainers.length === 0) return;
 

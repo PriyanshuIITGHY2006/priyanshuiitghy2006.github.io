@@ -497,92 +497,7 @@ const youtubeExtension = {
   },
 };
 
-// ─── GitHub Gist embeds ─────────────────────────────────────────────────────
-// GitHub's own embed mechanism is `<script src="https://gist.github.com/user/id.js">`,
-// which relies on document.write() — safe only during a document's initial
-// synchronous parse, and DOMPurify sanitizes iframe[srcdoc] by design (it's a
-// common XSS vector), so neither a raw <script> nor a baked-in <iframe srcdoc>
-// survives being inserted via .innerHTML. Same placeholder-shell + registry
-// pattern as :::binviz: emit an inert shell here, then wireGistEmbeds() below
-// builds the real iframe via the DOM API *after* sanitization has already run,
-// setting .srcdoc directly so the embed script's document.write() calls are
-// the sanctioned use — a synchronous parse of a freshly created document.
-export interface GistEmbed {
-  owner: string;
-  id: string;
-  file?: string;
-}
-
-export const gistRegistry = new Map<string, GistEmbed>();
-let gistEmbedCounter = 0;
-
-interface GistToken extends Tokens.Generic {
-  type: "gist";
-  owner: string;
-  id: string;
-  file?: string;
-}
-
-const gistExtension = {
-  name: "gist",
-  level: "block" as const,
-  start(src: string): number | undefined {
-    const idx = src.indexOf(":::gist");
-    return idx === -1 ? undefined : idx;
-  },
-  tokenizer(src: string) {
-    const match = /^:::gist[ \t]+([\w.-]+)\/([0-9a-f]+)(?:[ \t]+(\S+))?[ \t]*\n?:::(?:\n|$)/.exec(src);
-    if (!match) return undefined;
-    const token: GistToken = { type: "gist", raw: match[0], owner: match[1], id: match[2], file: match[3] };
-    return token;
-  },
-  renderer(token: Tokens.Generic): string {
-    const t = token as GistToken;
-    const id = `blog-gist-${++gistEmbedCounter}`;
-    gistRegistry.set(id, { owner: t.owner, id: t.id, file: t.file });
-    return `<div class="blog-gist" id="${id}" data-gist-owner="${t.owner}" data-gist-id="${t.id}"${t.file ? ` data-gist-file="${t.file}"` : ""}><p class="blog-gist-loading">Loading gist…</p></div>`;
-  },
-};
-
-/** Swaps each :::gist placeholder shell for a real, sandboxed embed. Call after mounting sanitized HTML into the DOM. */
-export function wireGistEmbeds(container: HTMLElement): void {
-  container.querySelectorAll<HTMLElement>(".blog-gist").forEach((shell) => {
-    const owner = shell.dataset.gistOwner;
-    const id = shell.dataset.gistId;
-    if (!owner || !id) return;
-    const file = shell.dataset.gistFile;
-    const scriptSrc = `https://gist.github.com/${owner}/${id}.js${file ? `?file=${encodeURIComponent(file)}` : ""}`;
-
-    shell.innerHTML = "";
-    const iframe = document.createElement("iframe");
-    iframe.className = "blog-gist-frame";
-    iframe.loading = "lazy";
-    iframe.title = `GitHub Gist: ${owner}/${id}`;
-    // srcdoc content is author-controlled (built from our own registry, not
-    // user input), so allow-same-origin is safe here and lets us read
-    // scrollHeight afterward to size the frame to its real content.
-    iframe.setAttribute("sandbox", "allow-scripts allow-same-origin");
-    iframe.srcdoc = `<!doctype html><html><head><base target="_parent"><style>body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;}</style></head><body><script src="${scriptSrc}"></script></body></html>`;
-
-    const resize = () => {
-      try {
-        const h = iframe.contentDocument?.body?.scrollHeight;
-        if (h) iframe.style.height = `${h + 4}px`;
-      } catch {
-        /* cross-origin — shouldn't happen with allow-same-origin, but don't crash if it does */
-      }
-    };
-    iframe.addEventListener("load", () => {
-      resize();
-      setTimeout(resize, 300);
-      setTimeout(resize, 1200);
-    });
-
-    shell.appendChild(iframe);
-  });
-}
-
-marked.use({ renderer, breaks: false, gfm: true, extensions: [spoilerExtension, youtubeExtension, testcasesExtension, binVizExtension, gistExtension] });
+marked.use({ renderer, breaks: false, gfm: true, extensions: [spoilerExtension, youtubeExtension, testcasesExtension, binVizExtension] });
 marked.use(markedKatex({ throwOnError: false, nonStandard: true }));
 
 export function renderMarkdown(md: string): string {
@@ -600,7 +515,6 @@ export function renderMarkdown(md: string): string {
       "data-run-id", "data-run-action", "data-sitekey", // Data attributes explicitly allowed
       "data-copy-target", "data-testcases-for", "data-tc-run", "data-tc-index", "data-tc-status", "disabled",
       "data-binviz-canvas", "data-binviz-action", "data-binviz-status",
-      "data-gist-owner", "data-gist-id", "data-gist-file",
     ],
     USE_PROFILES: { html: true, svg: true, svgFilters: true, mathMl: true },
   });

@@ -2,8 +2,9 @@ import "../styles/blog.css";
 import "katex/dist/katex.min.css";
 import { resume } from "../data/resume";
 import { PROJECTS, type DetailedProject } from "../data/projects";
-import { renderMarkdown, wireGistEmbeds } from "../lib/blog";
+import { renderMarkdown } from "../lib/blog";
 import { setPageMeta } from "../lib/seo";
+import { initEditors } from "./blog-post";
 
 function esc(s: string): string {
   return s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c] as string));
@@ -61,5 +62,5 @@ export function mountProjectDetail(container: HTMLElement, id: string | null): v
     setPageMeta({ title: "Write-up Not Found", noindex: true });
   }
   container.innerHTML = project ? pageHtml(project) : notFoundHtml();
-  if (project) wireGistEmbeds(container);
+  if (project) void initEditors(container);
 }
