@@ -696,7 +696,6 @@ body {
   .blog-run-panel,
   .cf-turnstile,
   .contact-form,
-  .blog-gist,
   .blog-binviz-controls,
   .blog-testcases-panel {
     display: none !important;

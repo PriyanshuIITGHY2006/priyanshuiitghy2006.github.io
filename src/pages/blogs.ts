@@ -64,28 +64,8 @@ function controlsHtml(): string {
     <p class="blog-empty-filtered" id="blog-empty-filtered" hidden>No posts match your search or filters.</p>`;
 }
 
-function brandHtml(): string {
-  const playing = isBgAudioPlaying();
-  return `
-    <header class="blog-brand">
-      <div class="blog-brand-logo">
-        <img class="blog-mark" src="/blog-mark.png" alt="" width="150" height="210" />
-        <h2 class="blog-logo">
-          <span class="blog-logo-main">let down</span>
-          <span class="blog-logo-and">and</span>
-          <span class="blog-logo-main blog-logo-main-2">hanging around</span>
-        </h2>
-      </div>
-      <p class="blog-about-text">
-        Notes on competitive programming, mathematics, and the projects I'm building.
-      </p>
-      <button type="button" id="bg-audio-btn" class="blog-audio-btn" aria-pressed="${playing ? "true" : "false"}">
-        ${bgAudioBtnHtml(playing)}
-      </button>
-    </header>`;
-}
-
 function pageHtml(): string {
+  const playing = isBgAudioPlaying();
   const body = BLOG_POSTS.length
     ? `<div class="blog-grid" id="blog-grid">${BLOG_POSTS.map(card).join("")}</div>`
     : `<p class="gl-empty">No posts published yet — check back soon.</p>`;
@@ -96,9 +76,14 @@ function pageHtml(): string {
         <span class="section-crumb">${esc(resume.name)} · Blog</span>
       </nav>
       <div class="section-body">
-        ${brandHtml()}
+        <h2 class="section">Blog</h2>
+        <p class="edu-note">
+          Notes on competitive programming, mathematics, and the projects I'm building.
+        </p>
+        <button type="button" id="bg-audio-btn" class="blog-audio-btn" aria-pressed="${playing ? "true" : "false"}">
+          ${bgAudioBtnHtml(playing)}
+        </button>
 
-        <h3 class="blog-section-label">featured</h3>
         ${controlsHtml()}
         ${body}
 

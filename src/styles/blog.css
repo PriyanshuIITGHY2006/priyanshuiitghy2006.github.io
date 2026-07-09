@@ -1,66 +1,10 @@
 /* ─── Blog list page (reuses .gl-* card shell conventions) ───────────── */
 .blogs-page { max-width: 60rem; margin: 0 auto; background: transparent; }
 
-/* ─── Brand wordmark: "let down and hanging around" ──────────────────── */
-.blog-brand {
-  position: relative; /* stays above the particle background — src/lib/blog-graph.ts */
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  margin: 0.4rem auto 0;
-}
-.blog-brand-logo {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
-}
-.blog-mark {
-  width: 90px;
-  height: auto;
-  display: block;
-}
-:root[data-theme="dark"] .blog-mark { filter: invert(1); }
-
-.blog-logo {
-  margin: 0;
-  border: none;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  text-align: left;
-  font-family: var(--cm);
-  color: var(--ink);
-  line-height: 1.2;
-}
-.blog-logo-main {
-  font-size: clamp(1.2rem, 3.4vw, 1.7rem);
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-}
-.blog-logo-main-2 { font-size: clamp(1rem, 2.8vw, 1.35rem); }
-.blog-logo-and {
-  font-size: 0.6rem;
-  letter-spacing: 5px;
-  text-transform: uppercase;
-  color: var(--muted-2);
-  margin: 0.25rem 0;
-}
-
-/* ─── About text + background-audio toggle ────────────────────────────── */
-.blog-about-text {
-  max-width: 26rem;
-  margin: 1rem 0 0;
-  font-size: 0.9em;
-  line-height: 1.55;
-  color: var(--ink-soft);
-}
+/* ─── Background-audio toggle ("listen to Let Down") ──────────────────── */
 .blog-audio-btn {
-  margin-top: 0.8rem;
+  position: relative; /* stays above the particle background — src/lib/blog-graph.ts */
+  margin: 0.9rem 0 0.2rem;
   display: inline-flex;
   align-items: center;
   gap: 0.5em;
@@ -77,18 +21,6 @@
 .blog-audio-btn:hover { border-color: var(--border-strong); background: var(--bg-hover); }
 .blog-audio-btn[aria-pressed="true"] { border-color: var(--success-ink); color: var(--success-ink); }
 .blog-audio-icon { font-size: 0.85em; }
-
-.blog-section-label {
-  margin: 2.2rem 0 0.2rem;
-  border: none;
-  padding: 0;
-  font-family: var(--cm);
-  font-variant: small-caps;
-  letter-spacing: 0.6px;
-  font-size: 1em;
-  color: var(--muted);
-  text-align: center;
-}
 
 /* ─── Force-graph background (src/lib/blog-graph.ts) ─────────────────── */
 .blog-graph-canvas {
@@ -444,30 +376,6 @@
   top: 0; left: 0;
   width: 100%; height: 100%;
   border: 0;
-}
-
-/* ─── GitHub Gist embeds ─────────────────────────────────────────────── */
-.blog-gist {
-  position: relative; /* stays above the particle background — src/lib/blog-graph.ts */
-  margin: 1.4rem 0;
-  border: 0.6px solid var(--border);
-  border-radius: 6px;
-  overflow: hidden;
-  background: var(--bg-card);
-}
-.blog-gist-loading {
-  margin: 0;
-  padding: 1.4rem;
-  font-family: var(--cm);
-  font-size: 0.85em;
-  color: var(--muted);
-  text-align: center;
-}
-.blog-gist-frame {
-  display: block;
-  width: 100%;
-  border: 0;
-  min-height: 80px;
 }
 
 /* ─── Runnable code panels (Judge0) ──────────────────────────────────── */
