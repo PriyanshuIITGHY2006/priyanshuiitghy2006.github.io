@@ -277,6 +277,13 @@ function openPanel(): void {
         setAssistantSession(result.session, result.sessionExpiresAt);
       }
       verifyEl.hidden = true;
+
+      if (result.navigateTo && result.navigateTo !== location.hash) {
+        const target = result.navigateTo;
+        setTimeout(() => {
+          location.hash = target;
+        }, 600);
+      }
     } catch (err) {
       typing.remove();
       if (err instanceof VerificationRequiredError) {
