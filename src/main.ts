@@ -38,9 +38,28 @@ document.addEventListener("click", (e) => {
   console.debug("[detail]", target.getAttribute("data-detail"));
 });
 
-// ─── Home (résumé) ──────────────────────────────────────────────────────
+// ─── Home (about) ────────────────────────────────────────────────────────
 route("/", () => {
-  setPageMeta({ title: `${resume.name} — Résumé`, bare: true });
+  setPageMeta({
+    title: resume.name,
+    bare: true,
+    description: `${resume.name} — B.Tech EEE student at IIT Guwahati, working across algorithms, machine learning, and quantitative finance.`,
+  });
+  app.innerHTML = "";
+  mountAbout(app);
+});
+// "/about" is a compatibility alias for old links/bookmarks — the content
+// itself lives at "/" now.
+route("/about", () => {
+  location.hash = "#/";
+});
+
+// ─── Résumé (the original one-page LaTeX-style view) ─────────────────────
+route("/resume", () => {
+  setPageMeta({
+    title: "Résumé",
+    description: `${resume.name}'s résumé — education, projects, skills, positions, and achievements.`,
+  });
   app.innerHTML = "";
   const page = document.createElement("article");
   page.className = "page";
@@ -99,13 +118,6 @@ route("/achievements", () => {
   setPageMeta({ title: "Achievements" });
   app.innerHTML = "";
   mountAchievements(app);
-});
-
-// ─── About page (clickable name in the header links here) ──────────────
-route("/about", () => {
-  setPageMeta({ title: "About", description: `About ${resume.name} — B.Tech EEE student at IIT Guwahati, working across algorithms, machine learning, and quantitative finance.` });
-  app.innerHTML = "";
-  mountAbout(app);
 });
 
 // ─── Blog (code-split: Markdown/highlighting deps only load when visited) ──

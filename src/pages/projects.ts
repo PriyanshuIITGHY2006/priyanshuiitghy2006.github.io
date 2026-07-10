@@ -56,7 +56,7 @@ function pageHtml(): string {
   return `
     <article class="page section-page projects-page">
       <nav class="section-nav">
-        <a class="section-back" href="#/">← back to résumé</a>
+        <a class="section-back" href="#/resume">← back to résumé</a>
         <span class="section-crumb">${esc(resume.name)} · Projects</span>
       </nav>
       <div class="section-body">
