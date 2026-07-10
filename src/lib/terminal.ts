@@ -109,7 +109,7 @@ const FILES: Record<string, () => string> = {
 };
 
 const ROUTES: Record<string, string> = {
-  home: "/", resume: "/", about: "/about", projects: "/projects", skills: "/skills",
+  home: "/", about: "/", resume: "/resume", projects: "/projects", skills: "/skills",
   positions: "/positions", achievements: "/achievements", education: "/education",
   blog: "/blogs", blogs: "/blogs", github: "/github", codeforces: "/codeforces", gallery: "/gallery",
 };
@@ -203,33 +203,48 @@ function injectStyles(): void {
   stylesInjected = true;
   const style = document.createElement("style");
   style.textContent = `
-    .term-backdrop {
-      position: fixed; inset: 0; z-index: 100000;
-      background: rgba(0,0,0,0.55);
-      display: flex; align-items: center; justify-content: center;
-      padding: 1.2rem;
-      animation: term-fade-in 0.12s ease;
-    }
     .term-window {
-      width: 100%; max-width: 44rem; height: min(65vh, 32rem);
+      position: fixed;
       background: #0b0d0c;
       border-radius: 8px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.45), 0 2px 8px rgba(0,0,0,0.3);
       display: flex; flex-direction: column;
       overflow: hidden;
       font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
       animation: term-pop-in 0.14s ease;
+      z-index: 100000;
+      min-width: 280px;
     }
+    .term-window.term-maximized {
+      left: 0.75rem !important; top: 0.75rem !important;
+      width: calc(100vw - 1.5rem) !important; height: calc(100vh - 1.5rem) !important;
+    }
+    .term-window.term-minimized {
+      height: auto !important; width: 260px !important;
+    }
+    .term-window.term-minimized .term-body,
+    .term-window.term-minimized .term-inputrow { display: none; }
     .term-titlebar {
       display: flex; align-items: center; gap: 0.4rem;
       padding: 0.55rem 0.7rem;
       background: #1c1f1e;
+      cursor: grab;
+      touch-action: none;
+      user-select: none;
     }
-    .term-dot { width: 11px; height: 11px; border-radius: 50%; display: inline-block; }
+    .term-window.term-maximized .term-titlebar { cursor: default; }
+    .term-window.term-minimized .term-titlebar { cursor: pointer; }
+    .term-dot {
+      width: 11px; height: 11px; border-radius: 50%; display: inline-block;
+      cursor: pointer; border: none; padding: 0; margin: 0;
+      appearance: none; -webkit-appearance: none;
+    }
+    .term-dot:hover { filter: brightness(1.2); }
+    .term-dot:focus-visible { outline: 2px solid #7be08a; outline-offset: 2px; }
     .term-dot-red { background: #ff5f56; }
     .term-dot-yellow { background: #ffbd2e; }
     .term-dot-green { background: #27c93f; }
-    .term-title { flex: 1; text-align: center; font-size: 0.78em; color: #8a8f8c; margin-right: 2.4rem; }
+    .term-title { flex: 1; text-align: center; font-size: 0.78em; color: #8a8f8c; margin-right: 2.4rem; pointer-events: none; }
     .term-body { flex: 1; overflow-y: auto; padding: 0.8rem 0.9rem; font-size: 0.86em; line-height: 1.5; }
     .term-line { color: #d6f5df; white-space: pre-wrap; word-break: break-word; }
     .term-echo { color: #7be08a; font-weight: 600; }
@@ -240,54 +255,133 @@ function injectStyles(): void {
       flex: 1; background: transparent; border: none; outline: none;
       color: #d6f5df; font-family: inherit; font-size: 0.86em; caret-color: #7be08a;
     }
-    @keyframes term-fade-in { from { opacity: 0; } to { opacity: 1; } }
     @keyframes term-pop-in { from { opacity: 0; transform: translateY(10px) scale(0.98); } to { opacity: 1; transform: none; } }
   `;
   document.head.appendChild(style);
 }
 
 let terminalOpen = false;
+let winEl: HTMLDivElement | null = null;
+let winState: "normal" | "minimized" | "maximized" = "normal";
+
+function clamp(v: number, min: number, max: number): number {
+  return Math.min(Math.max(v, min), max);
+}
 
 function openTerminal(): void {
-  if (terminalOpen) return;
+  if (terminalOpen) {
+    if (winState === "minimized" && winEl) {
+      winEl.classList.remove("term-minimized");
+      winState = "normal";
+    }
+    inputEl?.focus();
+    return;
+  }
   terminalOpen = true;
+  winState = "normal";
   injectStyles();
 
-  const backdrop = document.createElement("div");
-  backdrop.className = "term-backdrop";
-  backdrop.innerHTML = `
-    <div class="term-window" role="dialog" aria-label="Terminal">
-      <div class="term-titlebar">
-        <span class="term-dot term-dot-red"></span>
-        <span class="term-dot term-dot-yellow"></span>
-        <span class="term-dot term-dot-green"></span>
-        <span class="term-title">guest@priyanshu-portfolio: ~</span>
-      </div>
-      <div class="term-body" id="term-body"></div>
-      <div class="term-inputrow">
-        <span class="term-prompt">guest@priyanshu-portfolio:~$</span>
-        <input class="term-input" id="term-input" autocomplete="off" spellcheck="false" />
-      </div>
+  const win = document.createElement("div");
+  win.className = "term-window";
+  win.setAttribute("role", "dialog");
+  win.setAttribute("aria-label", "Terminal");
+  win.innerHTML = `
+    <div class="term-titlebar">
+      <button type="button" class="term-dot term-dot-red" aria-label="Close terminal" title="Close"></button>
+      <button type="button" class="term-dot term-dot-yellow" aria-label="Minimize terminal" title="Minimize"></button>
+      <button type="button" class="term-dot term-dot-green" aria-label="Maximize terminal" title="Maximize"></button>
+      <span class="term-title">guest@priyanshu-portfolio: ~</span>
+    </div>
+    <div class="term-body" id="term-body"></div>
+    <div class="term-inputrow">
+      <span class="term-prompt">guest@priyanshu-portfolio:~$</span>
+      <input class="term-input" id="term-input" autocomplete="off" spellcheck="false" />
     </div>`;
 
-  outputEl = backdrop.querySelector<HTMLElement>("#term-body")!;
-  inputEl = backdrop.querySelector<HTMLInputElement>("#term-input")!;
+  const width = Math.min(window.innerWidth - 32, 720);
+  const height = Math.min(window.innerHeight * 0.65, 512);
+  win.style.width = `${width}px`;
+  win.style.height = `${height}px`;
+  win.style.left = `${Math.max(16, (window.innerWidth - width) / 2)}px`;
+  win.style.top = `${Math.max(16, (window.innerHeight - height) / 2)}px`;
+
+  document.body.appendChild(win);
+  winEl = win;
+
+  outputEl = win.querySelector<HTMLElement>("#term-body")!;
+  inputEl = win.querySelector<HTMLInputElement>("#term-input")!;
   history = [];
   historyIndex = -1;
 
+  const titlebar = win.querySelector<HTMLElement>(".term-titlebar")!;
+  const dotClose = win.querySelector<HTMLButtonElement>(".term-dot-red")!;
+  const dotMin = win.querySelector<HTMLButtonElement>(".term-dot-yellow")!;
+  const dotMax = win.querySelector<HTMLButtonElement>(".term-dot-green")!;
+
   function close(): void {
     document.removeEventListener("keydown", onEscape, true);
-    backdrop.remove();
+    win.remove();
     terminalOpen = false;
+    winEl = null;
   }
 
   function onEscape(e: KeyboardEvent): void {
     if (e.key === "Escape") { e.preventDefault(); close(); }
   }
 
-  backdrop.addEventListener("mousedown", (e) => {
-    if (e.target === backdrop) close();
+  function setMinimized(on: boolean): void {
+    winState = on ? "minimized" : "normal";
+    win.classList.toggle("term-minimized", on);
+  }
+
+  function setMaximized(on: boolean): void {
+    winState = on ? "maximized" : "normal";
+    win.classList.toggle("term-maximized", on);
+  }
+
+  dotClose.addEventListener("click", close);
+  dotMin.addEventListener("click", () => setMinimized(winState !== "minimized"));
+  dotMax.addEventListener("click", () => setMaximized(winState !== "maximized"));
+
+  titlebar.addEventListener("dblclick", (e) => {
+    if ((e.target as HTMLElement).closest(".term-dot")) return;
+    setMaximized(winState !== "maximized");
   });
+
+  // Clicking a minimized window's titlebar restores it.
+  titlebar.addEventListener("click", (e) => {
+    if (winState === "minimized" && !(e.target as HTMLElement).closest(".term-dot")) {
+      setMinimized(false);
+    }
+  });
+
+  // Dragging the titlebar moves the window (disabled while maximized).
+  let dragging = false;
+  let dragDX = 0;
+  let dragDY = 0;
+  titlebar.addEventListener("pointerdown", (e) => {
+    if ((e.target as HTMLElement).closest(".term-dot")) return;
+    if (winState === "maximized") return;
+    dragging = true;
+    const rect = win.getBoundingClientRect();
+    dragDX = e.clientX - rect.left;
+    dragDY = e.clientY - rect.top;
+    titlebar.setPointerCapture(e.pointerId);
+  });
+  titlebar.addEventListener("pointermove", (e) => {
+    if (!dragging) return;
+    const x = clamp(e.clientX - dragDX, -win.offsetWidth + 80, window.innerWidth - 80);
+    const y = clamp(e.clientY - dragDY, 0, window.innerHeight - 40);
+    win.style.left = `${x}px`;
+    win.style.top = `${y}px`;
+  });
+  function stopDrag(e: PointerEvent): void {
+    if (!dragging) return;
+    dragging = false;
+    try { titlebar.releasePointerCapture(e.pointerId); } catch { /* already released */ }
+  }
+  titlebar.addEventListener("pointerup", stopDrag);
+  titlebar.addEventListener("pointercancel", stopDrag);
 
   inputEl.addEventListener("keydown", (e) => {
     if (e.key === "Enter") {
@@ -307,7 +401,6 @@ function openTerminal(): void {
   });
 
   document.addEventListener("keydown", onEscape, true);
-  document.body.appendChild(backdrop);
 
   print(`Welcome to ${resume.name}'s terminal.`);
   print("Type 'resume' to see the full résumé, or 'help' for more.");

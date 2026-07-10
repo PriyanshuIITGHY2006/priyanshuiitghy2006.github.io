@@ -8,6 +8,7 @@ function esc(s: string): string {
 }
 
 const SITE_MAP: { label: string; href: string; note: string }[] = [
+  { label: "Résumé", href: "#/resume", note: "the traditional one-page view" },
   { label: "Education", href: "#/education", note: "degree, grade card, curriculum" },
   { label: "Projects", href: "#/projects", note: "full write-ups, one per project" },
   { label: "Skills", href: "#/skills", note: "languages, libraries, concepts" },
@@ -36,7 +37,6 @@ function pageHtml(): string {
   return `
     <article class="page section-page about-page">
       <nav class="section-nav">
-        <a class="section-back" href="#/">← back to résumé</a>
         <span class="section-crumb">${esc(resume.name)} · About</span>
       </nav>
 

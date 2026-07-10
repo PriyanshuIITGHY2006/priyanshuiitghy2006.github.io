@@ -26,7 +26,7 @@ function pageShell(inner: string): string {
   return `
     <article class="page section-page gh-page">
       <nav class="section-nav">
-        <a class="section-back" href="#/">← back to résumé</a>
+        <a class="section-back" href="#/resume">← back to résumé</a>
         <span class="section-crumb">${esc(resume.name)} · GitHub</span>
       </nav>
       <div class="section-body">

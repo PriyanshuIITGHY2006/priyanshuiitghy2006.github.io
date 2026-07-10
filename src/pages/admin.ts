@@ -29,7 +29,7 @@ function renderLogin(container: HTMLElement, notice?: string): void {
   container.innerHTML = `
     <article class="page section-page admin-login-page">
       <nav class="section-nav">
-        <a class="section-back" href="#/">← back to résumé</a>
+        <a class="section-back" href="#/resume">← back to résumé</a>
         <span class="section-crumb">Admin</span>
       </nav>
       <div class="section-body">
@@ -102,7 +102,7 @@ function renderPanel(container: HTMLElement): void {
   container.innerHTML = `
     <article class="page section-page admin-page">
       <nav class="section-nav">
-        <a class="section-back" href="#/">← back to résumé</a>
+        <a class="section-back" href="#/resume">← back to résumé</a>
         <span class="section-crumb">Admin</span>
       </nav>
       <div class="section-body">

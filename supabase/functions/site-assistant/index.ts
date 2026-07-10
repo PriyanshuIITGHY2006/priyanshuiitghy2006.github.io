@@ -32,8 +32,8 @@ const SITE_ORIGIN = "https://priyanshuiitghy2006.github.io"
 // can't navigate anything itself, so it just reports the requested route
 // back to the frontend, which performs the actual hash change.
 const NAV_ROUTES = [
-  "/", "/education", "/projects", "/gallery", "/skills",
-  "/positions", "/achievements", "/about", "/blogs", "/codeforces", "/github",
+  "/", "/resume", "/education", "/projects", "/gallery", "/skills",
+  "/positions", "/achievements", "/blogs", "/codeforces", "/github",
 ] as const
 
 const TOOLS = [
@@ -131,9 +131,10 @@ Blog — "let down and hanging around" (name borrowed from the Radiohead song
 - "Stack, Heap, and the Registers That Finally Made Sense" — his first blog
   post, digging into how the stack/heap actually work in C++ underneath.
 
-Site navigation (hash routes): "/" résumé home, "/education", "/projects",
-"/gallery", "/skills", "/positions", "/achievements", "/about", "/blogs" the
-blog, "/codeforces" live Codeforces stats, "/github" GitHub activity/repos.
+Site navigation (hash routes): "/" home (the About page — bio, site map,
+contact form), "/resume" the traditional one-page résumé view, "/education",
+"/projects", "/gallery", "/skills", "/positions", "/achievements", "/blogs"
+the blog, "/codeforces" live Codeforces stats, "/github" GitHub activity/repos.
 
 Contact: priyanshuib01@gmail.com, GitHub github.com/PriyanshuIITGHY2006,
 LinkedIn linkedin.com/in/priyanshu-debnath-3a81711b3, Codeforces handle
