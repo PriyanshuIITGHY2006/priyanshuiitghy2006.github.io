@@ -205,15 +205,16 @@ function injectStyles(): void {
   style.textContent = `
     .term-window {
       position: fixed;
-      background: #0b0d0c;
-      border-radius: 8px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.45), 0 2px 8px rgba(0,0,0,0.3);
+      background: #060806;
+      border-radius: 5px;
+      box-shadow: 0 0 0 1px rgba(77,255,136,0.12), 0 25px 70px rgba(0,0,0,0.6);
       display: flex; flex-direction: column;
       overflow: hidden;
-      font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+      font-family: "Cascadia Code", "Fira Code", "JetBrains Mono", Consolas, "Liberation Mono", ui-monospace, monospace;
       animation: term-pop-in 0.14s ease;
       z-index: 100000;
       min-width: 280px;
+      min-height: 160px;
     }
     .term-window.term-maximized {
       left: 0.75rem !important; top: 0.75rem !important;
@@ -225,9 +226,10 @@ function injectStyles(): void {
     .term-window.term-minimized .term-body,
     .term-window.term-minimized .term-inputrow { display: none; }
     .term-titlebar {
-      display: flex; align-items: center; gap: 0.4rem;
-      padding: 0.55rem 0.7rem;
-      background: #1c1f1e;
+      display: flex; align-items: center; gap: 0.45rem;
+      padding: 0.5rem 0.7rem;
+      background: #0e120e;
+      border-bottom: 1px solid rgba(77,255,136,0.15);
       cursor: grab;
       touch-action: none;
       user-select: none;
@@ -240,21 +242,42 @@ function injectStyles(): void {
       appearance: none; -webkit-appearance: none;
     }
     .term-dot:hover { filter: brightness(1.2); }
-    .term-dot:focus-visible { outline: 2px solid #7be08a; outline-offset: 2px; }
+    .term-dot:focus-visible { outline: 2px solid #4dff88; outline-offset: 2px; }
     .term-dot-red { background: #ff5f56; }
     .term-dot-yellow { background: #ffbd2e; }
     .term-dot-green { background: #27c93f; }
-    .term-title { flex: 1; text-align: center; font-size: 0.78em; color: #8a8f8c; margin-right: 2.4rem; pointer-events: none; }
-    .term-body { flex: 1; overflow-y: auto; padding: 0.8rem 0.9rem; font-size: 0.86em; line-height: 1.5; }
-    .term-line { color: #d6f5df; white-space: pre-wrap; word-break: break-word; }
-    .term-echo { color: #7be08a; font-weight: 600; }
-    .term-err { color: #ff8a8a; }
-    .term-inputrow { display: flex; align-items: center; padding: 0 0.9rem 0.8rem; gap: 0.4rem; }
-    .term-prompt { color: #7be08a; font-size: 0.86em; white-space: nowrap; }
+    .term-title {
+      flex: 1; text-align: center; font-size: 0.76em; color: #5fae74;
+      margin-right: 2.4rem; pointer-events: none; letter-spacing: 0.02em;
+    }
+    .term-body {
+      flex: 1; overflow-y: auto; padding: 0.7rem 0.85rem;
+      font-size: 0.85em; line-height: 1.48;
+      background-image: repeating-linear-gradient(
+        rgba(0,0,0,0) 0, rgba(0,0,0,0) 2px, rgba(0,0,0,0.12) 3px
+      );
+    }
+    .term-line { color: #4dff88; white-space: pre-wrap; word-break: break-word; text-shadow: 0 0 1px rgba(77,255,136,0.35); }
+    .term-echo { color: #8dffab; font-weight: 600; }
+    .term-err { color: #ff6b6b; text-shadow: 0 0 1px rgba(255,107,107,0.35); }
+    .term-inputrow { display: flex; align-items: center; padding: 0 0.85rem 0.75rem; gap: 0.4rem; }
+    .term-prompt { color: #8dffab; font-size: 0.85em; white-space: nowrap; }
     .term-input {
       flex: 1; background: transparent; border: none; outline: none;
-      color: #d6f5df; font-family: inherit; font-size: 0.86em; caret-color: #7be08a;
+      color: #4dff88; font-family: inherit; font-size: 0.85em;
+      caret-color: #4dff88; caret-shape: block;
     }
+    .term-resize { position: absolute; z-index: 2; }
+    .term-resize-n { top: -3px; left: 8px; right: 8px; height: 6px; cursor: ns-resize; }
+    .term-resize-s { bottom: -3px; left: 8px; right: 8px; height: 6px; cursor: ns-resize; }
+    .term-resize-e { right: -3px; top: 8px; bottom: 8px; width: 6px; cursor: ew-resize; }
+    .term-resize-w { left: -3px; top: 8px; bottom: 8px; width: 6px; cursor: ew-resize; }
+    .term-resize-ne { top: -3px; right: -3px; width: 12px; height: 12px; cursor: nesw-resize; }
+    .term-resize-nw { top: -3px; left: -3px; width: 12px; height: 12px; cursor: nwse-resize; }
+    .term-resize-se { bottom: -3px; right: -3px; width: 12px; height: 12px; cursor: nwse-resize; }
+    .term-resize-sw { bottom: -3px; left: -3px; width: 12px; height: 12px; cursor: nesw-resize; }
+    .term-window.term-maximized .term-resize,
+    .term-window.term-minimized .term-resize { display: none; }
     @keyframes term-pop-in { from { opacity: 0; transform: translateY(10px) scale(0.98); } to { opacity: 1; transform: none; } }
   `;
   document.head.appendChild(style);
@@ -264,8 +287,75 @@ let terminalOpen = false;
 let winEl: HTMLDivElement | null = null;
 let winState: "normal" | "minimized" | "maximized" = "normal";
 
+const RESIZE_MIN_WIDTH = 280;
+const RESIZE_MIN_HEIGHT = 160;
+const RESIZE_DIRECTIONS = ["n", "s", "e", "w", "ne", "nw", "se", "sw"] as const;
+
 function clamp(v: number, min: number, max: number): number {
   return Math.min(Math.max(v, min), max);
+}
+
+// Adds 8 invisible edge/corner handles around the window so it can be
+// resized in any direction, like a real OS window (disabled while
+// maximized/minimized — hidden via CSS and gated here too).
+function setupResize(win: HTMLDivElement, isLocked: () => boolean): void {
+  for (const dir of RESIZE_DIRECTIONS) {
+    const handle = document.createElement("div");
+    handle.className = `term-resize term-resize-${dir}`;
+    win.appendChild(handle);
+
+    let resizing = false;
+    let startX = 0;
+    let startY = 0;
+    let startW = 0;
+    let startH = 0;
+    let startL = 0;
+    let startT = 0;
+
+    handle.addEventListener("pointerdown", (e) => {
+      if (isLocked()) return;
+      resizing = true;
+      startX = e.clientX;
+      startY = e.clientY;
+      const rect = win.getBoundingClientRect();
+      startW = rect.width;
+      startH = rect.height;
+      startL = rect.left;
+      startT = rect.top;
+      handle.setPointerCapture(e.pointerId);
+      e.stopPropagation();
+    });
+    handle.addEventListener("pointermove", (e) => {
+      if (!resizing) return;
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      let w = startW;
+      let h = startH;
+      let l = startL;
+      let t = startT;
+      if (dir.includes("e")) w = Math.max(RESIZE_MIN_WIDTH, startW + dx);
+      if (dir.includes("s")) h = Math.max(RESIZE_MIN_HEIGHT, startH + dy);
+      if (dir.includes("w")) {
+        w = Math.max(RESIZE_MIN_WIDTH, startW - dx);
+        l = startL + (startW - w);
+      }
+      if (dir.includes("n")) {
+        h = Math.max(RESIZE_MIN_HEIGHT, startH - dy);
+        t = startT + (startH - h);
+      }
+      win.style.width = `${w}px`;
+      win.style.height = `${h}px`;
+      win.style.left = `${l}px`;
+      win.style.top = `${t}px`;
+    });
+    function stopResize(e: PointerEvent): void {
+      if (!resizing) return;
+      resizing = false;
+      try { handle.releasePointerCapture(e.pointerId); } catch { /* already released */ }
+    }
+    handle.addEventListener("pointerup", stopResize);
+    handle.addEventListener("pointercancel", stopResize);
+  }
 }
 
 function openTerminal(): void {
@@ -307,6 +397,7 @@ function openTerminal(): void {
 
   document.body.appendChild(win);
   winEl = win;
+  setupResize(win, () => winState !== "normal");
 
   outputEl = win.querySelector<HTMLElement>("#term-body")!;
   inputEl = win.querySelector<HTMLInputElement>("#term-input")!;
