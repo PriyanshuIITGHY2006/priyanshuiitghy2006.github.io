@@ -17,6 +17,8 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.46.1",
+    "@xterm/addon-fit": "^0.11.0",
+    "@xterm/xterm": "^6.0.0",
     "dompurify": "^3.4.11",
     "highlight.js": "^11.11.1",
     "katex": "^0.17.0",

@@ -3,7 +3,15 @@
 // it's available on every page. The headline command is `resume` — it
 // prints the actual résumé data (src/data/resume.ts), plain-text
 // formatted, right there in the terminal, not a placeholder.
+//
+// Rendered with xterm.js (the same engine behind VS Code's integrated
+// terminal) instead of a DIY div-per-line + <input> — a real character
+// grid, cursor, and ANSI colors instead of an approximation of one.
+// Loaded lazily (only when the easter egg actually opens) since most
+// visitors never trigger it.
 
+import type { Terminal } from "@xterm/xterm";
+import type { FitAddon } from "@xterm/addon-fit";
 import { resume } from "../data/resume";
 
 function isEditableTarget(target: EventTarget | null): boolean {
@@ -126,26 +134,11 @@ const HELP_TEXT = [
   "  exit                close the terminal",
 ].join("\n");
 
-let outputEl: HTMLElement;
-let inputEl: HTMLInputElement;
-let history: string[] = [];
-let historyIndex = -1;
+const ANSI_RESET = "\x1b[0m";
+const ANSI_RED = "\x1b[91m";
 
-function print(text: string, cls = ""): void {
-  const line = document.createElement("div");
-  line.className = `term-line ${cls}`;
-  line.textContent = text;
-  outputEl.appendChild(line);
-  outputEl.scrollTop = outputEl.scrollHeight;
-}
-
-function printBlock(text: string): void {
-  text.split("\n").forEach((l) => print(l || " "));
-}
-
-function runCommand(raw: string, close: () => void): void {
+function runCommand(term: Terminal, raw: string, close: () => void): void {
   const trimmed = raw.trim();
-  print(`guest@priyanshu-portfolio:~$ ${raw}`, "term-echo");
   if (!trimmed) return;
 
   const [cmd, ...rest] = trimmed.split(/\s+/);
@@ -153,47 +146,47 @@ function runCommand(raw: string, close: () => void): void {
 
   switch (cmd.toLowerCase()) {
     case "help":
-      printBlock(HELP_TEXT);
+      term.writeln(HELP_TEXT);
       break;
     case "whoami":
-      print("guest");
-      print(`(you're looking at ${resume.name}'s site — type 'resume' to see it all)`);
+      term.writeln("guest");
+      term.writeln(`(you're looking at ${resume.name}'s site — type 'resume' to see it all)`);
       break;
     case "resume":
-      printBlock(formatResume());
+      term.writeln(formatResume());
       break;
     case "ls":
-      printBlock(Object.keys(FILES).join("   "));
+      term.writeln(Object.keys(FILES).join("   "));
       break;
     case "cat": {
       const key = arg.replace(/\.txt$/, "") + ".txt";
       const fn = FILES[key] ?? FILES[arg];
-      if (fn) printBlock(fn());
-      else print(`cat: ${arg || "(missing file)"}: No such file`, "term-err");
+      if (fn) term.writeln(fn());
+      else term.writeln(`${ANSI_RED}cat: ${arg || "(missing file)"}: No such file${ANSI_RESET}`);
       break;
     }
     case "cd":
     case "open": {
       const route = ROUTES[arg];
       if (route) {
-        print(`Navigating to ${route === "/" ? "home" : arg}…`);
+        term.writeln(`Navigating to ${route === "/" ? "home" : arg}…`);
         setTimeout(() => { location.hash = "#" + route; close(); }, 250);
       } else {
-        print(`cd: ${arg || "(missing page)"}: no such page — try: home, about, projects, skills, blog`, "term-err");
+        term.writeln(`${ANSI_RED}cd: ${arg || "(missing page)"}: no such page — try: home, about, projects, skills, blog${ANSI_RESET}`);
       }
       break;
     }
     case "sudo":
-      print("guest is not in the sudoers file. This incident will be reported.", "term-err");
+      term.writeln(`${ANSI_RED}guest is not in the sudoers file. This incident will be reported.${ANSI_RESET}`);
       break;
     case "clear":
-      outputEl.innerHTML = "";
+      term.clear();
       break;
     case "exit":
       close();
       break;
     default:
-      print(`command not found: ${cmd} — type 'help' for a list of commands`, "term-err");
+      term.writeln(`${ANSI_RED}command not found: ${cmd} — type 'help' for a list of commands${ANSI_RESET}`);
   }
 }
 
@@ -223,8 +216,7 @@ function injectStyles(): void {
     .term-window.term-minimized {
       height: auto !important; width: 260px !important;
     }
-    .term-window.term-minimized .term-body,
-    .term-window.term-minimized .term-inputrow { display: none; }
+    .term-window.term-minimized .term-body { display: none; }
     .term-titlebar {
       display: flex; align-items: center; gap: 0.45rem;
       padding: 0.5rem 0.7rem;
@@ -251,21 +243,7 @@ function injectStyles(): void {
       margin-right: 2.4rem; pointer-events: none; letter-spacing: 0.02em;
     }
     .term-body {
-      flex: 1; overflow-y: auto; padding: 0.7rem 0.85rem;
-      font-size: 0.85em; line-height: 1.48;
-      background-image: repeating-linear-gradient(
-        rgba(0,0,0,0) 0, rgba(0,0,0,0) 2px, rgba(0,0,0,0.12) 3px
-      );
-    }
-    .term-line { color: #4dff88; white-space: pre-wrap; word-break: break-word; text-shadow: 0 0 1px rgba(77,255,136,0.35); }
-    .term-echo { color: #8dffab; font-weight: 600; }
-    .term-err { color: #ff6b6b; text-shadow: 0 0 1px rgba(255,107,107,0.35); }
-    .term-inputrow { display: flex; align-items: center; padding: 0 0.85rem 0.75rem; gap: 0.4rem; }
-    .term-prompt { color: #8dffab; font-size: 0.85em; white-space: nowrap; }
-    .term-input {
-      flex: 1; background: transparent; border: none; outline: none;
-      color: #4dff88; font-family: inherit; font-size: 0.85em;
-      caret-color: #4dff88; caret-shape: block;
+      flex: 1; overflow: hidden; padding: 6px 4px 6px 8px;
     }
     .term-resize { position: absolute; z-index: 2; }
     .term-resize-n { top: -3px; left: 8px; right: 8px; height: 6px; cursor: ns-resize; }
@@ -286,6 +264,8 @@ function injectStyles(): void {
 let terminalOpen = false;
 let winEl: HTMLDivElement | null = null;
 let winState: "normal" | "minimized" | "maximized" = "normal";
+let termEl: Terminal | null = null;
+let fitAddonEl: FitAddon | null = null;
 
 const RESIZE_MIN_WIDTH = 280;
 const RESIZE_MIN_HEIGHT = 160;
@@ -293,6 +273,12 @@ const RESIZE_DIRECTIONS = ["n", "s", "e", "w", "ne", "nw", "se", "sw"] as const;
 
 function clamp(v: number, min: number, max: number): number {
   return Math.min(Math.max(v, min), max);
+}
+
+function refit(): void {
+  requestAnimationFrame(() => {
+    try { fitAddonEl?.fit(); } catch { /* container not visible yet */ }
+  });
 }
 
 // Adds 8 invisible edge/corner handles around the window so it can be
@@ -347,6 +333,7 @@ function setupResize(win: HTMLDivElement, isLocked: () => boolean): void {
       win.style.height = `${h}px`;
       win.style.left = `${l}px`;
       win.style.top = `${t}px`;
+      refit();
     });
     function stopResize(e: PointerEvent): void {
       if (!resizing) return;
@@ -358,13 +345,139 @@ function setupResize(win: HTMLDivElement, isLocked: () => boolean): void {
   }
 }
 
-function openTerminal(): void {
+// A minimal line editor on top of xterm's raw keystroke stream — xterm
+// only gives you a character grid + cursor, not readline, so this wires
+// up insert/backspace/delete, left/right/home/end, up/down history,
+// Ctrl+C, and Ctrl+L by hand.
+function setupShell(term: Terminal, close: () => void): void {
+  let line = "";
+  let cursor = 0;
+  const history: string[] = [];
+  let historyIndex = 0;
+
+  function writePrompt(): void {
+    term.write("\x1b[1;92mguest@priyanshu-portfolio\x1b[0m:\x1b[1;94m~\x1b[0m$ ");
+  }
+
+  function redraw(): void {
+    term.write("\r\x1b[K");
+    writePrompt();
+    term.write(line);
+    const back = line.length - cursor;
+    if (back > 0) term.write(`\x1b[${back}D`);
+  }
+
+  function insertText(s: string): void {
+    const clean = s.replace(/[\r\n\x00-\x1f\x7f]/g, "");
+    if (!clean) return;
+    line = line.slice(0, cursor) + clean + line.slice(cursor);
+    cursor += clean.length;
+    redraw();
+  }
+
+  function finalizeLine(): void {
+    const val = line;
+    term.write("\r\n");
+    if (val.trim()) {
+      history.push(val);
+      historyIndex = history.length;
+    }
+    line = "";
+    cursor = 0;
+    runCommand(term, val, close);
+    writePrompt();
+  }
+
+  term.onData((data) => {
+    if (data.length === 1) {
+      if (data === "\r") return finalizeLine();
+      if (data === "\u007f") {
+        if (cursor > 0) {
+          line = line.slice(0, cursor - 1) + line.slice(cursor);
+          cursor--;
+          redraw();
+        }
+        return;
+      }
+      if (data === "\u0003") {
+        term.write("^C\r\n");
+        line = "";
+        cursor = 0;
+        historyIndex = history.length;
+        writePrompt();
+        return;
+      }
+      if (data === "\u000c") {
+        term.clear();
+        redraw();
+        return;
+      }
+      if (data.charCodeAt(0) < 32) return;
+      return insertText(data);
+    }
+
+    switch (data) {
+      case "\x1b[A":
+        if (historyIndex > 0) {
+          historyIndex--;
+          line = history[historyIndex] ?? "";
+          cursor = line.length;
+          redraw();
+        }
+        return;
+      case "\x1b[B":
+        if (historyIndex < history.length - 1) {
+          historyIndex++;
+          line = history[historyIndex] ?? "";
+        } else {
+          historyIndex = history.length;
+          line = "";
+        }
+        cursor = line.length;
+        redraw();
+        return;
+      case "\x1b[C":
+        if (cursor < line.length) { cursor++; term.write("\x1b[C"); }
+        return;
+      case "\x1b[D":
+        if (cursor > 0) { cursor--; term.write("\x1b[D"); }
+        return;
+      case "\x1b[3~":
+        if (cursor < line.length) {
+          line = line.slice(0, cursor) + line.slice(cursor + 1);
+          redraw();
+        }
+        return;
+      case "\x1b[H":
+      case "\x1b[1~":
+        cursor = 0;
+        redraw();
+        return;
+      case "\x1b[F":
+      case "\x1b[4~":
+        cursor = line.length;
+        redraw();
+        return;
+      default:
+        if (data.startsWith("\x1b")) return;
+        return insertText(data);
+    }
+  });
+
+  term.writeln(`Welcome to ${resume.name}'s terminal.`);
+  term.writeln("Type 'resume' to see the full résumé, or 'help' for more.");
+  term.writeln("");
+  writePrompt();
+}
+
+async function openTerminal(): Promise<void> {
   if (terminalOpen) {
     if (winState === "minimized" && winEl) {
       winEl.classList.remove("term-minimized");
       winState = "normal";
+      refit();
     }
-    inputEl?.focus();
+    termEl?.focus();
     return;
   }
   terminalOpen = true;
@@ -382,11 +495,7 @@ function openTerminal(): void {
       <button type="button" class="term-dot term-dot-green" aria-label="Maximize terminal" title="Maximize"></button>
       <span class="term-title">guest@priyanshu-portfolio: ~</span>
     </div>
-    <div class="term-body" id="term-body"></div>
-    <div class="term-inputrow">
-      <span class="term-prompt">guest@priyanshu-portfolio:~$</span>
-      <input class="term-input" id="term-input" autocomplete="off" spellcheck="false" />
-    </div>`;
+    <div class="term-body" id="term-body"></div>`;
 
   const width = Math.min(window.innerWidth - 32, 720);
   const height = Math.min(window.innerHeight * 0.65, 512);
@@ -399,11 +508,6 @@ function openTerminal(): void {
   winEl = win;
   setupResize(win, () => winState !== "normal");
 
-  outputEl = win.querySelector<HTMLElement>("#term-body")!;
-  inputEl = win.querySelector<HTMLInputElement>("#term-input")!;
-  history = [];
-  historyIndex = -1;
-
   const titlebar = win.querySelector<HTMLElement>(".term-titlebar")!;
   const dotClose = win.querySelector<HTMLButtonElement>(".term-dot-red")!;
   const dotMin = win.querySelector<HTMLButtonElement>(".term-dot-yellow")!;
@@ -411,6 +515,9 @@ function openTerminal(): void {
 
   function close(): void {
     document.removeEventListener("keydown", onEscape, true);
+    termEl?.dispose();
+    termEl = null;
+    fitAddonEl = null;
     win.remove();
     terminalOpen = false;
     winEl = null;
@@ -423,11 +530,13 @@ function openTerminal(): void {
   function setMinimized(on: boolean): void {
     winState = on ? "minimized" : "normal";
     win.classList.toggle("term-minimized", on);
+    if (!on) refit();
   }
 
   function setMaximized(on: boolean): void {
     winState = on ? "maximized" : "normal";
     win.classList.toggle("term-maximized", on);
+    refit();
   }
 
   dotClose.addEventListener("click", close);
@@ -474,29 +583,54 @@ function openTerminal(): void {
   titlebar.addEventListener("pointerup", stopDrag);
   titlebar.addEventListener("pointercancel", stopDrag);
 
-  inputEl.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-      const val = inputEl.value;
-      history.push(val);
-      historyIndex = history.length;
-      inputEl.value = "";
-      runCommand(val, close);
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      if (historyIndex > 0) { historyIndex--; inputEl.value = history[historyIndex] ?? ""; }
-    } else if (e.key === "ArrowDown") {
-      e.preventDefault();
-      if (historyIndex < history.length - 1) { historyIndex++; inputEl.value = history[historyIndex] ?? ""; }
-      else { historyIndex = history.length; inputEl.value = ""; }
-    }
-  });
-
   document.addEventListener("keydown", onEscape, true);
 
-  print(`Welcome to ${resume.name}'s terminal.`);
-  print("Type 'resume' to see the full résumé, or 'help' for more.");
-  print("");
-  inputEl.focus();
+  const [{ Terminal }, { FitAddon }] = await Promise.all([
+    import("@xterm/xterm"),
+    import("@xterm/addon-fit"),
+    import("@xterm/xterm/css/xterm.css"),
+  ]);
+
+  if (!terminalOpen) return; // closed again before the chunk finished loading
+
+  const term = new Terminal({
+    fontFamily: '"Cascadia Code", "Fira Code", "JetBrains Mono", Consolas, "Liberation Mono", monospace',
+    fontSize: 13,
+    lineHeight: 1.25,
+    cursorBlink: true,
+    cursorStyle: "block",
+    scrollback: 2000,
+    convertEol: true,
+    theme: {
+      background: "#060806",
+      foreground: "#4dff88",
+      cursor: "#4dff88",
+      cursorAccent: "#060806",
+      selectionBackground: "rgba(77,255,136,0.28)",
+      black: "#060806",
+      red: "#ff6b6b",
+      green: "#4dff88",
+      yellow: "#ffbd2e",
+      blue: "#7ab8ff",
+      magenta: "#c792ff",
+      cyan: "#63e8d4",
+      white: "#d6f5df",
+      brightGreen: "#8dffab",
+      brightBlue: "#8dc4ff",
+    },
+  });
+  const fitAddon = new FitAddon();
+  term.loadAddon(fitAddon);
+
+  const bodyEl = win.querySelector<HTMLElement>("#term-body")!;
+  term.open(bodyEl);
+  fitAddon.fit();
+
+  termEl = term;
+  fitAddonEl = fitAddon;
+
+  setupShell(term, close);
+  term.focus();
 }
 
 export function initTerminalEasterEgg(): void {
@@ -505,6 +639,6 @@ export function initTerminalEasterEgg(): void {
     if (e.ctrlKey || e.metaKey || e.altKey || e.isComposing) return;
     if (isEditableTarget(e.target)) return;
     e.preventDefault();
-    openTerminal();
+    void openTerminal();
   });
 }
