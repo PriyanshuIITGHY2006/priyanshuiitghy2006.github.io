@@ -10,7 +10,7 @@ export function mountNotFound(container: HTMLElement): void {
   container.innerHTML = `
     <article class="page section-page not-found-page">
       <nav class="section-nav">
-        <a class="section-back" href="#/resume">← back to résumé</a>
+        <a class="section-back" href="#/">← back</a>
         <span class="section-crumb">${esc(resume.name)}</span>
       </nav>
       <div class="section-body not-found-body">

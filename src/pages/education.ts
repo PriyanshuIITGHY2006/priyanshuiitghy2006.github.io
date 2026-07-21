@@ -176,7 +176,7 @@ function pageHtml(data: ResumeData): string {
   return `
     <article class="page section-page edu-page">
       <nav class="section-nav">
-        <a class="section-back" href="#/resume">← back to résumé</a>
+        <a class="section-back" href="#/">← back</a>
         <span class="section-crumb">${esc(data.name)} · Education</span>
       </nav>
 
