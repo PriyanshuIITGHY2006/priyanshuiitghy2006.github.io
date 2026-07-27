@@ -173,7 +173,7 @@ export const resume: ResumeData = {
   achievements: [
     {
       id: "delta-2026",
-      html: "<b>IICPC DELTA 2026,</b> Overall Rank 5 — Technology Track (Optiver · HRT)",
+      html: "<b>IICPC DELTA 2026,</b> Qualified for Interview Round — Technology Track OA Rank 5 (Optiver · HRT)",
       date: "Aug 2026",
     },
     {
