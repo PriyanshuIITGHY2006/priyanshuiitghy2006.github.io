@@ -19,6 +19,19 @@ export interface DetailedAchievement {
 
 export const ACHIEVEMENTS: DetailedAchievement[] = [
   {
+    id: "delta-2026",
+    title: "IICPC DELTA 2026 — Overall Rank 5, Technology Track",
+    date: "Aug 2026",
+    tags: ["Rank 5", "Technology Track", "Optiver · HRT"],
+    blurb:
+      "Selected for <b>DELTA 2026</b>, a four-day IICPC bootcamp placing ~35 students " +
+      "from IITs, NUS, and NTU directly in front of engineers and traders from " +
+      "<b>Optiver</b> and <b>Hudson River Trading</b>. Finished <b>Overall Rank 5</b> " +
+      "in the Technology track. Also competed in the Trading track (Rank 274).",
+    verify: "delta-2026-tech",
+    link: { label: "DELTA program", href: "https://delta.iicpc.com" },
+  },
+  {
     id: "kriti-2026",
     title: "Kriti 2026 — Gold Medal, Artificial Intelligence Challenge",
     date: "Jun 2026",
