@@ -172,6 +172,11 @@ export const resume: ResumeData = {
 
   achievements: [
     {
+      id: "delta-2026",
+      html: "<b>IICPC DELTA 2026,</b> Qualified for Interview Round — Technology Track OA Rank 5 (Optiver · HRT)",
+      date: "Aug 2026",
+    },
+    {
       id: "kriti-2026",
       html: "<b>Kriti 2026,</b> Gold Medal — Artificial Intelligence Challenge, IIT Guwahati",
       date: "2026",

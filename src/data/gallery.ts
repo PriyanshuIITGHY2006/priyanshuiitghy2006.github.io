@@ -47,5 +47,20 @@ export const GALLERY: GalleryItem[] = [
     src: "gallery/kelly-criterion.pdf",
     date: "Apr 2026",
     description: "Detailed work on kelly criterion for fixed bet games",
-  }
+  },
+  {
+    id: "delta-2026-tech",
+    title: "IICPC DELTA 2026 — Technology Track",
+    // Parentheses are valid in URL paths but encode to be safe.
+    src: "gallery/IICPC-DELTA%28TECH%29.pdf",
+    date: "Aug 2026",
+    description: "Technology track result — IICPC DELTA 2026 (Optiver · HRT).",
+  },
+  {
+    id: "delta-2026-trading",
+    title: "IICPC DELTA 2026 — Trading Track",
+    src: "gallery/IICPC-DELTA%28TRADING%29.pdf",
+    date: "Aug 2026",
+    description: "Trading track result — IICPC DELTA 2026 (Optiver · HRT).",
+  },
 ];
