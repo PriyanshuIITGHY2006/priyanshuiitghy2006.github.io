@@ -38,8 +38,7 @@ function pageHtml(): string {
       <div class="section-body">
         <h2 class="section">Gallery</h2>
         <p class="edu-note">
-          Certificates, achievement scorecards and project screenshots — images and PDFs.
-          Click any item to view it full-screen; each has a shareable link.
+          Flexes.
         </p>
         ${body}
       </div>
