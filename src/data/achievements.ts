@@ -18,6 +18,17 @@ export interface DetailedAchievement {
 }
 
 export const ACHIEVEMENTS: DetailedAchievement[] = [
+   {
+    id: "quantfest-26",
+    title: "IICPC Quantfest Regionalist with AIR 51",
+    date: "Aug 2026",
+    tags: ["Combinatorics", "Probabilities", "Competitive Programming"],
+    blurb:
+      "Qualified for the <b>IICPC Quantfest 2026</b> Regionals — an IICPC Programme " +
+      "with AIR 51 among 11000+ students from different IIT's and APAC region colleges. " +
+      "<b>Optiver</b>, <b>Jane Street</b>, <b>Hudson River Trading</b> and many more top hft's. ",
+    verify: "Quantfest26",
+  },
   {
     id: "delta-2026",
     title: "IICPC DELTA 2026 — Qualified for Interview Round, Technology Track",
