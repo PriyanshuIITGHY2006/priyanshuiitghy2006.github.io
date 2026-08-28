@@ -19,7 +19,7 @@ export interface GalleryItem {
 
 export const GALLERY: GalleryItem[] = [
   {
-    id: "hackathon-squad",
+    id: "quantfest-26",
     title: "Quantfest 2026 — Priyanshu Debnath",
     src: "gallery/Quantfest26.pdf",
     date: "Aug 2026",
