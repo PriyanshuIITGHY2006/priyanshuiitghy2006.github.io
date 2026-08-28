@@ -27,7 +27,7 @@ export const ACHIEVEMENTS: DetailedAchievement[] = [
       "Qualified for the <b>IICPC Quantfest 2026</b> Regionals — an IICPC Programme " +
       "with AIR 51 among 11000+ students from different IIT's and APAC region colleges. " +
       "<b>Optiver</b>, <b>Jane Street</b>, <b>Hudson River Trading</b> and many more top hft's. ",
-    verify: "Quantfest26",
+    verify: "quantfest-26",
   },
   {
     id: "delta-2026",
