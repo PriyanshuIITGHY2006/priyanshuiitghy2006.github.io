@@ -44,22 +44,18 @@ function pageHtml(): string {
         <h2 class="section">About</h2>
         <div class="about-intro">
           <p>
-            I'm a first-year B.Tech student in Electronics and Electrical Engineering
-            (with a Mathematics minor) at IIT Guwahati. Most of what I do sits at the
-            intersection of algorithms, mathematics, and building things end to end —
-            from competitive-programming problem sets to machine-learning pipelines
-            and quantitative trading strategies.
+            I'm a sophomore B.Tech student in Electronics and Electrical Engineering
+            (with a Mathematics minor) at IIT Guwahati. What i do is a bit cp then a 
+            little bit more cp and then a little bit more cp and sleep.
           </p>
           <p>
-            I compete on Codeforces as an Expert (anyways, it doesn't matter provided 
-            the amount of folks cheat nowadays) , and spend a good deal of time on
+            I compete on Codeforces as an Expert and spend a good deal of time on
             the other side of the table too — exploring c++ in depth and touching some
             grass.
           </p>
           <p>
-            This site doubles as an interactive résumé and a place to write about
-            what I'm building — problem write-ups, project post-mortems, and notes
-            on whatever I've been debugging most recently.
+            This is my portfolio and my dumb thoughts and my learning on some os and cp 
+            stuff.
           </p>
         </div>
 
