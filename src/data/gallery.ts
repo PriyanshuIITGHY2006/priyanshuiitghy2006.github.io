@@ -19,6 +19,13 @@ export interface GalleryItem {
 
 export const GALLERY: GalleryItem[] = [
   {
+    id: "hackathon-squad",
+    title: "Quantfest 2026 — Priyanshu Debnath",
+    src: "gallery/Quantfest26.pdf",
+    date: "Aug 2026",
+    description: "Certificate of AIR 51 in Quantfest 2026 Prelims",
+  },
+  {
     id: "kriti-2026",
     title: "Kriti 2026 — Gold Medal (AI Challenge)",
     src: "gallery/kriti.pdf",
