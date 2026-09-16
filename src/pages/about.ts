@@ -24,8 +24,10 @@ function siteMapHtml(): string {
   const items = SITE_MAP.map(
     (s) => `
       <li>
-        <a class="link" href="${s.href}">${esc(s.label)}</a>
-        <span class="about-list-note-inline">${esc(s.note)}</span>
+        <a class="about-card" href="${s.href}">
+          <span class="about-card-label">${esc(s.label)}</span>
+          <span class="about-card-note">${esc(s.note)}</span>
+        </a>
       </li>`,
   ).join("");
   return `
@@ -33,19 +35,39 @@ function siteMapHtml(): string {
     <ul class="about-list">${items}</ul>`;
 }
 
+function heroHtml(): string {
+  return `
+    <section class="hero">
+      <p class="hero-eyebrow">Hi, I'm</p>
+      <h1 class="hero-name">${esc(resume.name)}</h1>
+      <p class="hero-role">B.Tech EEE (Math minor) · IIT Guwahati · Codeforces Expert</p>
+      <p class="hero-tagline">
+        Sophomore engineer living somewhere between competitive programming,
+        machine learning, and quantitative finance — building things, breaking
+        things, and writing up what I learn along the way.
+      </p>
+      <div class="hero-actions">
+        <a class="link" href="#/resume">Résumé →</a>
+        <a class="link" href="#/projects">Projects →</a>
+        <a class="link" href="${LINKS.github}" target="_blank" rel="noopener">GitHub ↗</a>
+        <a class="link" href="${LINKS.codeforces}" target="_blank" rel="noopener">Codeforces ↗</a>
+        <a class="link" href="${LINKS.linkedin}" target="_blank" rel="noopener">LinkedIn ↗</a>
+        <a class="link" href="#contact-form">Contact →</a>
+      </div>
+    </section>`;
+}
+
 function pageHtml(): string {
   return `
     <article class="page section-page about-page">
-      <nav class="section-nav">
-        <span class="section-crumb">${esc(resume.name)} · About</span>
-      </nav>
+      ${heroHtml()}
 
       <div class="section-body">
         <h2 class="section">About</h2>
         <div class="about-intro">
           <p>
             I'm a sophomore B.Tech student in Electronics and Electrical Engineering
-            (with a Mathematics minor) at IIT Guwahati. What i do is a bit cp then a 
+            (with a Mathematics minor) at IIT Guwahati. What i do is a bit cp then a
             little bit more cp and then a little bit more cp and sleep.
           </p>
           <p>
@@ -54,17 +76,9 @@ function pageHtml(): string {
             grass.
           </p>
           <p>
-            This is my portfolio and my dumb thoughts and my learning on some os and cp 
+            This is my portfolio and my dumb thoughts and my learning on some os and cp
             stuff.
           </p>
-        </div>
-
-        <h2 class="section about-sub">Elsewhere</h2>
-        <div class="pj-links about-links">
-          <a class="pj-link" href="#/github">GitHub →</a>
-          <a class="pj-link" href="#/codeforces">Codeforces →</a>
-          <a class="pj-link" href="${LINKS.linkedin}" target="_blank" rel="noopener">LinkedIn ↗</a>
-          <a class="pj-link" href="#/blogs">Blog →</a>
         </div>
 
         ${siteMapHtml()}

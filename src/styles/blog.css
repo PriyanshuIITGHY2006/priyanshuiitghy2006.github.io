@@ -8,7 +8,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.5em;
-  font-family: var(--cm);
+  font-family: var(--cm-sans);
   font-size: 0.85em;
   color: var(--ink-soft);
   background: var(--bg-card);
@@ -74,7 +74,7 @@
   justify-content: center;
   font-size: 2em;
   color: var(--border-strong);
-  font-family: var(--cm);
+  font-family: var(--cm-sans);
 }
 .blog-card-body {
   flex: 1 1 auto;
@@ -207,7 +207,7 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: #888;
-  font-family: var(--cm);
+  font-family: var(--cm-sans);
 }
 
 /* ─── Minimal highlight.js theme, tuned to sit quietly under the CM serif ── */
@@ -243,7 +243,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.4em;
-  font-family: var(--cm);
+  font-family: var(--cm-sans);
   font-size: 0.9em;
   color: var(--muted);
   background: var(--bg-card);
@@ -308,7 +308,7 @@
   border: 0.6px solid var(--border);
   background: var(--bg-card);
   color: var(--ink-soft);
-  font-family: var(--cm);
+  font-family: var(--cm-sans);
   font-size: 1.15em;
   line-height: 1;
   cursor: pointer;
@@ -343,7 +343,7 @@
 .blog-spoiler summary {
   cursor: pointer;
   font-weight: 700;
-  font-family: var(--cm);
+  font-family: var(--cm-sans);
   padding: 0.6rem 0;
   list-style: none;
 }
@@ -390,7 +390,7 @@
 :root[data-theme="dark"] .blog-run-panel { border-color: #444; }
 .blog-run-controls { display: flex; align-items: center; gap: 0.7rem; }
 .blog-run-btn {
-  font-family: var(--cm);
+  font-family: var(--cm-sans);
   font-size: 0.82em;
   color: #e8e8ea;
   background: #333;
@@ -540,7 +540,7 @@
 .blog-toc-summary {
   cursor: pointer;
   font-weight: 700;
-  font-family: var(--cm);
+  font-family: var(--cm-sans);
   font-size: 0.95em;
 }
 .blog-toc-list {
@@ -647,7 +647,7 @@
   border-radius: 5px;
   background: var(--bg-card);
   color: var(--ink);
-  font-family: var(--cm);
+  font-family: var(--cm-sans);
   font-size: 0.9em;
 }
 .blog-tag-select {
@@ -656,12 +656,12 @@
   border-radius: 5px;
   background: var(--bg-card);
   color: var(--ink-soft);
-  font-family: var(--cm);
+  font-family: var(--cm-sans);
   font-size: 0.85em;
   cursor: pointer;
 }
 .blog-rss-link {
-  font-family: var(--cm);
+  font-family: var(--cm-sans);
   font-size: 0.78em;
   padding: 0.3em 0.7em;
   border: 0.6px solid var(--border);
@@ -718,7 +718,7 @@
   border-top: 0.6px solid var(--border-soft);
 }
 .blog-binviz-btn {
-  font-family: var(--cm);
+  font-family: var(--cm-sans);
   font-size: 0.8em;
   color: var(--ink-soft);
   background: var(--bg-card);
@@ -736,7 +736,7 @@
 }
 .blog-binviz-caption {
   margin-top: 0.7rem;
-  font-family: var(--cm);
+  font-family: var(--cm-sans);
   font-size: 0.8em;
   font-style: italic;
   color: var(--muted);

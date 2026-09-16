@@ -20,7 +20,6 @@ import { initFallingSymbolsEasterEgg } from "./lib/falling-symbols";
 import { initTerminalEasterEgg } from "./lib/terminal";
 import { setPageMeta } from "./lib/seo";
 import { mountNotFound } from "./pages/not-found";
-import { initSiteAssistantWidget } from "./lib/site-assistant-widget";
 
 const app = document.querySelector<HTMLElement>("#app");
 if (!app) throw new Error("Missing #app");
@@ -30,7 +29,6 @@ if (themeToggleBtn) mountThemeToggle(themeToggleBtn);
 
 initFallingSymbolsEasterEgg();
 initTerminalEasterEgg();
-initSiteAssistantWidget();
 
 document.addEventListener("click", (e) => {
   const target = (e.target as HTMLElement).closest<HTMLElement>("[data-detail]");
