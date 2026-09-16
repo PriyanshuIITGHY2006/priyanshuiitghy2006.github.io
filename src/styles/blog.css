@@ -1,5 +1,5 @@
 /* ─── Blog list page (reuses .gl-* card shell conventions) ───────────── */
-.blogs-page { max-width: 60rem; margin: 0 auto; background: transparent; }
+.blogs-page { max-width: 46rem; margin: 0 auto; background: transparent; }
 
 /* ─── Background-audio toggle ("listen to Let Down") ──────────────────── */
 .blog-audio-btn {

@@ -214,6 +214,11 @@ h1, h2, h3, h4, h5, h6, .name {
 .section-body .section { font-size: 1.5em; }
 .section-more { margin-top: 1rem; font-size: 0.95em; }
 
+/* ─── Standalone Skills/Positions pages (src/pages/section.ts) — these
+   render a single résumé section with no page-specific wrapper class of
+   their own, so give them the same centered column as every other page. */
+.solo-section-page { max-width: 46rem; margin: 0 auto; }
+
 /* ─── 404 page ────────────────────────────────────────────────────────── */
 .not-found-page { max-width: 40rem; margin: 0 auto; }
 .not-found-body { text-align: center; padding: 3rem 0; }
@@ -221,7 +226,7 @@ h1, h2, h3, h4, h5, h6, .name {
 .not-found-msg { font-size: 1.05em; margin-top: 0.5rem; }
 
 /* ─── Elaborated Education page ─────────────────────────────────────── */
-.edu-page { max-width: 56rem; margin: 0 auto; }
+.edu-page { max-width: 46rem; margin: 0 auto; }
 .edu-sub { margin-top: 1.6rem; }
 .edu-note { font-size: 0.86em; color: var(--muted); font-style: italic; margin: 0.35rem 0 0.7rem; }
 
@@ -310,7 +315,7 @@ h1, h2, h3, h4, h5, h6, .name {
 }
 
 /* ─── Detailed Projects page ────────────────────────────────────────── */
-.projects-page { max-width: 56rem; margin: 0 auto; }
+.projects-page { max-width: 46rem; margin: 0 auto; }
 .pj-list { list-style: none; margin: 1rem 0 0; padding: 0; counter-reset: none; }
 .pj {
   display: grid;
@@ -355,7 +360,7 @@ h1, h2, h3, h4, h5, h6, .name {
 }
 
 /* ─── Achievements page (reuses .pj-* chips & links) ────────────────── */
-.achievements-page { max-width: 56rem; margin: 0 auto; }
+.achievements-page { max-width: 46rem; margin: 0 auto; }
 .ach { display: grid; grid-template-columns: 2.6rem 1fr; gap: 0.6rem; padding: 1.1rem 0; border-top: 0.6px solid var(--border); }
 .ach:first-child { border-top: none; padding-top: 0.4rem; }
 .ach-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
@@ -366,7 +371,7 @@ h1, h2, h3, h4, h5, h6, .name {
 @media (max-width: 640px) { .ach { grid-template-columns: 1.8rem 1fr; gap: 0.4rem; } }
 
 /* ─── Gallery page ──────────────────────────────────────────────────── */
-.gallery-page { max-width: 60rem; margin: 0 auto; }
+.gallery-page { max-width: 50rem; margin: 0 auto; }
 .gl-section { margin-top: 1.2rem; }
 .gl-cat {
   font-size: 0.78em; font-weight: 700; text-transform: uppercase;
