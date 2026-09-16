@@ -42,9 +42,8 @@
 }
 
 @media (max-width: 640px) {
-  .hero { min-height: auto; max-width: none; text-align: center; padding-top: 0.6rem; }
+  .hero { max-width: none; padding: 1rem 0; }
   .hero-name { font-size: 1.7em; }
-  .hero-actions { justify-content: center; }
 }
 
 /* ─── Socials — brought up into the same slide, right under the nav ──── */
@@ -63,9 +62,6 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.7rem;
-}
-@media (max-width: 640px) {
-  .socials-icons { justify-content: center; }
 }
 .social-icon {
   width: 2.1rem;

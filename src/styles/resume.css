@@ -484,6 +484,7 @@ h1, h2, h3, h4, h5, h6, .name {
   padding: 0.22em 0.4em;
   text-align: center;
   vertical-align: middle;
+  overflow-wrap: break-word;
 }
 .edu-table th { font-weight: 700; }
 .edu-table th:nth-child(1), .edu-table td:nth-child(1) { width: 24%; }
@@ -661,4 +662,8 @@ h1, h2, h3, h4, h5, h6, .name {
   .cv-head { grid-template-columns: 3.6rem 1fr; gap: 0.6rem; }
   .cv-logo img { width: 3.4rem; }
   .por-list > li, .proj-grid { flex-wrap: wrap; }
+  /* The right-hand contact column (email/LinkedIn URL) is too long to
+     stay on one line at phone widths — nowrap there forces the whole
+     header table wider than the viewport. */
+  .cv-head-tab .hr { white-space: normal; overflow-wrap: break-word; }
 }
