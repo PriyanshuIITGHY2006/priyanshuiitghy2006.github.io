@@ -25,20 +25,6 @@ const SOCIAL_ICONS: { label: string; href: string; path: string }[] = [
   },
 ];
 
-function heroHtml(): string {
-  return `
-    <section class="hero">
-      <p class="hero-eyebrow">Hi, I'm</p>
-      <h1 class="hero-name">${esc(resume.name)}</h1>
-      <p class="hero-tagline">Barely there.</p>
-      <div class="hero-actions">
-        <a class="link" href="#/resume">Résumé →</a>
-        <a class="link" href="#/projects">Projects →</a>
-        <a class="link" href="#/blogs">Blogs →</a>
-      </div>
-    </section>`;
-}
-
 function socialsHtml(): string {
   const icons = SOCIAL_ICONS.map(
     (s) => `
@@ -48,62 +34,61 @@ function socialsHtml(): string {
   ).join("");
 
   return `
-    <h2 class="section about-sub">Socials</h2>
-    <p class="socials-sub">reach out to me</p>
-    <div class="socials-icons">${icons}</div>
-    <p class="socials-mail">or mail me at <a class="link" href="mailto:${LINKS.emailPersonal}">${LINKS.emailPersonal}</a></p>
+    <div class="hero-socials">
+      <p class="socials-sub">reach out to me</p>
+      <div class="socials-icons">${icons}</div>
+      <p class="socials-mail">or mail me at <a class="link" href="mailto:${LINKS.emailPersonal}">${LINKS.emailPersonal}</a></p>
 
-    <details class="contact-details">
-      <summary>Contact</summary>
-      <form id="contact-form" class="contact-form" action="${FORMSPREE_ENDPOINT}" method="POST">
-        <div id="contact-status" class="contact-status" style="display:none"></div>
-        <div class="contact-row">
-          <div>
-            <label for="cf-name">Name</label>
-            <input id="cf-name" name="name" type="text" required autocomplete="name"/>
+      <details class="contact-details">
+        <summary>Contact</summary>
+        <form id="contact-form" class="contact-form" action="${FORMSPREE_ENDPOINT}" method="POST">
+          <div id="contact-status" class="contact-status" style="display:none"></div>
+          <div class="contact-row">
+            <div>
+              <label for="cf-name">Name</label>
+              <input id="cf-name" name="name" type="text" required autocomplete="name"/>
+            </div>
+            <div>
+              <label for="cf-email">Email</label>
+              <input id="cf-email" name="email" type="email" required autocomplete="email"/>
+            </div>
           </div>
           <div>
-            <label for="cf-email">Email</label>
-            <input id="cf-email" name="email" type="email" required autocomplete="email"/>
+            <label for="cf-message">Message</label>
+            <textarea id="cf-message" name="message" required></textarea>
           </div>
-        </div>
-        <div>
-          <label for="cf-message">Message</label>
-          <textarea id="cf-message" name="message" required></textarea>
-        </div>
-        <div class="contact-actions">
-          <button type="submit" class="pj-link contact-submit">Send message</button>
-        </div>
-      </form>
-    </details>`;
+          <div class="contact-actions">
+            <button type="submit" class="pj-link contact-submit">Send message</button>
+          </div>
+        </form>
+      </details>
+    </div>`;
+}
+
+function heroHtml(): string {
+  return `
+    <section class="hero">
+      <p class="hero-eyebrow">Hi, I'm</p>
+      <h1 class="hero-name">${esc(resume.name)}</h1>
+      <p class="hero-about">
+        Sophomore B.Tech student in Electronics and Electrical Engineering
+        (Mathematics minor) at IIT Guwahati. Codeforces Expert who spends most
+        days doing a bit of cp, exploring c++ in depth, and occasionally
+        touching grass — this is where I write about it.
+      </p>
+      <div class="hero-actions">
+        <a class="link" href="#/resume">Résumé →</a>
+        <a class="link" href="#/projects">Projects →</a>
+        <a class="link" href="#/blogs">Blogs →</a>
+      </div>
+      ${socialsHtml()}
+    </section>`;
 }
 
 function pageHtml(): string {
   return `
-    <article class="page section-page about-page">
+    <article class="page about-page">
       ${heroHtml()}
-
-      <div class="section-body">
-        <h2 class="section">About</h2>
-        <div class="about-intro">
-          <p>
-            I'm a sophomore B.Tech student in Electronics and Electrical Engineering
-            (with a Mathematics minor) at IIT Guwahati. What i do is a bit cp then a
-            little bit more cp and then a little bit more cp and sleep.
-          </p>
-          <p>
-            I compete on Codeforces as an Expert and spend a good deal of time on
-            the other side of the table too — exploring c++ in depth and touching some
-            grass.
-          </p>
-          <p>
-            This is my portfolio and my dumb thoughts and my learning on some os and cp
-            stuff.
-          </p>
-        </div>
-
-        ${socialsHtml()}
-      </div>
     </article>`;
 }
 
