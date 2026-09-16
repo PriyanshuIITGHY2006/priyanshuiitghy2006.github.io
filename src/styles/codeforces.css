@@ -36,7 +36,7 @@
   border: none;
   border-bottom: 2px solid transparent;
   margin-bottom: -1px;
-  font-family: var(--cm);
+  font-family: var(--cm-sans);
   font-size: 0.85em;
   font-variant: small-caps;
   letter-spacing: 0.5px;
@@ -132,7 +132,7 @@
 .cf-chartwrap { width: 100%; overflow-x: auto; }
 .cf-chart { width: 100%; height: auto; min-width: 560px; display: block; }
 .cf-grid { stroke: var(--border-soft); stroke-width: 1; }
-.cf-axis { fill: var(--muted-2); font-size: 10.5px; font-family: var(--cm); }
+.cf-axis { fill: var(--muted-2); font-size: 10.5px; font-family: var(--cm-sans); }
 
 .cf-bar-rect {
   fill: var(--ink); /* CSS class overrides the inline fill="" presentation attribute */

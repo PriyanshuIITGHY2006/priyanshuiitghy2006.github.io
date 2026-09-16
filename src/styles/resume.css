@@ -3,6 +3,7 @@
 
 :root {
   --cm: "Computer Modern Serif", "Latin Modern Roman", "CMU Serif", Georgia, serif;
+  --cm-sans: "Computer Modern Sans", "CMU Sans Serif", "Latin Modern Sans", Verdana, Arial, sans-serif;
 
   /* ─── Semantic palette (light) — redefined under [data-theme="dark"] ── */
   --bg: #ffffff;         /* page background */
@@ -68,13 +69,25 @@
 html, body { margin: 0; padding: 0; background: var(--bg); }
 
 body {
-  font-family: var(--cm);
+  font-family: var(--cm-sans);
   font-size: 1rem;
   color: var(--ink);
   line-height: 1.25;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   transition: background 0.15s ease, color 0.15s ease;
+}
+
+/* Headings stay in the original Computer Modern Serif face — only body
+   copy moves to the sans face. */
+h1, h2, h3, h4, h5, h6, .name {
+  font-family: var(--cm);
+}
+
+/* The one-page résumé view (#/resume) keeps its original LaTeX serif
+   typesetting untouched, everywhere else on the site. */
+#cv, #cv * {
+  font-family: var(--cm);
 }
 
 /* ─── Page fills the viewport edge-to-edge — no PDF gutter.
@@ -593,7 +606,7 @@ body {
    would flatten most levels to the same grey. ──────────────────────────── */
 .heatwrap { overflow-x: auto; padding-bottom: 4px; }
 .heatsvg { display: block; width: 100%; height: auto; min-width: 560px; }
-.heat-label { fill: var(--muted-2); font-size: 9.5px; font-family: var(--cm); }
+.heat-label { fill: var(--muted-2); font-size: 9.5px; font-family: var(--cm-sans); }
 .heat-cell { transition: opacity 0.12s ease; cursor: default; }
 .heat-cell:hover { opacity: 0.6; }
 .heat-0 { fill: #eeeeee; }
@@ -612,7 +625,7 @@ body {
   position: fixed;
   background: rgba(20, 20, 20, 0.92);
   color: #fff;
-  font-family: var(--cm);
+  font-family: var(--cm-sans);
   font-size: 0.82em;
   line-height: 1.5;
   padding: 0.4em 0.7em;

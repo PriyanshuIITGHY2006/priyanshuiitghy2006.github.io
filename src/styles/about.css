@@ -1,6 +1,77 @@
 /* ─── About page ─────────────────────────────────────────────────────── */
 .about-page { max-width: 52rem; margin: 0 auto; }
 
+/* ─── Hero (landing header) — text only, no imagery ──────────────────── */
+.hero {
+  padding: 0.6rem 0 1.3rem;
+  border-bottom: 0.6px solid var(--border);
+  margin-bottom: 1.4rem;
+}
+.hero-eyebrow {
+  font-size: 0.82em;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--muted-2);
+  margin: 0 0 0.15rem;
+}
+.hero-name {
+  font-size: 2.1em;
+  font-weight: 700;
+  line-height: 1.08;
+  margin: 0;
+  letter-spacing: 0.2px;
+}
+.hero-role {
+  font-size: 0.96em;
+  color: var(--muted);
+  margin: 0.35rem 0 0;
+}
+.hero-tagline {
+  font-size: 0.94em;
+  line-height: 1.6;
+  color: var(--ink-soft);
+  margin: 0.6rem 0 0;
+  max-width: 38rem;
+}
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.1rem;
+  margin-top: 0.9rem;
+}
+
+@media (max-width: 640px) {
+  .hero { text-align: center; }
+  .hero-name { font-size: 1.7em; }
+  .hero-tagline { max-width: none; margin-left: auto; margin-right: auto; }
+  .hero-actions { justify-content: center; }
+}
+
+/* ─── Site directory: plain bordered list, no shadows/motion ────────── */
+.about-list {
+  list-style: none;
+  margin: 0.6rem 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 0.5rem;
+}
+.about-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.6rem 0.8rem;
+  border: 0.6px solid var(--border);
+  border-radius: 5px;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.12s ease;
+}
+.about-card:hover { border-color: var(--border-strong); }
+.about-card-label { font-weight: 700; font-size: 0.96em; color: var(--ink); }
+.about-card:hover .about-card-label { color: var(--link-hover); }
+.about-card-note { font-size: 0.8em; color: var(--muted-2); line-height: 1.3; }
+
 .about-intro p {
   font-size: 0.95em;
   line-height: 1.6;
@@ -74,7 +145,7 @@
 .contact-form input,
 .contact-form textarea {
   width: 100%;
-  font-family: var(--cm);
+  font-family: var(--cm-sans);
   font-size: 0.95em;
   color: var(--ink);
   border: 0.6px solid var(--border);
