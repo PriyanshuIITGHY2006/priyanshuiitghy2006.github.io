@@ -200,7 +200,7 @@ function pageHtml(slug: string | null): string {
   if (!post) return notFoundHtml();
 
   const tags = post.tags.length
-    ? `<div class="blog-post-tags">${post.tags.map((t) => `<span class="blog-tag">${esc(t)}</span>`).join("")}</div>`
+    ? `<p class="blog-post-tags">${post.tags.map((t) => esc(t)).join(" · ")}</p>`
     : "";
 
   const contentHtml = renderMarkdown(post.rawBody);
@@ -818,32 +818,32 @@ function getRelatedPostsHtml(current: BlogPost): string {
   
   if (otherPosts.length === 0) return "";
 
-  const cardsHtml = otherPosts.map(p => {
+  const rowsHtml = otherPosts.map(p => {
     const thumb = p.cover
-      ? `<div class="blog-card-thumb"><img src="${esc(p.cover)}" alt="" loading="lazy"/></div>`
-      : `<div class="blog-card-thumb blog-card-thumb-empty" aria-hidden="true">§</div>`;
+      ? `<div class="blog-row-thumb"><img src="${esc(p.cover)}" alt="" loading="lazy"/></div>`
+      : "";
 
     const tags = p.tags.length
-      ? `<div class="blog-card-tags">${p.tags.map((t) => `<span class="blog-tag">${esc(t)}</span>`).join("")}</div>`
+      ? `<p class="blog-row-tags">${p.tags.map((t) => esc(t)).join(" · ")}</p>`
       : "";
 
     return `
-      <a class="blog-card" href="#/blog?slug=${encodeURIComponent(p.slug)}">
-        ${thumb}
-        <div class="blog-card-body">
-          ${p.date ? `<div class="blog-card-date">${esc(formatBlogDate(p.date))} · ${estimateReadingMinutes(p.rawBody)} min read</div>` : ""}
-          <h3 class="blog-card-title">${esc(p.title)}</h3>
-          ${p.excerpt ? `<p class="blog-card-excerpt">${esc(p.excerpt)}</p>` : ""}
+      <a class="blog-row" href="#/blog?slug=${encodeURIComponent(p.slug)}">
+        <div class="blog-row-body">
+          ${p.date ? `<div class="blog-row-date">${esc(formatBlogDate(p.date))} · ${estimateReadingMinutes(p.rawBody)} min read</div>` : ""}
+          <h3 class="blog-row-title">${esc(p.title)}</h3>
+          ${p.excerpt ? `<p class="blog-row-excerpt">${esc(p.excerpt)}</p>` : ""}
           ${tags}
         </div>
+        ${thumb}
       </a>`;
   }).join("");
 
   return `
-    <div class="blog-read-more" style="margin-top: 3rem; padding-top: 1.5rem; border-top: 0.6px solid #ddd;">
+    <div class="blog-read-more" style="margin-top: 3rem; padding-top: 1.5rem; border-top: 0.6px solid var(--border);">
       <h3 class="section" style="margin-top: 0; border: none; padding: 0;">Related posts</h3>
-      <div class="blog-grid" style="margin-top: 1rem;">
-        ${cardsHtml}
+      <div class="blog-list" style="margin-top: 1rem;">
+        ${rowsHtml}
       </div>
     </div>
   `;

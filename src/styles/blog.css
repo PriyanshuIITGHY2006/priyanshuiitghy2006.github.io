@@ -1,5 +1,5 @@
 /* ─── Blog list page (reuses .gl-* card shell conventions) ───────────── */
-.blogs-page { max-width: 60rem; margin: 0 auto; background: transparent; }
+.blogs-page { max-width: 46rem; margin: 0 auto; background: transparent; }
 
 /* ─── Background-audio toggle ("listen to Let Down") ──────────────────── */
 .blog-audio-btn {
@@ -31,90 +31,62 @@
   display: block;
 }
 
-.blog-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  grid-auto-rows: 1fr;
-  gap: 1rem;
-  margin-top: 1rem;
-  align-items: stretch;
-}
-
-.blog-card {
+.blog-list {
   display: flex;
   flex-direction: column;
-  height: 100%;
-  min-width: 0; /* grid items don't shrink below content size by default, which let a long unbreakable tag blow the card past its column and misalign the row */
+  margin-top: 1rem;
+}
+
+.blog-row {
+  position: relative; /* stays above the particle background — src/lib/blog-graph.ts */
+  display: flex;
+  align-items: flex-start;
+  gap: 1.2rem;
+  padding: 1.1rem 0;
+  border-top: 0.6px solid var(--border);
   text-align: left;
-  background: var(--bg-card);
-  border: 0.6px solid var(--border);
-  border-radius: 7px;
-  overflow: hidden;
   text-decoration: none;
   color: inherit;
-  transition: box-shadow 0.14s ease, transform 0.14s ease, border-color 0.14s ease;
 }
-.blog-card:hover {
-  box-shadow: 0 6px 18px var(--shadow);
-  transform: translateY(-2px);
-  border-color: var(--border-strong);
-}
-.blog-card-thumb {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  flex-shrink: 0;
+.blog-list > .blog-row:first-child { border-top: none; padding-top: 0.4rem; }
+.blog-row:hover .blog-row-title { color: var(--link-hover); }
+.blog-row-body { flex: 1 1 auto; min-width: 0; }
+.blog-row-thumb {
+  flex: 0 0 auto;
+  width: 5.5rem;
+  height: 5.5rem;
   background: var(--bg-inset);
   overflow: hidden;
 }
-.blog-card-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.blog-card-thumb-empty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 2em;
-  color: var(--border-strong);
-  font-family: var(--cm-sans);
-}
-.blog-card-body {
-  flex: 1 1 auto;
-  padding: 0.75rem 0.9rem 0.9rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-}
-.blog-card-date { font-size: 0.74em; color: var(--muted-2); }
-.blog-card-title {
-  font-size: 1.02em;
+.blog-row-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.blog-row-date { font-size: 0.78em; color: var(--muted-2); margin-bottom: 0.2rem; }
+.blog-row-title {
+  font-size: 1.06em;
   font-weight: 700;
   line-height: 1.3;
   margin: 0;
+  transition: color 0.12s ease;
+}
+.blog-row-excerpt {
+  font-size: 0.88em;
+  line-height: 1.45;
+  color: var(--ink-soft);
+  margin: 0.3rem 0 0;
   overflow-wrap: break-word;
-  word-break: break-word;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  min-height: calc(1.3em * 2);
 }
-.blog-card-excerpt {
-  font-size: 0.86em;
-  line-height: 1.45;
-  color: var(--ink-soft);
-  margin: 0;
-  overflow-wrap: break-word;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+.blog-row-tags, .blog-post-tags {
+  font-size: 0.8em;
+  font-style: italic;
+  color: var(--muted);
+  margin: 0.35rem 0 0;
 }
-.blog-card-tags, .blog-post-tags { position: relative; display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: auto; padding-top: 0.2rem; }
-.blog-tag {
-  font-size: 0.7em; letter-spacing: 0.2px;
-  background: var(--bg-inset); color: var(--ink-soft);
-  border: 0.6px solid var(--border); border-radius: 999px;
-  padding: 0.1em 0.6em; white-space: nowrap;
-  overflow: hidden; text-overflow: ellipsis; max-width: 100%; min-width: 0;
+
+@media (max-width: 560px) {
+  .blog-row-thumb { width: 4.2rem; height: 4.2rem; }
 }
 
 /* ─── Single blog post page ──────────────────────────────────────────── */
@@ -281,12 +253,9 @@
 .blog-subscribe {
   position: relative; /* stays above the particle background — src/lib/blog-graph.ts */
   margin: 2rem 0;
-  padding: 1.2rem 1.4rem;
-  border: 0.6px solid var(--border);
-  border-radius: 6px;
-  background: var(--bg-hover);
+  padding-top: 1.4rem;
+  border-top: 0.6px solid var(--border);
 }
-.blog-subscribe-title { margin-top: 0; border: none; padding: 0; }
 .blog-subscribe-form { max-width: 420px; margin-top: 0.8rem; }
 
 /* ─── KaTeX math ──────────────────────────────────────────────────────── */
@@ -642,41 +611,42 @@
 .blog-search-input {
   flex: 1 1 auto;
   max-width: 22rem;
-  padding: 0.4em 0.7em;
-  border: 0.6px solid var(--border);
-  border-radius: 5px;
-  background: var(--bg-card);
+  padding: 0.4em 0.05em;
+  background: transparent;
+  border: none;
+  border-bottom: 0.6px solid var(--border);
   color: var(--ink);
   font-family: var(--cm-sans);
   font-size: 0.9em;
+  transition: border-color 0.14s ease;
 }
+.blog-search-input:focus { outline: none; border-color: var(--ink); }
 .blog-tag-select {
-  padding: 0.4em 0.7em;
-  border: 0.6px solid var(--border);
-  border-radius: 5px;
-  background: var(--bg-card);
+  padding: 0.4em 0.05em;
+  background: transparent;
+  border: none;
+  border-bottom: 0.6px solid var(--border);
   color: var(--ink-soft);
   font-family: var(--cm-sans);
   font-size: 0.85em;
   cursor: pointer;
 }
+.blog-tag-select:focus { outline: none; border-color: var(--ink); }
 .blog-rss-link {
   font-family: var(--cm-sans);
-  font-size: 0.78em;
-  padding: 0.3em 0.7em;
-  border: 0.6px solid var(--border);
-  border-radius: 5px;
+  font-size: 0.8em;
   color: var(--muted);
   text-decoration: none;
+  border-bottom: 1px dotted transparent;
 }
-.blog-rss-link:hover { border-color: var(--border-strong); color: var(--ink); }
+.blog-rss-link:hover { color: var(--link-hover); border-bottom-color: currentColor; }
 .blog-empty-filtered {
   margin-top: 1.5rem;
   color: var(--muted-2);
   font-size: 0.9em;
 }
 
-.blog-subscribe-wrap { margin-top: 2rem; padding-top: 1.4rem; border-top: 0.6px solid var(--border); }
+.blog-subscribe-wrap { margin-top: 1rem; }
 
 /* ─── Bin-packing algorithm visualizations (:::binviz) ────────────────────── */
 .blog-binviz {
