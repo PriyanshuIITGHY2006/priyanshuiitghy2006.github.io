@@ -113,16 +113,18 @@
   font-family: var(--cm-sans);
   font-size: 0.95em;
   color: var(--ink);
-  border: 0.6px solid var(--border);
-  border-radius: 4px;
-  padding: 0.45em 0.6em;
-  background: var(--bg-card);
+  background: transparent;
+  border: none;
+  border-bottom: 0.6px solid var(--border);
+  border-radius: 0;
+  padding: 0.4em 0.05em;
+  transition: border-color 0.14s ease;
 }
-.contact-form textarea { min-height: 7rem; resize: vertical; }
+.contact-form textarea { min-height: 6rem; resize: vertical; }
 .contact-form input:focus,
 .contact-form textarea:focus {
   outline: none;
-  border-color: var(--border-strong);
+  border-color: var(--ink);
 }
 .contact-actions { margin-top: 0.1rem; }
 .contact-submit {
