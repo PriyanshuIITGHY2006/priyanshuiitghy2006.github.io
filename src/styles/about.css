@@ -1,9 +1,16 @@
 /* ─── About page ─────────────────────────────────────────────────────── */
 .about-page { max-width: 52rem; margin: 0 auto; }
 
-/* ─── Hero (landing header) — text only, no imagery ──────────────────── */
+/* ─── Hero (landing header) — text only, no imagery. Sits vertically
+       centered in the opening viewport (like a quiet title card) while
+       its text stays left-aligned; the rest of the page follows on
+       scroll. ──────────────────────────────────────────────────────── */
 .hero {
-  padding: 0.6rem 0 1.3rem;
+  min-height: calc(100vh - 7rem);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 1rem 0 1.8rem;
   border-bottom: 0.6px solid var(--border);
   margin-bottom: 1.4rem;
 }
@@ -15,7 +22,7 @@
   margin: 0 0 0.15rem;
 }
 .hero-name {
-  font-size: 2.1em;
+  font-size: 2.3em;
   font-weight: 700;
   line-height: 1.08;
   margin: 0;
@@ -25,18 +32,18 @@
   font-size: 0.86em;
   line-height: 1.6;
   color: var(--muted-2);
-  margin: 0.5rem 0 0;
+  margin: 0.7rem 0 0;
   max-width: 36rem;
 }
 .hero-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem 1.1rem;
-  margin-top: 0.9rem;
+  margin-top: 1.2rem;
 }
 
 @media (max-width: 640px) {
-  .hero { text-align: center; }
+  .hero { min-height: auto; text-align: center; padding-top: 0.6rem; }
   .hero-name { font-size: 1.7em; }
   .hero-tagline { max-width: none; margin-left: auto; margin-right: auto; }
   .hero-actions { justify-content: center; }
