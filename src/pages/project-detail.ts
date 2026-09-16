@@ -11,7 +11,7 @@ function esc(s: string): string {
 }
 
 function chips(stack: string[]): string {
-  return stack.map((t) => `<span class="pj-chip">${esc(t)}</span>`).join("");
+  return stack.map((t) => esc(t)).join(" · ");
 }
 
 function notFoundHtml(): string {

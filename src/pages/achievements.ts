@@ -6,7 +6,7 @@ function esc(s: string): string {
 }
 
 function chips(tags: string[]): string {
-  return tags.map((t) => `<span class="pj-chip">${esc(t)}</span>`).join("");
+  return tags.map((t) => esc(t)).join(" · ");
 }
 
 function links(a: DetailedAchievement): string {

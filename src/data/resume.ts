@@ -16,7 +16,7 @@ export const resume: ResumeData = {
     [{ text: LINKS.emailPersonal, href: `mailto:${LINKS.emailPersonal}`, detail: "email" }],
     [{ text: LINKS.emailInstitute, href: `mailto:${LINKS.emailInstitute}`, detail: "email" }],
     [
-      { text: "Github", href: "#/github", detail: "github" },
+      { text: "Github", href: LINKS.github, external: true, detail: "github" },
       { text: " | " },
       { text: "Website", href: LINKS.website, external: true, detail: "website" },
       { text: " | " },
@@ -202,7 +202,7 @@ export const resume: ResumeData = {
       // with live data fetched from the Codeforces API on page load.
       html:
         "<b>Competitive Programming,</b> " +
-        '<a class="link" data-detail="codeforces" href="#/codeforces">' +
+        `<a class="link" data-detail="codeforces" href="${LINKS.codeforces}" target="_blank" rel="noopener">` +
         '<span data-cf="title">Codeforces Specialist (Max 1473)</span>' +
         "</a>" +
         ' | CodeChef 2-Star | <span data-cf="solved">250+</span> problems solved',

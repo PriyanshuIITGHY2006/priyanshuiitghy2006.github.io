@@ -7,27 +7,24 @@ function esc(s: string): string {
   return s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c] as string));
 }
 
-const SITE_MAP: { label: string; href: string; note: string }[] = [
-  { label: "Résumé", href: "#/resume", note: "the traditional one-page view" },
-  { label: "Education", href: "#/education", note: "degree, grade card, curriculum" },
-  { label: "Projects", href: "#/projects", note: "full write-ups, one per project" },
-  { label: "Skills", href: "#/skills", note: "languages, libraries, concepts" },
-  { label: "Positions", href: "#/positions", note: "roles and responsibilities" },
-  { label: "Achievements", href: "#/achievements", note: "contests, hackathons, exams" },
-  { label: "Gallery", href: "#/gallery", note: "certificates and scorecards" },
-  { label: "Codeforces", href: "#/codeforces", note: "rating, activity, problem breakdown" },
-  { label: "GitHub", href: "#/github", note: "profile and recent commits" },
-  { label: "Blog", href: "#/blogs", note: "write-ups on what I'm building" },
+const SITE_MAP: { label: string; href: string; external?: boolean }[] = [
+  { label: "Résumé", href: "#/resume" },
+  { label: "Education", href: "#/education" },
+  { label: "Projects", href: "#/projects" },
+  { label: "Skills", href: "#/skills" },
+  { label: "Positions", href: "#/positions" },
+  { label: "Achievements", href: "#/achievements" },
+  { label: "Gallery", href: "#/gallery" },
+  { label: "Codeforces", href: LINKS.codeforces, external: true },
+  { label: "GitHub", href: LINKS.github, external: true },
+  { label: "Blog", href: "#/blogs" },
 ];
 
 function siteMapHtml(): string {
   const items = SITE_MAP.map(
     (s) => `
       <li>
-        <a class="about-card" href="${s.href}">
-          <span class="about-card-label">${esc(s.label)}</span>
-          <span class="about-card-note">${esc(s.note)}</span>
-        </a>
+        <a class="link" href="${s.href}"${s.external ? ' target="_blank" rel="noopener"' : ""}>${esc(s.label)}</a>
       </li>`,
   ).join("");
   return `
@@ -40,7 +37,6 @@ function heroHtml(): string {
     <section class="hero">
       <p class="hero-eyebrow">Hi, I'm</p>
       <h1 class="hero-name">${esc(resume.name)}</h1>
-      <p class="hero-role">B.Tech EEE (Math minor) · IIT Guwahati · Codeforces Expert</p>
       <p class="hero-tagline">
         Sophomore engineer living somewhere between competitive programming,
         machine learning, and quantitative finance — building things, breaking

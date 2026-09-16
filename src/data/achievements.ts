@@ -3,6 +3,8 @@
 // `verify` points at a gallery item id, producing a deep-link to the proof
 // (certificate image / PDF) that opens full-screen: #/gallery?img=<id>.
 
+import { LINKS } from "./links";
+
 export interface DetailedAchievement {
   id: string;
   title: string;
@@ -91,6 +93,6 @@ export const ACHIEVEMENTS: DetailedAchievement[] = [
     blurb:
       "Codeforces <b>Specialist</b> and CodeChef <b>2-Star</b>, with <b>250+ problems</b> " +
       "solved across difficulty bands and algorithmic topics, all archived automatically.",
-    link: { label: "Codeforces profile", href: "#/codeforces" },
+    link: { label: "Codeforces profile", href: LINKS.codeforces },
   },
 ];

@@ -1,10 +1,7 @@
 import "./styles/resume.css";
-import "./styles/codeforces.css";
 import "./styles/about.css";
 import { resume } from "./data/resume";
 import { renderResume } from "./render/resume";
-import { mountCodeforces } from "./pages/codeforces";
-import { mountGithub } from "./pages/github";
 import { mountAdmin } from "./pages/admin";
 import { mountSection } from "./pages/section";
 import { mountEducation } from "./pages/education";
@@ -129,20 +126,6 @@ route("/blog", async (params) => {
   app.innerHTML = "";
   const { mountBlogPost } = await import("./pages/blog-post");
   mountBlogPost(app, params.get("slug"));
-});
-
-// ─── Codeforces detail ──────────────────────────────────────────────────
-route("/codeforces", () => {
-  setPageMeta({ title: "Codeforces", description: `${resume.name}'s Codeforces rating, activity, and problem breakdown.` });
-  app.innerHTML = "";
-  void mountCodeforces(app);
-});
-
-// ─── GitHub activity ──────────────────────────────────────────────────
-route("/github", () => {
-  setPageMeta({ title: "GitHub", description: `${resume.name}'s GitHub profile and recent commit activity.` });
-  app.innerHTML = "";
-  void mountGithub(app);
 });
 
 // ─── Admin panel ────────────────────────────────────────────────────────
