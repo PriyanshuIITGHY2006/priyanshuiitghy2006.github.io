@@ -9,7 +9,7 @@
 
 const SITE_NAME = "Priyanshu Debnath";
 const DEFAULT_DESCRIPTION =
-  "Priyanshu Debnath — B.Tech EEE, IIT Guwahati. Interactive résumé: ML research, quantitative finance, competitive programming.";
+  "Priyanshu Debnath — B.Tech EEE student at IIT Guwahati and Codeforces Expert, writing about competitive programming, machine learning, and quantitative finance. Résumé, projects, and blog.";
 
 function setMetaByName(name: string, content: string): void {
   let el = document.head.querySelector<HTMLMetaElement>(`meta[name="${name}"]`);

@@ -78,6 +78,17 @@ function postPreviewHtml(post) {
   const image = post.cover ? `${SITE_ORIGIN}/${post.cover.replace(/^\//, "")}` : `${SITE_ORIGIN}/profile.jpg`;
   const cardType = post.cover ? "summary_large_image" : "summary";
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    headline: post.title,
+    description: post.excerpt || undefined,
+    image,
+    url,
+    ...(post.date ? { datePublished: post.date } : {}),
+    author: { "@type": "Person", name: "Priyanshu Debnath", url: SITE_ORIGIN },
+  };
+
   return `<!doctype html>
 <html lang="en">
   <head>
@@ -98,6 +109,8 @@ function postPreviewHtml(post) {
     <meta name="twitter:title" content="${title}" />
     <meta name="twitter:description" content="${description}" />
     <meta name="twitter:image" content="${escAttr(image)}" />
+
+    <script type="application/ld+json">${JSON.stringify(jsonLd)}</script>
 
     <meta http-equiv="refresh" content="0; url=${escAttr(target)}" />
     <script>location.replace(${JSON.stringify(target)});</script>
@@ -170,17 +183,92 @@ function projectPreviewHtml(project) {
 `;
 }
 
+function isoDate(dateStr) {
+  const d = dateStr ? new Date(dateStr) : new Date();
+  return Number.isNaN(d.getTime()) ? new Date().toISOString().slice(0, 10) : d.toISOString().slice(0, 10);
+}
+
 function sitemapXml(posts, projects) {
-  const staticUrls = [`${SITE_ORIGIN}/`];
-  const postUrls = posts.map((p) => `${SITE_ORIGIN}/blog/${p.slug}/`);
-  const projectUrls = projects.map((p) => `${SITE_ORIGIN}/project/${p.id}/`);
-  const urls = [...staticUrls, ...postUrls, ...projectUrls];
+  const today = new Date().toISOString().slice(0, 10);
+  const urls = [
+    { loc: `${SITE_ORIGIN}/`, lastmod: today },
+    { loc: `${SITE_ORIGIN}/blog/`, lastmod: today },
+    ...posts.map((p) => ({ loc: `${SITE_ORIGIN}/blog/${p.slug}/`, lastmod: isoDate(p.date) })),
+    ...projects.map((p) => ({ loc: `${SITE_ORIGIN}/project/${p.id}/`, lastmod: today })),
+  ];
 
   const entries = urls
-    .map((u) => `  <url>\n    <loc>${escAttr(u)}</loc>\n  </url>`)
+    .map((u) => `  <url>\n    <loc>${escAttr(u.loc)}</loc>\n    <lastmod>${u.lastmod}</lastmod>\n  </url>`)
     .join("\n");
 
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${entries}\n</urlset>\n`;
+}
+
+// Real, crawlable index of every post at a static path (unlike the SPA's
+// hash-routed #/blogs), so search engines have genuine content + internal
+// links to follow into each post rather than only a sitemap entry.
+function blogIndexHtml(posts) {
+  const url = `${SITE_ORIGIN}/blog/`;
+  const sorted = [...posts].sort((a, b) => (a.date && b.date ? (a.date < b.date ? 1 : -1) : a.date ? -1 : 1));
+  const description =
+    "Notes on competitive programming, machine learning, and quantitative finance by Priyanshu Debnath.";
+
+  const items = sorted
+    .map(
+      (p) => `
+      <li>
+        <a href="/blog/${escAttr(p.slug)}/">${escAttr(p.title)}</a>
+        ${p.excerpt ? `<p>${escAttr(p.excerpt)}</p>` : ""}
+      </li>`,
+    )
+    .join("");
+
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Blog",
+    name: "Priyanshu Debnath — Blog",
+    url,
+    description,
+    blogPost: sorted.map((p) => ({
+      "@type": "BlogPosting",
+      headline: p.title,
+      url: `${SITE_ORIGIN}/blog/${p.slug}/`,
+      ...(p.date ? { datePublished: p.date } : {}),
+    })),
+  };
+
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Blog — Priyanshu Debnath</title>
+    <meta name="description" content="${escAttr(description)}" />
+    <link rel="canonical" href="${escAttr(url)}" />
+    <link rel="alternate" type="application/rss+xml" title="Priyanshu Debnath — Blog" href="${SITE_ORIGIN}/feed.xml" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Blog — Priyanshu Debnath" />
+    <meta property="og:description" content="${escAttr(description)}" />
+    <meta property="og:url" content="${escAttr(url)}" />
+
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Blog — Priyanshu Debnath" />
+    <meta name="twitter:description" content="${escAttr(description)}" />
+
+    <script type="application/ld+json">${JSON.stringify(jsonLd)}</script>
+
+    <meta http-equiv="refresh" content="0; url=/#/blogs" />
+    <script>location.replace("/#/blogs");</script>
+  </head>
+  <body>
+    <h1>Blog</h1>
+    <p>${escAttr(description)}</p>
+    <ul>${items}</ul>
+    <p>Redirecting to <a href="/#/blogs">the blog</a>…</p>
+  </body>
+</html>
+`;
 }
 
 function robotsTxt() {
@@ -228,6 +316,9 @@ ${items}
 async function main() {
   const posts = loadPosts();
   const projects = await loadProjects();
+
+  mkdirSync(join(DIST, "blog"), { recursive: true });
+  writeFileSync(join(DIST, "blog", "index.html"), blogIndexHtml(posts), "utf-8");
 
   for (const post of posts) {
     const dir = join(DIST, "blog", post.slug);
