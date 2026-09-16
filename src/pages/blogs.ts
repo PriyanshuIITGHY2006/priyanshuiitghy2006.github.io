@@ -10,11 +10,9 @@ function esc(s: string): string {
   return s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c] as string));
 }
 
-function tagChips(tags: string[]): string {
+function tagLine(tags: string[]): string {
   if (!tags.length) return "";
-  return `<div class="blog-card-tags">${tags
-    .map((t) => `<span class="blog-tag">${esc(t)}</span>`)
-    .join("")}</div>`;
+  return `<p class="blog-row-tags">${tags.map((t) => esc(t)).join(" · ")}</p>`;
 }
 
 function searchHaystack(p: BlogPost): string {
@@ -23,19 +21,19 @@ function searchHaystack(p: BlogPost): string {
 
 function card(p: BlogPost): string {
   const thumb = p.cover
-    ? `<div class="blog-card-thumb"><img src="${esc(p.cover)}" alt="" loading="lazy"/></div>`
-    : `<div class="blog-card-thumb blog-card-thumb-empty" aria-hidden="true">§</div>`;
+    ? `<div class="blog-row-thumb"><img src="${esc(p.cover)}" alt="" loading="lazy"/></div>`
+    : "";
   return `
-    <a class="blog-card" href="#/blog?slug=${encodeURIComponent(p.slug)}"
+    <a class="blog-row" href="#/blog?slug=${encodeURIComponent(p.slug)}"
        data-search="${esc(searchHaystack(p))}"
        data-tags="${esc(p.tags.map((t) => t.toLowerCase()).join("|"))}">
-      ${thumb}
-      <div class="blog-card-body">
-        ${p.date ? `<div class="blog-card-date">${esc(formatBlogDate(p.date))} · ${estimateReadingMinutes(p.rawBody)} min read</div>` : ""}
-        <h3 class="blog-card-title">${esc(p.title)}</h3>
-        ${p.excerpt ? `<p class="blog-card-excerpt">${esc(p.excerpt)}</p>` : ""}
-        ${tagChips(p.tags)}
+      <div class="blog-row-body">
+        ${p.date ? `<div class="blog-row-date">${esc(formatBlogDate(p.date))} · ${estimateReadingMinutes(p.rawBody)} min read</div>` : ""}
+        <h3 class="blog-row-title">${esc(p.title)}</h3>
+        ${p.excerpt ? `<p class="blog-row-excerpt">${esc(p.excerpt)}</p>` : ""}
+        ${tagLine(p.tags)}
       </div>
+      ${thumb}
     </a>`;
 }
 
@@ -67,7 +65,7 @@ function controlsHtml(): string {
 function pageHtml(): string {
   const playing = isBgAudioPlaying();
   const body = BLOG_POSTS.length
-    ? `<div class="blog-grid" id="blog-grid">${BLOG_POSTS.map(card).join("")}</div>`
+    ? `<div class="blog-list" id="blog-list">${BLOG_POSTS.map(card).join("")}</div>`
     : `<p class="gl-empty">No posts published yet — check back soon.</p>`;
   return `
     <article class="page section-page blogs-page">
@@ -98,7 +96,7 @@ function pageHtml(): string {
 function wireFilters(container: HTMLElement): void {
   const searchInput = container.querySelector<HTMLInputElement>("#blog-search-input");
   const tagSelect = container.querySelector<HTMLSelectElement>("#blog-tag-select");
-  const cards = Array.from(container.querySelectorAll<HTMLElement>(".blog-card"));
+  const cards = Array.from(container.querySelectorAll<HTMLElement>(".blog-row"));
   const emptyMsg = container.querySelector<HTMLElement>("#blog-empty-filtered");
   if (!cards.length) return;
 
