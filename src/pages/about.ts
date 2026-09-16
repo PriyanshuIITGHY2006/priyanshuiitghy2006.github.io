@@ -7,50 +7,75 @@ function esc(s: string): string {
   return s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c] as string));
 }
 
-const SITE_MAP: { label: string; href: string; external?: boolean }[] = [
-  { label: "Résumé", href: "#/resume" },
-  { label: "Education", href: "#/education" },
-  { label: "Projects", href: "#/projects" },
-  { label: "Skills", href: "#/skills" },
-  { label: "Positions", href: "#/positions" },
-  { label: "Achievements", href: "#/achievements" },
-  { label: "Gallery", href: "#/gallery" },
-  { label: "Codeforces", href: LINKS.codeforces, external: true },
-  { label: "GitHub", href: LINKS.github, external: true },
-  { label: "Blog", href: "#/blogs" },
+const SOCIAL_ICONS: { label: string; href: string; path: string }[] = [
+  {
+    label: "GitHub",
+    href: LINKS.github,
+    path: `<path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.84 9.73.5.1.68-.22.68-.5 0-.24-.01-1.04-.01-1.89-2.78.62-3.37-1.22-3.37-1.22-.46-1.19-1.11-1.51-1.11-1.51-.91-.64.07-.63.07-.63 1 .07 1.53 1.05 1.53 1.05.9 1.57 2.36 1.12 2.93.85.09-.67.35-1.12.64-1.38-2.22-.26-4.56-1.14-4.56-5.05 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.31.1-2.73 0 0 .84-.28 2.75 1.05a9.36 9.36 0 0 1 5 0c1.9-1.33 2.74-1.05 2.74-1.05.55 1.42.2 2.47.1 2.73.64.72 1.03 1.63 1.03 2.75 0 3.92-2.34 4.79-4.57 5.04.36.32.68.95.68 1.92 0 1.39-.01 2.51-.01 2.85 0 .28.18.6.69.5A10.26 10.26 0 0 0 22 12.25C22 6.58 17.52 2 12 2z"/>`,
+  },
+  {
+    label: "LinkedIn",
+    href: LINKS.linkedin,
+    path: `<path d="M6.94 8.5H3.56V21h3.38V8.5zM5.25 3c-1.15 0-1.98.83-1.98 1.9 0 1.06.8 1.9 1.94 1.9h.02c1.17 0 1.98-.84 1.98-1.9C7.19 3.83 6.4 3 5.25 3zM21 21h-3.38v-6.66c0-1.67-.6-2.8-2.1-2.8-1.14 0-1.82.77-2.12 1.5-.11.27-.14.64-.14 1.02V21H9.88s.05-11.32 0-12.5h3.38v1.77c.45-.7 1.25-1.7 3.05-1.7 2.23 0 3.9 1.46 3.9 4.58V21z"/>`,
+  },
+  {
+    label: "Codeforces",
+    href: LINKS.codeforces,
+    path: `<path d="M4.5 7.5A1.5 1.5 0 0 1 6 9v10.5A1.5 1.5 0 0 1 4.5 21h-1A1.5 1.5 0 0 1 2 19.5V9a1.5 1.5 0 0 1 1.5-1.5h1zm8-4.5A1.5 1.5 0 0 1 14 4.5v15a1.5 1.5 0 0 1-1.5 1.5h-1A1.5 1.5 0 0 1 10 19.5v-15A1.5 1.5 0 0 1 11.5 3h1zm8 8A1.5 1.5 0 0 1 22 12.5v7A1.5 1.5 0 0 1 20.5 21h-1a1.5 1.5 0 0 1-1.5-1.5v-7a1.5 1.5 0 0 1 1.5-1.5h1z"/>`,
+  },
 ];
-
-function siteMapHtml(): string {
-  const items = SITE_MAP.map(
-    (s) => `
-      <li>
-        <a class="link" href="${s.href}"${s.external ? ' target="_blank" rel="noopener"' : ""}>${esc(s.label)}</a>
-      </li>`,
-  ).join("");
-  return `
-    <h2 class="section about-sub">Around the site</h2>
-    <ul class="about-list">${items}</ul>`;
-}
 
 function heroHtml(): string {
   return `
     <section class="hero">
       <p class="hero-eyebrow">Hi, I'm</p>
       <h1 class="hero-name">${esc(resume.name)}</h1>
-      <p class="hero-tagline">
-        Sophomore engineer living somewhere between competitive programming,
-        machine learning, and quantitative finance — building things, breaking
-        things, and writing up what I learn along the way.
-      </p>
+      <p class="hero-tagline">Barely there.</p>
       <div class="hero-actions">
         <a class="link" href="#/resume">Résumé →</a>
         <a class="link" href="#/projects">Projects →</a>
-        <a class="link" href="${LINKS.github}" target="_blank" rel="noopener">GitHub ↗</a>
-        <a class="link" href="${LINKS.codeforces}" target="_blank" rel="noopener">Codeforces ↗</a>
-        <a class="link" href="${LINKS.linkedin}" target="_blank" rel="noopener">LinkedIn ↗</a>
-        <a class="link" href="#contact-form">Contact →</a>
+        <a class="link" href="#/blogs">Blogs →</a>
       </div>
     </section>`;
+}
+
+function socialsHtml(): string {
+  const icons = SOCIAL_ICONS.map(
+    (s) => `
+      <a class="social-icon" href="${s.href}" target="_blank" rel="noopener" aria-label="${esc(s.label)}">
+        <svg viewBox="0 0 24 24" aria-hidden="true">${s.path}</svg>
+      </a>`,
+  ).join("");
+
+  return `
+    <h2 class="section about-sub">Socials</h2>
+    <p class="socials-sub">reach out to me</p>
+    <div class="socials-icons">${icons}</div>
+    <p class="socials-mail">or mail me at <a class="link" href="mailto:${LINKS.emailPersonal}">${LINKS.emailPersonal}</a></p>
+
+    <details class="contact-details">
+      <summary>Contact</summary>
+      <form id="contact-form" class="contact-form" action="${FORMSPREE_ENDPOINT}" method="POST">
+        <div id="contact-status" class="contact-status" style="display:none"></div>
+        <div class="contact-row">
+          <div>
+            <label for="cf-name">Name</label>
+            <input id="cf-name" name="name" type="text" required autocomplete="name"/>
+          </div>
+          <div>
+            <label for="cf-email">Email</label>
+            <input id="cf-email" name="email" type="email" required autocomplete="email"/>
+          </div>
+        </div>
+        <div>
+          <label for="cf-message">Message</label>
+          <textarea id="cf-message" name="message" required></textarea>
+        </div>
+        <div class="contact-actions">
+          <button type="submit" class="pj-link contact-submit">Send message</button>
+        </div>
+      </form>
+    </details>`;
 }
 
 function pageHtml(): string {
@@ -77,39 +102,7 @@ function pageHtml(): string {
           </p>
         </div>
 
-        ${siteMapHtml()}
-
-        <h2 class="section about-sub">Get in touch</h2>
-        <p class="edu-note">
-          Reach out directly, or send a message through the form below.
-        </p>
-
-        <div class="about-contact-direct">
-          <a class="link" href="mailto:${LINKS.emailPersonal}">${LINKS.emailPersonal}</a>
-          <a class="link" href="mailto:${LINKS.emailInstitute}">${LINKS.emailInstitute}</a>
-          <a class="link" href="tel:${LINKS.phone}">${LINKS.phoneDisplay}</a>
-        </div>
-
-        <form id="contact-form" class="contact-form" action="${FORMSPREE_ENDPOINT}" method="POST">
-          <div id="contact-status" class="contact-status" style="display:none"></div>
-          <div class="contact-row">
-            <div>
-              <label for="cf-name">Name</label>
-              <input id="cf-name" name="name" type="text" required autocomplete="name"/>
-            </div>
-            <div>
-              <label for="cf-email">Email</label>
-              <input id="cf-email" name="email" type="email" required autocomplete="email"/>
-            </div>
-          </div>
-          <div>
-            <label for="cf-message">Message</label>
-            <textarea id="cf-message" name="message" required></textarea>
-          </div>
-          <div class="contact-actions">
-            <button type="submit" class="pj-link contact-submit">Send message</button>
-          </div>
-        </form>
+        ${socialsHtml()}
       </div>
     </article>`;
 }
