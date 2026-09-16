@@ -34,6 +34,7 @@ function heroHtml(): string {
       <div class="hero-actions">
         <a class="link" href="#/resume">Résumé →</a>
         <a class="link" href="#/projects">Projects →</a>
+        <a class="link" href="#/blogs">Blogs →</a>
       </div>
     </section>`;
 }
