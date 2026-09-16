@@ -1,5 +1,17 @@
-/* ─── About page ─────────────────────────────────────────────────────── */
-.about-page { max-width: 52rem; margin: 0 auto; }
+/* ─── About page — the only page with the paper texture, for now ────── */
+.about-page {
+  max-width: 52rem;
+  margin: 0 auto;
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(130% 90% at 12% 8%, rgba(128, 128, 128, 0.05), transparent 55%),
+    radial-gradient(110% 90% at 90% 95%, rgba(128, 128, 128, 0.045), transparent 55%),
+    radial-gradient(70% 60% at 60% 35%, rgba(128, 128, 128, 0.03), transparent 65%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.035 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-repeat: no-repeat, no-repeat, no-repeat, repeat;
+  background-size: cover, cover, cover, 200px 200px;
+  background-attachment: fixed;
+}
 
 /* ─── Hero — the whole home page is this one block: identity, a short
        about blurb, nav, and socials, sized to fit a single viewport
