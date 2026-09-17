@@ -137,6 +137,8 @@ h1, h2, h3, h4, h5, h6, .name {
 }
 .cv-head.no-logo { grid-template-columns: 1fr; }
 .cv-head.no-logo .cv-logo { display: none; }
+.cv-download-row { display: flex; justify-content: flex-end; margin: 0.3rem 0 0.2rem; }
+.cv-download { border-color: var(--border-strong); }
 .cv-head-tab {
   width: 100%;
   border-collapse: collapse;
@@ -616,7 +618,7 @@ h1, h2, h3, h4, h5, h6, .name {
   .page { padding: 0.6cm 1.1cm; }
   .link { color: var(--ink) !important; border-bottom: none !important; }
   .section-link { color: var(--ink) !important; border-bottom: none !important; }
-  .section-arrow, .section-nav, .theme-toggle { display: none !important; }
+  .section-arrow, .section-nav, .theme-toggle, .cv-download-row { display: none !important; }
 
   /* Heatmap cells (Codeforces/GitHub) use hardcoded dark-mode fills meant
      to read against a near-black page background — on white paper those

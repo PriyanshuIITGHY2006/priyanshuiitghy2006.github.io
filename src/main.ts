@@ -10,7 +10,7 @@ import { mountGallery } from "./pages/gallery";
 import { mountAchievements } from "./pages/achievements";
 import { mountAbout } from "./pages/about";
 import { loadCodeforces, rankName } from "./lib/codeforces";
-import { loadResumeFromDB } from "./lib/supabase";
+import { loadResumeFromDB, getResumePdfUrl, resumePdfExists } from "./lib/supabase";
 import { route, start, notFound } from "./lib/router";
 import { mountThemeToggle } from "./lib/theme";
 import { initFallingSymbolsEasterEgg } from "./lib/falling-symbols";
@@ -64,12 +64,14 @@ route("/resume", () => {
   page.innerHTML = renderResume(resume);
   app.appendChild(page);
   hydrateCodeforcesLine(page);
+  hydrateResumeDownload(page);
 
   // Fetch live data from Supabase and re-render
   loadResumeFromDB()
     .then((live) => {
       page.innerHTML = renderResume(live);
       hydrateCodeforcesLine(page);
+      hydrateResumeDownload(page);
     })
     .catch(() => {
       // DB unreachable — static version already shown
@@ -144,6 +146,21 @@ notFound((params) => {
 start();
 
 // ─── Live update of the Codeforces line on the résumé ───────────────────
+function hydrateResumeDownload(scope: HTMLElement): void {
+  const btn = scope.querySelector<HTMLAnchorElement>("#cv-download-btn");
+  if (!btn) return;
+
+  resumePdfExists()
+    .then((exists) => {
+      if (!exists) return;
+      btn.href = getResumePdfUrl();
+      btn.style.display = "";
+    })
+    .catch(() => {
+      // Storage unreachable — keep the button hidden
+    });
+}
+
 function hydrateCodeforcesLine(scope: HTMLElement): void {
   const titleEl = scope.querySelector<HTMLElement>('[data-cf="title"]');
   const solvedEl = scope.querySelector<HTMLElement>('[data-cf="solved"]');
