@@ -24,7 +24,7 @@ const MAX_TOOL_ROUNDS = 3
 const MODEL = "openai/gpt-4o-mini"
 const GITHUB_MODELS_URL = "https://models.github.ai/inference/chat/completions"
 const CF_HANDLE = "PriyanshuIITGHY2006"
-const SITE_ORIGIN = "https://priyanshuiitghy2006.github.io"
+const SITE_ORIGIN = "https://priyanshudebnath.me"
 
 // ─── Tools the model can call mid-conversation ──────────────────────────────
 // Two are genuinely live data (fetched fresh on every call, not baked into
@@ -336,7 +336,7 @@ async function runToolCalls(toolCalls: ToolCall[]): Promise<{ messages: Array<Re
 
 Deno.serve(async (req) => {
   const corsHeaders = {
-    "Access-Control-Allow-Origin": "https://priyanshuiitghy2006.github.io",
+    "Access-Control-Allow-Origin": "https://priyanshudebnath.me",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-turnstile-token, x-assistant-session",
   }

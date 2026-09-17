@@ -2,7 +2,7 @@
 // point at the GitHub profile; swap in exact repo URLs as they're published.
 export const LINKS = {
   github: "https://github.com/PriyanshuIITGHY2006",
-  website: "https://priyanshuiitghy2006.github.io/",
+  website: "https://priyanshudebnath.me/",
   linkedin: "https://linkedin.com/in/priyanshu-debnath-3a81711b3",
   codeforces: "https://codeforces.com/profile/PriyanshuIITGHY2006",
   discord: "https://discord.com/users/priyanshu_32718",

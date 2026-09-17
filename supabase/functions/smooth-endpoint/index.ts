@@ -74,7 +74,7 @@ function verificationRequired(message: string, corsHeaders: Record<string, strin
 serve(async (req) => {
   // Lock down CORS to your domain for production security
   const corsHeaders = {
-    "Access-Control-Allow-Origin": "https://priyanshuiitghy2006.github.io", // Change to '*' temporarily if testing locally
+    "Access-Control-Allow-Origin": "https://priyanshudebnath.me", // Change to '*' temporarily if testing locally
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-turnstile-token, x-run-session",
   }

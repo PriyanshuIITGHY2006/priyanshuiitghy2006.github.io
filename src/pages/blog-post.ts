@@ -166,7 +166,7 @@ function engagementShell(): string {
     </div>`;
 }
 
-const SITE_ORIGIN = "https://priyanshuiitghy2006.github.io";
+const SITE_ORIGIN = "https://priyanshudebnath.me";
 
 function tocHtml(toc: TocEntry[]): string {
   if (toc.length < 2) return "";
