@@ -1,8 +1,8 @@
 // Compose-a-blog-post tab: frontmatter fields + a markdown body, rendered
 // live through the exact same renderMarkdown() pipeline the real blog uses
 // (marked + highlight.js + KaTeX + DOMPurify + the :::spoiler/:::youtube/
-// :::gist/:::binviz extensions), so what you see here is what the post will
-// actually look like — not an approximation.
+// :::testcases/:::binviz extensions), so what you see here is what the
+// post will actually look like — not an approximation.
 //
 // Publish commits src/data/blogs/<slug>.md straight to GitHub via the
 // github-publish edge function, which triggers the site's existing build
@@ -11,6 +11,7 @@
 
 import { supabase, loadAllSiteImages, type DBSiteImage } from "../lib/supabase";
 import { publishBlogPostToGithub, uploadImageToGithub } from "../lib/admin-publish";
+import { renderMarkdownHelp } from "../lib/markdown-help";
 
 function esc(s: string): string {
   return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
@@ -82,10 +83,12 @@ export async function renderBlogEditor(el: HTMLElement): Promise<void> {
       </div>
     </div>
 
+    ${renderMarkdownHelp("blog")}
+
     <div class="admin-editor-split">
       <div class="admin-editor-pane">
         <label class="admin-editor-pane-label">Markdown</label>
-        <textarea id="be-body" class="admin-editor-textarea" placeholder="## Heading&#10;&#10;Write the post here — code fences, :::spoiler, :::gist owner/id, KaTeX ($...$), all supported."></textarea>
+        <textarea id="be-body" class="admin-editor-textarea" placeholder="## Heading&#10;&#10;Write the post here — code fences, :::spoiler, :::testcases, :::youtube, :::binviz, KaTeX ($...$), all supported. See the writing guide above."></textarea>
       </div>
       <div class="admin-editor-pane">
         <label class="admin-editor-pane-label">Live preview</label>
