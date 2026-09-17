@@ -1,5 +1,6 @@
 import { resume } from "../data/resume";
 import { ACHIEVEMENTS, type DetailedAchievement } from "../data/achievements";
+import { loadDetailedAchievementsFromDB } from "../lib/supabase";
 
 function esc(s: string): string {
   return s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c] as string));
@@ -37,8 +38,8 @@ function block(a: DetailedAchievement, n: number): string {
     </li>`;
 }
 
-function pageHtml(): string {
-  const blocks = ACHIEVEMENTS.map((a, i) => block(a, i + 1)).join("");
+function pageHtml(achievements: DetailedAchievement[]): string {
+  const blocks = achievements.map((a, i) => block(a, i + 1)).join("");
   return `
     <article class="page section-page achievements-page">
       <nav class="section-nav">
@@ -59,5 +60,14 @@ function pageHtml(): string {
 }
 
 export function mountAchievements(container: HTMLElement): void {
-  container.innerHTML = pageHtml();
+  // Render static content immediately — no blank flash while the DB loads.
+  container.innerHTML = pageHtml(ACHIEVEMENTS);
+
+  loadDetailedAchievementsFromDB()
+    .then((live) => {
+      if (live.length) container.innerHTML = pageHtml(live);
+    })
+    .catch(() => {
+      // DB unreachable — static version already shown
+    });
 }
