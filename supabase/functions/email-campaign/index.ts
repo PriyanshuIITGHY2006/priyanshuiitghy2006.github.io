@@ -19,6 +19,15 @@ import { renderEmailLayout } from "./_shared/email-layout.ts";
 const DEFAULT_SENDER_DOMAIN = "priyanshudebnath.me";
 const MAX_TOTAL_ATTACHMENT_BYTES = 8 * 1024 * 1024; // Brevo's practical email-size ceiling is ~10MB; leave headroom for the HTML body
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// Attachments are pulled with the service role, which bypasses RLS — so an
+// unrestricted bucket name here would let this endpoint read ANY bucket in
+// the project, not just the two it's meant to serve. Allowlisted as
+// defense-in-depth even though only an already-authenticated admin can
+// reach this action at all.
+const ALLOWED_ATTACHMENT_BUCKETS = new Set(["email-attachments", "resume"]);
+// Hard cap on a single send's recipient list — bounds the blast radius (spam
+// reports, Brevo reputation/quota) of any one campaign, whatever triggered it.
+const MAX_RECIPIENTS_PER_SEND = 500;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "https://priyanshudebnath.me",
@@ -73,6 +82,7 @@ function isAttachmentRef(v: unknown): v is AttachmentRef {
   return !!v && typeof v === "object"
     && typeof (v as AttachmentRef).name === "string"
     && typeof (v as AttachmentRef).bucket === "string"
+    && ALLOWED_ATTACHMENT_BUCKETS.has((v as AttachmentRef).bucket)
     && typeof (v as AttachmentRef).path === "string";
 }
 
@@ -198,8 +208,8 @@ Deno.serve(async (req) => {
       const preheader: unknown = body.preheader;
       const testEmail: unknown = body.testEmail;
       const recipientMode = body.recipientMode === "custom" ? "custom" : "subscribers";
-      if (typeof subject !== "string" || !subject || typeof bodyMarkdown !== "string" || !bodyMarkdown || typeof testEmail !== "string" || !testEmail) {
-        return json({ error: "subject, bodyMarkdown, and testEmail are required" }, 400);
+      if (typeof subject !== "string" || !subject || typeof bodyMarkdown !== "string" || !bodyMarkdown || typeof testEmail !== "string" || !EMAIL_RE.test(testEmail.trim())) {
+        return json({ error: "subject, bodyMarkdown, and a valid testEmail are required" }, 400);
       }
       const { senderName, senderEmail } = resolveSender(body.senderName, body.senderEmail);
       const attachments = await resolveAttachments(admin, body.attachments);
@@ -259,6 +269,9 @@ Deno.serve(async (req) => {
           .select("email, name, unsubscribe_token");
         if (subscribersError) throw subscribersError;
         recipients = (subscribers ?? []).map((s) => ({ email: s.email, name: s.name, unsubscribeToken: s.unsubscribe_token }));
+      }
+      if (recipients.length > MAX_RECIPIENTS_PER_SEND) {
+        return json({ error: `Too many recipients (${recipients.length}) — a single send is capped at ${MAX_RECIPIENTS_PER_SEND}. Split it into multiple campaigns.` }, 400);
       }
 
       await admin.from("email_campaigns").update({ status: "sending", updated_at: new Date().toISOString() }).eq("id", campaignId);
