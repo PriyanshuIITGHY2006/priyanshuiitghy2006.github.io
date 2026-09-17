@@ -82,10 +82,10 @@ function heroHtml(): string {
         touching grass — this is where I write about it.
       </p>
       <div class="hero-actions">
-        <a class="link" href="#/resume">Résumé →</a>
-        <a class="link" href="#/projects">Projects →</a>
-        <a class="link" href="#/blogs">Blogs →</a>
-        <a class="link" href="#/achievements">Achievements →</a>
+        <a class="link" href="/resume">Résumé →</a>
+        <a class="link" href="/projects">Projects →</a>
+        <a class="link" href="/blogs">Blogs →</a>
+        <a class="link" href="/achievements">Achievements →</a>
       </div>
       ${socialsHtml()}
       <footer class="hero-footer">

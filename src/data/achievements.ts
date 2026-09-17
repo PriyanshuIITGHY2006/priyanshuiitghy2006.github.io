@@ -1,7 +1,7 @@
 // ─── Detailed achievements (Achievements page) ────────────────────────
-// Curated, elaborated achievement entries shown on the #/achievements page.
+// Curated, elaborated achievement entries shown on the /achievements page.
 // `verify` points at a gallery item id, producing a deep-link to the proof
-// (certificate image / PDF) that opens full-screen: #/gallery?img=<id>.
+// (certificate image / PDF) that opens full-screen: /gallery?img=<id>.
 
 import { LINKS } from "./links";
 

@@ -24,7 +24,7 @@ function card(p: BlogPost): string {
     ? `<div class="blog-row-thumb"><img src="${esc(p.cover)}" alt="" loading="lazy"/></div>`
     : "";
   return `
-    <a class="blog-row" href="#/blog?slug=${encodeURIComponent(p.slug)}"
+    <a class="blog-row" href="/blog?slug=${encodeURIComponent(p.slug)}"
        data-search="${esc(searchHaystack(p))}"
        data-tags="${esc(p.tags.map((t) => t.toLowerCase()).join("|"))}">
       <div class="blog-row-body">
@@ -70,7 +70,7 @@ function pageHtml(): string {
   return `
     <article class="page section-page blogs-page">
       <nav class="section-nav">
-        <a class="section-back" href="#/">← back</a>
+        <a class="section-back" href="/">← back</a>
         <span class="section-crumb">${esc(resume.name)} · Blog</span>
       </nav>
       <div class="section-body">

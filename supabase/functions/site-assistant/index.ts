@@ -68,8 +68,8 @@ const TOOLS = [
         type: "object",
         properties: {
           route: { type: "string", enum: NAV_ROUTES as unknown as string[], description: "The static route to navigate to." },
-          slug: { type: "string", description: "Blog post slug, only when route is \"/blogs\" and a specific post was requested — will link to #/blog?slug=<slug> instead." },
-          projectId: { type: "string", description: "Project id, only when route is \"/projects\" and a specific project was requested — will link to #/project?id=<projectId> instead." },
+          slug: { type: "string", description: "Blog post slug, only when route is \"/blogs\" and a specific post was requested — will link to /blog?slug=<slug> instead." },
+          projectId: { type: "string", description: "Project id, only when route is \"/projects\" and a specific project was requested — will link to /project?id=<projectId> instead." },
         },
         required: ["route"],
       },
@@ -284,10 +284,10 @@ function navigateTo(args: NavRequest): { result: string; nav: string | null } {
   if (!NAV_ROUTES.includes(args.route as (typeof NAV_ROUTES)[number])) {
     return { result: JSON.stringify({ error: "Unknown route." }), nav: null }
   }
-  let hash = `#${args.route}`
-  if (args.route === "/blogs" && args.slug) hash = `#/blog?slug=${encodeURIComponent(args.slug)}`
-  if (args.route === "/projects" && args.projectId) hash = `#/project?id=${encodeURIComponent(args.projectId)}`
-  return { result: JSON.stringify({ status: "ok", route: hash }), nav: hash }
+  let path = args.route
+  if (args.route === "/blogs" && args.slug) path = `/blog?slug=${encodeURIComponent(args.slug)}`
+  if (args.route === "/projects" && args.projectId) path = `/project?id=${encodeURIComponent(args.projectId)}`
+  return { result: JSON.stringify({ status: "ok", route: path }), nav: path }
 }
 
 interface ToolCall {

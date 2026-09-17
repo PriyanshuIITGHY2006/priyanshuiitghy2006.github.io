@@ -25,7 +25,7 @@ Deno.serve(async (req) => {
         &ldquo;Premature optimization is the root of all evil.&rdquo;
         <div style="margin-top: 6px; font-style: normal; font-size: 13px; color:#666666;">&mdash; Donald Knuth</div>
       </blockquote>
-      <p>Read the latest posts any time at <a href="https://priyanshudebnath.me/#/blogs" style="color:#000000;">the blog</a>.</p>
+      <p>Read the latest posts any time at <a href="https://priyanshudebnath.me/blogs" style="color:#000000;">the blog</a>.</p>
       <p>&mdash; Priyanshu</p>
     `;
 

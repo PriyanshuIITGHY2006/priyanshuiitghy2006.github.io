@@ -12,7 +12,7 @@ function chips(stack: string[]): string {
 function linkBtn(p: DetailedProject): string {
   const parts: string[] = [];
   if (p.body) {
-    parts.push(`<a class="pj-link" href="#/project?id=${encodeURIComponent(p.id)}">Full write-up →</a>`);
+    parts.push(`<a class="pj-link" href="/project?id=${encodeURIComponent(p.id)}">Full write-up →</a>`);
   }
   if (p.github) {
     parts.push(`<a class="pj-link" href="${p.github}" target="_blank" rel="noopener">View on GitHub ↗</a>`);
@@ -20,9 +20,9 @@ function linkBtn(p: DetailedProject): string {
     parts.push(`<a class="pj-link" href="${p.link.href}" target="_blank" rel="noopener">${esc(p.link.label)} ↗</a>`);
   }
   if (p.verifyImg) {
-    parts.push(`<a class="pj-link pj-verify" href="#/gallery?img=${encodeURIComponent(p.verifyImg)}">Verify ✓</a>`);
+    parts.push(`<a class="pj-link pj-verify" href="/gallery?img=${encodeURIComponent(p.verifyImg)}">Verify ✓</a>`);
   } else if (p.verify) {
-    parts.push(`<a class="pj-link pj-verify" href="#/gallery?img=${encodeURIComponent(p.verify)}">View work</a>`);
+    parts.push(`<a class="pj-link pj-verify" href="/gallery?img=${encodeURIComponent(p.verify)}">View work</a>`);
   }
   return parts.length ? `<div class="pj-links">${parts.join("")}</div>` : "";
 }
@@ -56,14 +56,11 @@ function pageHtml(): string {
   return `
     <article class="page section-page projects-page">
       <nav class="section-nav">
-        <a class="section-back" href="#/">← back</a>
+        <a class="section-back" href="/">← back</a>
         <span class="section-crumb">${esc(resume.name)} · Projects</span>
       </nav>
       <div class="section-body">
         <h2 class="section">Projects</h2>
-        <p class="edu-note">
-          ${PROJECTS.length} selected projects, explained in depth — one after another.
-        </p>
         <ol class="pj-list">${blocks}</ol>
       </div>
     </article>`;

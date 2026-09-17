@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
       .select("name, email");
     if (error) throw error;
 
-    const postUrl = `https://priyanshudebnath.me/#/blog?slug=${encodeURIComponent(slug)}`;
+    const postUrl = `https://priyanshudebnath.me/blog?slug=${encodeURIComponent(slug)}`;
 
     const bodyHtml = `
       <p style="margin:0 0 4px; font-size:12px; letter-spacing:0.5px; color:#666666; text-transform:uppercase;">New post</p>
