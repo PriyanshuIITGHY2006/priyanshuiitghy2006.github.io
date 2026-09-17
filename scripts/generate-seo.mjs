@@ -24,7 +24,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, "..");
 const BLOGS_DIR = join(ROOT, "src/data/blogs");
 const DIST = join(ROOT, "dist");
-const SITE_ORIGIN = "https://priyanshuiitghy2006.github.io";
+const SITE_ORIGIN = "https://priyanshudebnath.me";
 
 function parseFrontmatter(raw) {
   const match = raw.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/);

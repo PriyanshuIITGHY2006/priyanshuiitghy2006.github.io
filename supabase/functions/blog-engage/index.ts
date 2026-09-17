@@ -10,7 +10,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 // a Turnstile token server-side first, then calls them with the service role.
 Deno.serve(async (req) => {
   const corsHeaders = {
-    "Access-Control-Allow-Origin": "https://priyanshuiitghy2006.github.io",
+    "Access-Control-Allow-Origin": "https://priyanshudebnath.me",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   };

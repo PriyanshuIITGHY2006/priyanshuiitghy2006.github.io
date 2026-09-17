@@ -1,6 +1,6 @@
 import { defineConfig } from "vite";
 
-// Deployed at https://priyanshuiitghy2006.github.io/ (user-pages root site),
+// Deployed at https://priyanshudebnath.me/ (user-pages root site),
 // so the base path is "/".
 export default defineConfig({
   base: "/",
