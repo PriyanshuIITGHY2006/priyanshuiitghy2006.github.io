@@ -80,3 +80,39 @@ export function deleteBlogPostFromGithub(slug: string): Promise<{ deleted: boole
 export function listBlogSlugsFromGithub(): Promise<{ files: string[] }> {
   return callGithubPublish<{ files: string[] }>({ action: "list_directory", dir: "src/data/blogs" });
 }
+
+// ── Email campaigns: thin client for the email-campaign edge function ──────
+// Draft CRUD (list/save/delete) happens directly through supabase-js from
+// the admin panel — RLS already gates that on is_admin(). Only the actual
+// Brevo send needs an edge function, since that alone requires the
+// BREVO_API_KEY secret held server-side.
+async function callEmailCampaign<T>(body: Record<string, unknown>): Promise<T> {
+  const { data, error } = await supabase.functions.invoke("email-campaign", { body });
+  if (error) throw new Error(error.message || "Email send failed.");
+  const result = data as (T & Partial<PublishErrorBody>) | PublishErrorBody;
+  if (result && "error" in result && result.error) throw new Error(result.error);
+  return data as T;
+}
+
+export interface CampaignAttachment {
+  name: string;
+  bucket: string;
+  path: string;
+  size: number;
+}
+
+export function sendTestCampaignEmail(fields: {
+  subject: string;
+  preheader: string;
+  bodyMarkdown: string;
+  testEmail: string;
+  senderName?: string;
+  senderEmail?: string;
+  attachments?: CampaignAttachment[];
+}): Promise<{ ok: true }> {
+  return callEmailCampaign<{ ok: true }>({ action: "send_test", ...fields });
+}
+
+export function sendCampaignToAllSubscribers(campaignId: string): Promise<{ ok: true; sent: number; failed: number; total: number }> {
+  return callEmailCampaign<{ ok: true; sent: number; failed: number; total: number }>({ action: "send_campaign", campaignId });
+}

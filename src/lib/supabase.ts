@@ -30,6 +30,12 @@ export async function resumePdfExists(): Promise<boolean> {
   return (data ?? []).some((f) => f.name === RESUME_PDF_FILE);
 }
 
+// ─── Email campaign attachments (Supabase Storage, private bucket) ───────
+// The send_campaign/send_test edge function pulls these server-side (via
+// service role) and base64-embeds them into the outgoing email — the bucket
+// itself is never made public.
+export const EMAIL_ATTACHMENTS_BUCKET = "email-attachments";
+
 // ─── DB row shapes ────────────────────────────────────────────────────────────
 
 interface DBProject {
