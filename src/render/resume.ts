@@ -18,7 +18,7 @@ function escapeText(s: string): string {
   return s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c] as string));
 }
 
-// Each résumé section links to its own standalone page (hash route).
+// Each résumé section links to its own standalone page.
 export const SECTION_ROUTES: Record<string, string> = {
   Education: "/education",
   Projects: "/projects",
@@ -31,7 +31,7 @@ function sectionTitle(title: string, linked = true): string {
   // Mirrors \titleformat{\section}{\scshape\raggedright\large}{}{0em}{}[\titlerule]
   const route = SECTION_ROUTES[title];
   if (linked && route) {
-    return `<h2 class="section"><a class="section-link" href="#${route}">${title}<span class="section-arrow" aria-hidden="true">→</span></a></h2>`;
+    return `<h2 class="section"><a class="section-link" href="${route}">${title}<span class="section-arrow" aria-hidden="true">→</span></a></h2>`;
   }
   return `<h2 class="section">${title}</h2>`;
 }
@@ -40,7 +40,7 @@ function sectionTitle(title: string, linked = true): string {
 function header(data: ResumeData): string {
   const rows: { left: string; right: string; nameRow?: boolean }[] = [
     {
-      left: `<a class="link name-link" href="#/" data-detail="about"><span class="name">${escapeText(data.name)}</span></a>`,
+      left: `<a class="link name-link" href="/" data-detail="about"><span class="name">${escapeText(data.name)}</span></a>`,
       right: richLine(data.contact[0]),
       nameRow: true,
     },

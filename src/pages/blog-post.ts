@@ -107,13 +107,13 @@ function notFoundHtml(): string {
   return `
     <article class="page section-page blog-post-page">
       <nav class="section-nav">
-        <a class="section-back" href="#/blogs">← back to blog</a>
+        <a class="section-back" href="/blogs">← back to blog</a>
         <span class="section-crumb">${esc(resume.name)} · Blog</span>
       </nav>
       <div class="section-body">
         <h2 class="section">Post not found</h2>
         <p class="edu-note">This post may have been renamed, moved, or unpublished.</p>
-        <a class="pj-link" href="#/blogs">← All posts</a>
+        <a class="pj-link" href="/blogs">← All posts</a>
       </div>
     </article>`;
 }
@@ -210,7 +210,7 @@ function pageHtml(slug: string | null): string {
     <div class="blog-progress-bar" id="blog-progress-bar"></div>
     <article class="page section-page blog-post-page">
       <nav class="section-nav">
-        <a class="section-back" href="#/blogs">← back to blog</a>
+        <a class="section-back" href="/blogs">← back to blog</a>
         <span class="section-crumb">${esc(resume.name)} · Blog</span>
       </nav>
       <div class="section-body">
@@ -234,7 +234,7 @@ function pageHtml(slug: string | null): string {
         </div>
 
         <div class="section-more" style="margin-top: 2rem;">
-          <a class="pj-link" href="#/blogs">← All posts</a>
+          <a class="pj-link" href="/blogs">← All posts</a>
         </div>
       </div>
       ${SCROLL_TOP_BUTTON_HTML}
@@ -375,8 +375,9 @@ function wireTestcases(container: HTMLElement): void {
 }
 
 // ─── Table of contents ──────────────────────────────────────────────────────
-// Anchors intentionally avoid touching location.hash (which the router
-// listens on) — clicking a ToC entry scrolls the heading into view instead.
+// Links use href="javascript:void(0)" and scroll manually instead of a real
+// "#id" fragment link, so clicking one smooth-scrolls the heading into view
+// instead of jumping instantly.
 
 function wireToc(container: HTMLElement): void {
   container.querySelectorAll<HTMLAnchorElement>(".blog-toc-link").forEach((link) => {
@@ -828,7 +829,7 @@ function getRelatedPostsHtml(current: BlogPost): string {
       : "";
 
     return `
-      <a class="blog-row" href="#/blog?slug=${encodeURIComponent(p.slug)}">
+      <a class="blog-row" href="/blog?slug=${encodeURIComponent(p.slug)}">
         <div class="blog-row-body">
           ${p.date ? `<div class="blog-row-date">${esc(formatBlogDate(p.date))} · ${estimateReadingMinutes(p.rawBody)} min read</div>` : ""}
           <h3 class="blog-row-title">${esc(p.title)}</h3>

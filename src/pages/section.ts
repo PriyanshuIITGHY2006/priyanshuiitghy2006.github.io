@@ -16,7 +16,7 @@ function page(key: SectionKey, data: ResumeData): string {
   return `
     <article class="page section-page solo-section-page">
       <nav class="section-nav">
-        <a class="section-back" href="#/">← back</a>
+        <a class="section-back" href="/">← back</a>
         <span class="section-crumb">${data.name} · ${TITLES[key]}</span>
       </nav>
       <div class="section-body">

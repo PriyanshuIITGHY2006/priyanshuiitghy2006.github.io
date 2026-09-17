@@ -11,7 +11,7 @@ import { mountAchievements } from "./pages/achievements";
 import { mountAbout } from "./pages/about";
 import { loadCodeforces, rankName } from "./lib/codeforces";
 import { loadResumeFromDB, getResumePdfUrl, resumePdfExists } from "./lib/supabase";
-import { route, start, notFound } from "./lib/router";
+import { route, start, notFound, navigate } from "./lib/router";
 import { mountThemeToggle } from "./lib/theme";
 import { initFallingSymbolsEasterEgg } from "./lib/falling-symbols";
 import { initTerminalEasterEgg } from "./lib/terminal";
@@ -46,7 +46,7 @@ route("/", () => {
 // "/about" is a compatibility alias for old links/bookmarks — the content
 // itself lives at "/" now.
 route("/about", () => {
-  location.hash = "#/";
+  navigate("/");
 });
 
 // ─── Résumé (the original one-page LaTeX-style view) ─────────────────────
@@ -85,7 +85,7 @@ route("/education", () => {
   mountEducation(app);
 });
 route("/projects", () => {
-  setPageMeta({ title: "Projects", description: "Selected projects, explained in depth — machine learning, quantitative finance, and competitive programming." });
+  setPageMeta({ title: "Projects", description: "Machine learning, quantitative finance, and competitive programming projects, with write-ups for each." });
   app.innerHTML = "";
   mountProjects(app);
 });

@@ -24,7 +24,7 @@ export function renderEmailLayout(opts: { title: string; preheader?: string; bod
         <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px; width:100%; font-family: Georgia, 'Times New Roman', Cambria, serif; color:#000000;">
           <tr>
             <td style="padding-bottom: 14px; border-bottom: 1px solid #000000;">
-              <a href="https://priyanshudebnath.me/#/blogs" style="text-decoration:none; color:#000000;">
+              <a href="https://priyanshudebnath.me/blogs" style="text-decoration:none; color:#000000;">
                 <span style="font-size: 19px; font-weight: bold; letter-spacing: 0.3px;">Priyanshu Debnath</span>
                 <span style="font-size: 12px; color:#666666; margin-left: 8px;">&mdash; Blog</span>
               </a>

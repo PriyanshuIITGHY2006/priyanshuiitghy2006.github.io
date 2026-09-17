@@ -2,7 +2,7 @@
 // Drop image OR PDF files into  public/gallery/  and add an entry here.
 //
 //   • `id`  is a stable slug — it becomes a shareable deep-link that opens
-//          the file full-screen:  #/gallery?img=<id>
+//          the file full-screen:  /gallery?img=<id>
 //   • `src` is the file path, e.g. "gallery/award.png" or "gallery/cert.pdf".
 //          The type is detected from the extension: .pdf renders in an inline
 //          PDF viewer, everything else renders as an image.
