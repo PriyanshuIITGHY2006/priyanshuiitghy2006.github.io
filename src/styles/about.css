@@ -97,6 +97,11 @@
 .contact-details[open] summary::after { transform: rotate(90deg); }
 .contact-details .contact-form { margin-top: 0.9rem; }
 
+/* ─── Footer: copyright + quote ──────────────────────────────────────── */
+.hero-footer { margin-top: 1.6rem; font-size: 0.76em; color: var(--muted-2); }
+.hero-copyright { margin: 0; }
+.hero-quote { margin: 0.2rem 0 0; font-style: italic; }
+
 /* ─── Clickable name in the résumé header ───────────────────────────── */
 .name-link {
   border-bottom-color: transparent;

@@ -88,6 +88,10 @@ function heroHtml(): string {
         <a class="link" href="#/achievements">Achievements →</a>
       </div>
       ${socialsHtml()}
+      <footer class="hero-footer">
+        <p class="hero-copyright">© ${new Date().getFullYear()} Priyanshu Debnath</p>
+        <p class="hero-quote">"Don't constexpr all the things" — David Sankel</p>
+      </footer>
     </section>`;
 }
 
