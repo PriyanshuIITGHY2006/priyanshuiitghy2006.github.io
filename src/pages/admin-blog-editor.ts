@@ -1,17 +1,24 @@
-// Compose-a-blog-post tab: frontmatter fields + a markdown body, rendered
-// live through the exact same renderMarkdown() pipeline the real blog uses
-// (marked + highlight.js + KaTeX + DOMPurify + the :::spoiler/:::youtube/
-// :::testcases/:::binviz extensions), so what you see here is what the
-// post will actually look like — not an approximation.
+// Blog posts tab: a list of existing posts (Edit / Delete) plus a composer
+// (frontmatter fields + markdown body) rendered live through the exact same
+// renderMarkdown() pipeline the real blog uses (marked + highlight.js +
+// KaTeX + DOMPurify + the :::spoiler/:::youtube/:::testcases/:::binviz
+// extensions), so what you see here is what the post will actually look
+// like — not an approximation.
 //
 // Publish commits src/data/blogs/<slug>.md straight to GitHub via the
 // github-publish edge function, which triggers the site's existing build
 // pipeline — the post is live once that deploy finishes (~1-2 min). "Copy
-// markdown" is kept as a manual fallback.
+// markdown" is kept as a manual fallback. The post list itself comes from a
+// live GitHub directory listing (not the build-time BLOG_POSTS bundle), so
+// a publish or delete shows up immediately — only title/date display falls
+// back to "(slug)" for a post whose metadata hasn't made it through a
+// rebuild yet.
 
 import { supabase, loadAllSiteImages, type DBSiteImage } from "../lib/supabase";
 import { publishBlogPostToGithub, uploadImageToGithub } from "../lib/admin-publish";
 import { renderMarkdownHelp } from "../lib/markdown-help";
+import { confirmDialog } from "../lib/confirm-dialog";
+import { BLOG_POSTS } from "../lib/blog";
 
 function esc(s: string): string {
   return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
@@ -58,7 +65,17 @@ export async function renderBlogEditor(el: HTMLElement): Promise<void> {
 
   el.innerHTML = `
     <div class="admin-form-section">
-      <h3>New blog post</h3>
+      <h3>Existing posts</h3>
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead><tr><th>Title</th><th>Date</th><th>Actions</th></tr></thead>
+          <tbody id="be-post-list"><tr><td colspan="3" class="admin-table-empty">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="admin-form-section">
+      <h3 id="be-composer-heading">New blog post</h3>
       <p class="edu-note" style="margin-top:-0.4rem;">
         Publish commits the post straight to GitHub — it's live once the next deploy finishes (~1–2 min).
       </p>
@@ -101,10 +118,13 @@ export async function renderBlogEditor(el: HTMLElement): Promise<void> {
     <div class="admin-form-actions" style="margin-top:0.8rem;">
       <button type="button" class="admin-btn admin-btn-primary" id="be-publish">Publish to GitHub</button>
       <button type="button" class="admin-btn" id="be-copy">Copy markdown file</button>
+      <button type="button" class="admin-btn" id="be-cancel-edit" style="display:none;">New post (cancel edit)</button>
       <span id="be-copy-path" class="edu-note" style="margin:0;"></span>
     </div>
     <div id="be-copy-status" class="admin-status" style="display:none;margin-top:0.6rem;"></div>`;
 
+  const composerHeadingEl = el.querySelector<HTMLElement>("#be-composer-heading")!;
+  const postListEl = el.querySelector<HTMLElement>("#be-post-list")!;
   const titleEl = el.querySelector<HTMLInputElement>("#be-title")!;
   const slugEl = el.querySelector<HTMLInputElement>("#be-slug")!;
   const dateEl = el.querySelector<HTMLInputElement>("#be-date")!;
@@ -117,10 +137,13 @@ export async function renderBlogEditor(el: HTMLElement): Promise<void> {
   const previewEl = el.querySelector<HTMLElement>("#be-preview")!;
   const publishBtn = el.querySelector<HTMLButtonElement>("#be-publish")!;
   const copyBtn = el.querySelector<HTMLButtonElement>("#be-copy")!;
+  const cancelEditBtn = el.querySelector<HTMLButtonElement>("#be-cancel-edit")!;
   const copyPathEl = el.querySelector<HTMLElement>("#be-copy-path")!;
   const copyStatusEl = el.querySelector<HTMLElement>("#be-copy-status")!;
 
+  let editingSlug: string | null = null;
   let slugTouched = false;
+
   slugEl.addEventListener("input", () => { slugTouched = true; });
   titleEl.addEventListener("input", () => {
     if (!slugTouched) slugEl.value = slugify(titleEl.value);
@@ -129,7 +152,7 @@ export async function renderBlogEditor(el: HTMLElement): Promise<void> {
   slugEl.addEventListener("input", updatePath);
 
   function updatePath(): void {
-    const slug = slugEl.value.trim() || "your-post-slug";
+    const slug = editingSlug ?? (slugEl.value.trim() || "your-post-slug");
     copyPathEl.textContent = `→ src/data/blogs/${slug}.md`;
   }
   updatePath();
@@ -197,23 +220,55 @@ export async function renderBlogEditor(el: HTMLElement): Promise<void> {
     };
   }
 
+  function enterEditMode(slug: string): void {
+    editingSlug = slug;
+    slugEl.value = slug;
+    slugEl.readOnly = true;
+    composerHeadingEl.textContent = `Editing: ${slug}`;
+    publishBtn.textContent = "Update on GitHub";
+    cancelEditBtn.style.display = "";
+    updatePath();
+  }
+
+  function resetComposer(): void {
+    editingSlug = null;
+    slugTouched = false;
+    titleEl.value = "";
+    slugEl.value = "";
+    slugEl.readOnly = false;
+    dateEl.value = todayISO();
+    tagsEl.value = "";
+    excerptEl.value = "";
+    coverEl.value = "";
+    bodyEl.value = "";
+    renderPreview();
+    composerHeadingEl.textContent = "New blog post";
+    publishBtn.textContent = "Publish to GitHub";
+    cancelEditBtn.style.display = "none";
+    updatePath();
+  }
+
+  cancelEditBtn.addEventListener("click", resetComposer);
+
   publishBtn.addEventListener("click", async () => {
     const fields = currentFields();
-    const slug = slugEl.value.trim() || slugify(titleEl.value);
+    const slug = editingSlug ?? (slugEl.value.trim() || slugify(titleEl.value));
     if (!fields.title || !fields.body.trim() || !slug) {
       setStatus("Title, slug, and body are required before publishing.", false);
       return;
     }
     publishBtn.disabled = true;
-    publishBtn.textContent = "Publishing…";
+    publishBtn.textContent = editingSlug ? "Updating…" : "Publishing…";
     try {
       await publishBlogPostToGithub(slug, buildMarkdownFile(fields));
       setStatus(`Published! "${slug}" will be live once the site finishes redeploying (~1–2 min).`, true);
+      enterEditMode(slug);
+      void refreshPostList();
     } catch (err) {
       setStatus("Publish error: " + (err instanceof Error ? err.message : String(err)), false);
+      publishBtn.textContent = editingSlug ? "Update on GitHub" : "Publish to GitHub";
     } finally {
       publishBtn.disabled = false;
-      publishBtn.textContent = "Publish to GitHub";
     }
   });
 
@@ -223,13 +278,96 @@ export async function renderBlogEditor(el: HTMLElement): Promise<void> {
       return;
     }
     const file = buildMarkdownFile(currentFields());
+    const slug = editingSlug ?? (slugEl.value.trim() || slugify(titleEl.value));
     try {
       await navigator.clipboard.writeText(file);
-      setStatus(`Copied — save as src/data/blogs/${slugEl.value.trim() || slugify(titleEl.value)}.md`, true);
+      setStatus(`Copied — save as src/data/blogs/${slug}.md`, true);
     } catch {
       setStatus("Clipboard unavailable — select and copy the text manually.", false);
     }
   });
+
+  async function startEditing(slug: string): Promise<void> {
+    setStatus(`Loading "${slug}"…`, true);
+    try {
+      const { readBlogPostFromGithub } = await import("../lib/admin-publish");
+      const { exists, content } = await readBlogPostFromGithub(slug);
+      if (!exists) {
+        setStatus("That post no longer exists on GitHub.", false);
+        void refreshPostList();
+        return;
+      }
+      const { parseFrontmatter } = await import("../lib/blog");
+      const { data, body } = parseFrontmatter(content);
+      titleEl.value = data.title ?? "";
+      dateEl.value = data.date ?? todayISO();
+      tagsEl.value = data.tags ?? "";
+      excerptEl.value = data.excerpt ?? "";
+      const coverSrc = data.cover ?? "";
+      if (coverSrc && !Array.from(coverEl.options).some((o) => o.value === coverSrc)) {
+        const opt = document.createElement("option");
+        opt.value = coverSrc;
+        opt.textContent = coverSrc;
+        coverEl.appendChild(opt);
+      }
+      coverEl.value = coverSrc;
+      bodyEl.value = body;
+      renderPreview();
+      enterEditMode(slug);
+      setStatus(`Loaded "${slug}" for editing.`, true);
+      el.querySelector("#be-composer-heading")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    } catch (err) {
+      setStatus("Load error: " + (err instanceof Error ? err.message : String(err)), false);
+    }
+  }
+
+  async function deletePost(slug: string, btn: HTMLButtonElement): Promise<void> {
+    if (!(await confirmDialog(`Delete blog post "${slug}"? The GitHub file will be removed — this can't be undone.`))) return;
+    btn.disabled = true;
+    try {
+      const { deleteBlogPostFromGithub } = await import("../lib/admin-publish");
+      await deleteBlogPostFromGithub(slug);
+      if (editingSlug === slug) resetComposer();
+      setStatus(`Deleted "${slug}".`, true);
+      void refreshPostList();
+    } catch (err) {
+      setStatus("Delete error: " + (err instanceof Error ? err.message : String(err)), false);
+      btn.disabled = false;
+    }
+  }
+
+  async function refreshPostList(): Promise<void> {
+    postListEl.innerHTML = `<tr><td colspan="3" class="admin-table-empty">Loading…</td></tr>`;
+    try {
+      const { listBlogSlugsFromGithub } = await import("../lib/admin-publish");
+      const { files } = await listBlogSlugsFromGithub();
+      const knownBySlug = new Map(BLOG_POSTS.map((p) => [p.slug, p]));
+      const posts = files
+        .map((slug) => ({ slug, title: knownBySlug.get(slug)?.title ?? slug, date: knownBySlug.get(slug)?.date ?? "" }))
+        .sort((a, b) => (a.date && b.date ? (a.date < b.date ? 1 : -1) : a.date ? -1 : 1));
+
+      postListEl.innerHTML = posts.length
+        ? posts.map((p) => `
+          <tr>
+            <td class="truncate">${esc(p.title)}</td>
+            <td style="white-space:nowrap">${esc(p.date)}</td>
+            <td style="white-space:nowrap">
+              <button class="admin-btn" data-be-edit="${esc(p.slug)}">Edit</button>
+              <button class="admin-btn admin-btn-danger" data-be-del="${esc(p.slug)}">Delete</button>
+            </td>
+          </tr>`).join("")
+        : `<tr><td colspan="3" class="admin-table-empty">No posts yet.</td></tr>`;
+
+      postListEl.querySelectorAll<HTMLButtonElement>("[data-be-edit]").forEach((btn) => {
+        btn.addEventListener("click", () => void startEditing(btn.dataset.beEdit!));
+      });
+      postListEl.querySelectorAll<HTMLButtonElement>("[data-be-del]").forEach((btn) => {
+        btn.addEventListener("click", () => void deletePost(btn.dataset.beDel!, btn));
+      });
+    } catch (err) {
+      postListEl.innerHTML = `<tr><td colspan="3" class="admin-table-empty">Couldn't load posts: ${esc(err instanceof Error ? err.message : String(err))}</td></tr>`;
+    }
+  }
 
   function setStatus(msg: string, ok: boolean): void {
     copyStatusEl.textContent = msg;
@@ -237,4 +375,6 @@ export async function renderBlogEditor(el: HTMLElement): Promise<void> {
     copyStatusEl.style.display = "block";
     if (ok) setTimeout(() => { copyStatusEl.style.display = "none"; }, 4000);
   }
+
+  void refreshPostList();
 }

@@ -101,6 +101,20 @@ function utf8ToBase64(text: string): string {
   return btoa(unescape(encodeURIComponent(text)));
 }
 
+function base64ToUtf8(b64: string): string {
+  return decodeURIComponent(escape(atob(b64.replace(/\n/g, ""))));
+}
+
+// read_file / delete_file only ever touch content this function itself
+// manages — never an arbitrary repo path.
+const READABLE_PATH_RES = [
+  /^src\/data\/blogs\/[a-z0-9-]+\.md$/,
+  /^src\/data\/project-writeups\/[a-z0-9-]+\.md$/,
+];
+function isReadableDeletablePath(path: string): boolean {
+  return READABLE_PATH_RES.some((re) => re.test(path));
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
@@ -147,6 +161,67 @@ Deno.serve(async (req) => {
       }
       const { path } = await putFile(`src/data/project-writeups/${id}.md`, utf8ToBase64(content), `Publish project write-up: ${id}`);
       return json({ ok: true, path });
+    }
+
+    if (body.action === "read_file") {
+      const path: unknown = body.path;
+      if (typeof path !== "string" || !isReadableDeletablePath(path)) {
+        return json({ error: "Invalid or disallowed path" }, 400);
+      }
+      const res = await githubFetch(repoContentsUrl(path, `?ref=${GITHUB_BRANCH}`));
+      if (res.status === 404) {
+        return json({ ok: true, exists: false, content: "" });
+      }
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        return json({ error: `GitHub read of ${path} failed (${res.status}): ${text.slice(0, 300)}` }, 502);
+      }
+      const data = await res.json();
+      const content = typeof data.content === "string" ? base64ToUtf8(data.content) : "";
+      return json({ ok: true, exists: true, content });
+    }
+
+    if (body.action === "list_directory") {
+      const dir: unknown = body.dir;
+      const allowedDirs = ["src/data/blogs", "src/data/project-writeups"];
+      if (typeof dir !== "string" || !allowedDirs.includes(dir)) {
+        return json({ error: "Invalid or disallowed directory" }, 400);
+      }
+      const res = await githubFetch(repoContentsUrl(dir, `?ref=${GITHUB_BRANCH}`));
+      if (res.status === 404) {
+        return json({ ok: true, files: [] });
+      }
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        return json({ error: `GitHub list of ${dir} failed (${res.status}): ${text.slice(0, 300)}` }, 502);
+      }
+      const data = await res.json();
+      const files = Array.isArray(data)
+        ? data
+            .filter((f: { type?: string; name?: string }) => f.type === "file" && typeof f.name === "string" && f.name.endsWith(".md"))
+            .map((f: { name: string }) => f.name.replace(/\.md$/, ""))
+        : [];
+      return json({ ok: true, files });
+    }
+
+    if (body.action === "delete_file") {
+      const path: unknown = body.path;
+      if (typeof path !== "string" || !isReadableDeletablePath(path)) {
+        return json({ error: "Invalid or disallowed path" }, 400);
+      }
+      const sha = await getFileSha(path);
+      if (!sha) {
+        return json({ ok: true, deleted: false });
+      }
+      const res = await githubFetch(repoContentsUrl(path), {
+        method: "DELETE",
+        body: JSON.stringify({ message: `Delete ${path}`, sha, branch: GITHUB_BRANCH }),
+      });
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(`GitHub delete of ${path} failed (${res.status}): ${text.slice(0, 300)}`);
+      }
+      return json({ ok: true, deleted: true });
     }
 
     return json({ error: "Unknown action" }, 400);
