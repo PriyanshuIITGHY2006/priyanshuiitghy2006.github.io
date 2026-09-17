@@ -2,7 +2,7 @@
 title: Stack, Heap, and the Registers That Finally Made Sense
 date: 2026-07-04
 tags: C++, Systems, Memory, Beginner
-cover: blogs/stack-heap-registers/cover.jpg
+cover: blog-media/stack-heap-registers/cover.jpg
 excerpt: Hi, it's my first blog. I went looking for proof that the stack and heap actually exist, and found it.
 ---
 
@@ -52,7 +52,7 @@ The trick is that `cin >> freeze` line. It freezes the program mid-run, on purpo
 
 I ran it, and while it sat there waiting, I opened **VMMap** (a free tool from Sysinternals) and attached it to the running process.
 
-![VMMap showing the stack, heap, and free memory regions](blogs/stack-heap-registers/Screenshot%202026-07-04%20210149.png)
+![VMMap showing the stack, heap, and free memory regions](blog-media/stack-heap-registers/Screenshot%202026-07-04%20210149.png)
 
 ## What VMMap actually showed me
 

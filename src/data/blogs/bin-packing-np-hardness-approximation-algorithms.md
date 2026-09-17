@@ -2,7 +2,7 @@
 title: Bin Packing — Why It's Hard, How to Approximate It, and When It Isn't Hard At All
 date: 2026-07-07
 tags: Algorithms, Complexity Theory, Approximation Algorithms, Competitive Programming
-cover: blogs/bin-packing-np-hardness-approximation-algorithms/cover.png
+cover: blog-media/bin-packing-np-hardness-approximation-algorithms/cover.png
 excerpt: A full pass through bin packing — the formal problem, why the decision version is NP-complete (and why the optimization version is strongly so), every classical approximation algorithm with its proven bound, the special cases that collapse back to polynomial time, and the backtracking/bitmask-DP techniques you'd actually use to solve small instances in a contest.
 ---
 

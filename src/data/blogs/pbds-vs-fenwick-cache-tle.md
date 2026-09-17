@@ -2,7 +2,7 @@
 title: Why My PBDS ordered_multiset Solution TLE'd (and the Fenwick Fix)
 date: 2026-07-05
 tags: Competitive Programming, C++, Data Structures, Performance
-cover: blogs/pbds-vs-fenwick-cache-tle/cover.png
+cover: blog-media/pbds-vs-fenwick-cache-tle/cover.png
 excerpt: My approach to Zhily and Barknights was correct from the start, but the PBDS ordered_multiset implementation TLE'd twice. This post covers how Red-Black trees and order statistics work, and why a Fenwick tree passed instead.
 ---
 
@@ -10,7 +10,7 @@ excerpt: My approach to Zhily and Barknights was correct from the start, but the
 
 This one's from Codeforces Round 1097 (Div. 1), problem B — [**Zhily and Barknights**](https://codeforces.com/contest/1097/problem/B).
 
-![Problem statement](blogs/pbds-vs-fenwick-cache-tle/question.png)
+![Problem statement](blog-media/pbds-vs-fenwick-cache-tle/question.png)
 
 The gist: you're given two arrays $a$ and $b$ of length $n$. You take a uniformly random permutation $b'$ of $b$, define $c_i = a_i \cdot b'_i$, and you need the **expected number of inversions** in $c$, modulo $998244353$. Constraints: $n \le 2000$, but $\sum n \le 2000$ across test cases, and $a_i, b_i \le 10^9$.
 
@@ -50,7 +50,7 @@ It compiled, gave the right answer on the sample cases, and I submitted it.
 381028795   TLE on test 3   4000 ms   157200 KB
 ```
 
-![Rejected submissions](blogs/pbds-vs-fenwick-cache-tle/tle.png)
+![Rejected submissions](blog-media/pbds-vs-fenwick-cache-tle/tle.png)
 
 Two attempts, both failing on the same test. At that point I didn't think much, later saw the math behind it.
 
@@ -422,7 +422,7 @@ This submission passed:
 381029218   Accepted   3625 ms   92900 KB
 ```
 
-![Accepted submission](blogs/pbds-vs-fenwick-cache-tle/accepted.png)
+![Accepted submission](blog-media/pbds-vs-fenwick-cache-tle/accepted.png)
 
 3625 ms, inside the 4000 ms limit. The algorithmic complexity didn't change from the first attempt, so the difference has to come from somewhere else.
 

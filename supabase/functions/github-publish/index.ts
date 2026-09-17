@@ -2,10 +2,14 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 // Admin-only bridge to the GitHub Contents API: commits gallery images to
-// public/gallery/ and blog post markdown to src/data/blogs/, both on the
-// branch the site's existing GitHub Actions workflow deploys from. A
+// public/gallery-media/ and blog post markdown to src/data/blogs/, both on
+// the branch the site's existing GitHub Actions workflow deploys from. A
 // commit here triggers that same build+deploy pipeline — nothing else
 // needs to know a publish happened.
+//
+// The image folder is "gallery-media", not "gallery" — the SPA has a real
+// /gallery route, and GitHub Pages treats a public/gallery/ directory as a
+// real path, which broke direct loads/refreshes of /gallery.
 const GITHUB_OWNER = "PriyanshuIITGHY2006";
 const GITHUB_REPO = "priyanshuiitghy2006.github.io";
 const GITHUB_BRANCH = "Website";
@@ -114,8 +118,8 @@ Deno.serve(async (req) => {
         return json({ error: "filename and contentBase64 are required" }, 400);
       }
       const safe = safeFilename(filename);
-      const { path } = await putFile(`public/gallery/${safe}`, contentBase64, `Add gallery image: ${safe}`);
-      return json({ ok: true, path, src: `gallery/${encodeURIComponent(safe)}` });
+      const { path } = await putFile(`public/gallery-media/${safe}`, contentBase64, `Add gallery image: ${safe}`);
+      return json({ ok: true, path, src: `gallery-media/${encodeURIComponent(safe)}` });
     }
 
     if (body.action === "publish_blog_post") {
