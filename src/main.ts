@@ -129,6 +129,11 @@ route("/blog", async (params) => {
   const { mountBlogPost } = await import("./pages/blog-post");
   mountBlogPost(app, params.get("slug"));
 });
+route("/unsubscribe", async (params) => {
+  app.innerHTML = "";
+  const { mountUnsubscribe } = await import("./pages/unsubscribe");
+  mountUnsubscribe(app, params.get("token"));
+});
 
 // ─── Admin panel ────────────────────────────────────────────────────────
 route("/admin", () => {
