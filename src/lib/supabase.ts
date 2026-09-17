@@ -3,6 +3,8 @@ import type { ResumeData } from "../types";
 import { resume as staticResume } from "../data/resume";
 import { ACHIEVEMENTS as staticAchievements, type DetailedAchievement } from "../data/achievements";
 import { GALLERY as staticGallery, type GalleryItem } from "../data/gallery";
+import { PROJECTS as staticProjects, type DetailedProject } from "../data/projects";
+import { getProjectWriteup } from "./project-writeups";
 
 // Pull credentials securely from Vite environment variables
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
@@ -39,12 +41,25 @@ interface DBProject {
   link_href: string | null;
   link_detail: string | null;
   sort_order: number;
+  show_in_cv: boolean;
+  tagline: string | null;
+  detail_html: string | null;
+  highlights_text: string | null;
+  verify: string | null;
 }
 
 interface DBProjectBullet {
   id: number;
   project_id: string;
   bullet: string;
+  sort_order: number;
+}
+
+interface DBProjectLink {
+  id: number;
+  project_id: string;
+  label: string;
+  href: string;
   sort_order: number;
 }
 
@@ -122,23 +137,25 @@ export async function loadResumeFromDB(): Promise<ResumeData> {
       bulletsByProject.set(b.project_id, list);
     }
 
-    const mappedProjects = ((projects as DBProject[]) ?? []).map((p) => ({
-      id: p.id,
-      title: p.title,
-      date: p.date,
-      stack: p.stack,
-      ...(p.link_text && p.link_href
-        ? {
-            link: {
-              text: p.link_text,
-              href: p.link_href,
-              external: true,
-              ...(p.link_detail ? { detail: p.link_detail } : {}),
-            },
-          }
-        : {}),
-      bullets: bulletsByProject.get(p.id) ?? [],
-    }));
+    const mappedProjects = ((projects as DBProject[]) ?? [])
+      .filter((p) => p.show_in_cv)
+      .map((p) => ({
+        id: p.id,
+        title: p.title,
+        date: p.date,
+        stack: p.stack,
+        ...(p.link_text && p.link_href
+          ? {
+              link: {
+                text: p.link_text,
+                href: p.link_href,
+                external: true,
+                ...(p.link_detail ? { detail: p.link_detail } : {}),
+              },
+            }
+          : {}),
+        bullets: bulletsByProject.get(p.id) ?? [],
+      }));
 
     const mappedAchievements = ((achievements as DBAchievement[]) ?? []).map(
       (a) => ({ id: a.id, html: a.html, date: a.date }),
@@ -229,4 +246,52 @@ export async function loadAllSiteImages(): Promise<DBSiteImage[]> {
   const { data, error } = await supabase.from("site_images").select("*").order("sort_order");
   if (error || !data) return [];
   return data as DBSiteImage[];
+}
+
+// The standalone /projects + /project?id= pages read the same `projects`
+// table the résumé uses (show_in_cv just toggles whether a row also
+// appears there), plus its richer columns and the project_links child
+// table for extra links beyond the résumé's single link_text/link_href.
+// The long-form write-up body is never in the DB — it's a markdown file
+// published straight to GitHub (see admin-publish.ts), bundled at build
+// time via src/lib/project-writeups.ts, looked up here by id.
+export async function loadDetailedProjectsFromDB(): Promise<DetailedProject[]> {
+  try {
+    const [{ data: projects, error: pErr }, { data: links, error: lErr }] = await Promise.all([
+      supabase.from("projects").select("*").order("sort_order"),
+      supabase.from("project_links").select("*").order("sort_order"),
+    ]);
+    if (pErr || lErr || !projects) {
+      console.warn("[supabase] projects fetch error — falling back to static list", { pErr, lErr });
+      return staticProjects;
+    }
+
+    const linksByProject = new Map<string, { label: string; href: string }[]>();
+    for (const l of (links as DBProjectLink[]) ?? []) {
+      const list = linksByProject.get(l.project_id) ?? [];
+      list.push({ label: l.label, href: l.href });
+      linksByProject.set(l.project_id, list);
+    }
+
+    // Rows without a tagline haven't been given rich content yet — skip
+    // them on this page rather than showing a blank card.
+    return (projects as DBProject[])
+      .filter((p): p is DBProject & { tagline: string } => !!p.tagline)
+      .map((p) => ({
+        id: p.id,
+        title: p.title,
+        date: p.date,
+        stack: p.stack.split(",").map((s) => s.trim()).filter(Boolean),
+        tagline: p.tagline,
+        detail: p.detail_html ? p.detail_html.split("\n").filter(Boolean) : [],
+        highlights: p.highlights_text ? p.highlights_text.split("\n").filter(Boolean) : [],
+        ...(p.link_text && p.link_href ? { link: { label: p.link_text, href: p.link_href } } : {}),
+        ...(p.verify ? { verify: p.verify } : {}),
+        ...(linksByProject.has(p.id) ? { extraLinks: linksByProject.get(p.id) } : {}),
+        body: getProjectWriteup(p.id),
+      }));
+  } catch (err) {
+    console.warn("[supabase] unexpected error — falling back to static projects", err);
+    return staticProjects;
+  }
 }
