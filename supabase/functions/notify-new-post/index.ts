@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
           "api-key": Deno.env.get("BREVO_API_KEY")!,
         },
         body: JSON.stringify({
-          sender: { name: "Priyanshu Debnath", email: "priyanshuib01@gmail.com" },
+          sender: { name: "Priyanshu Debnath", email: "noreply@priyanshudebnath.me" },
           to: [{ email: sub.email, name: sub.name || undefined }],
           subject: `New post: ${title}`,
           htmlContent: html,
