@@ -1,5 +1,5 @@
 import "../styles/admin.css";
-import { supabase } from "../lib/supabase";
+import { supabase, RESUME_PDF_BUCKET, RESUME_PDF_FILE, getResumePdfUrl } from "../lib/supabase";
 import { confirmDialog } from "../lib/confirm-dialog";
 import { getPageViews } from "../lib/analytics";
 
@@ -84,12 +84,13 @@ function renderLogin(container: HTMLElement, notice?: string): void {
 }
 
 // ── Main panel ───────────────────────────────────────────────────────────────
-type Tab = "projects" | "achievements" | "skills" | "positions" | "comments" | "blog-editor" | "analytics";
+type Tab = "projects" | "achievements" | "skills" | "positions" | "resume" | "comments" | "blog-editor" | "analytics";
 const TABS: { id: Tab; label: string }[] = [
   { id: "projects", label: "Projects" },
   { id: "achievements", label: "Achievements" },
   { id: "skills", label: "Skills" },
   { id: "positions", label: "Positions" },
+  { id: "resume", label: "Resume" },
   { id: "comments", label: "Blog Comments" },
   { id: "blog-editor", label: "New Blog Post" },
   { id: "analytics", label: "Analytics" },
@@ -200,6 +201,7 @@ function loadTab(container: HTMLElement): void {
     case "achievements": void renderAchievements(content); break;
     case "skills":       void renderSkills(content);       break;
     case "positions":    void renderPositions(content);    break;
+    case "resume":       void renderResumeTab(content);    break;
     case "comments":     void renderComments(content);     break;
     case "blog-editor":
       void import("./admin-blog-editor").then(({ renderBlogEditor }) => renderBlogEditor(content));
@@ -593,6 +595,78 @@ async function renderPositions(el: HTMLElement): Promise<void> {
       if (error) { alert("Error: " + error.message); btn.disabled = false; return; }
       void renderPositions(el);
     });
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// RESUME TAB — upload the CV PDF that powers the résumé page's Download button
+// ══════════════════════════════════════════════════════════════════════════════
+async function renderResumeTab(el: HTMLElement): Promise<void> {
+  const { data: files } = await supabase.storage
+    .from(RESUME_PDF_BUCKET)
+    .list("", { search: RESUME_PDF_FILE });
+  const file = (files ?? []).find((f) => f.name === RESUME_PDF_FILE);
+  const publicUrl = getResumePdfUrl();
+
+  el.innerHTML = `
+    <div class="admin-form-section">
+      <h3>Résumé PDF</h3>
+      <div id="resume-status" class="admin-status" style="display:none"></div>
+      <p class="edu-note" style="margin-top:0;">
+        ${file
+          ? `Current file uploaded ${esc(new Date(file.updated_at ?? file.created_at ?? Date.now()).toLocaleString())}. <a class="link" href="${publicUrl}" target="_blank" rel="noopener">View current PDF ↗</a>`
+          : "No résumé PDF uploaded yet — the Download CV button stays hidden on the résumé page until one is uploaded."}
+      </p>
+      <div class="admin-form">
+        <div><label>Upload PDF (replaces current file)</label><input type="file" id="resume-file-input" accept="application/pdf"/></div>
+        <div class="admin-form-actions">
+          <button class="admin-btn admin-btn-primary" id="resume-upload-btn" disabled>Upload</button>
+          ${file ? `<button class="admin-btn admin-btn-danger" id="resume-delete-btn">Delete current PDF</button>` : ""}
+        </div>
+      </div>
+    </div>`;
+
+  const statusEl = el.querySelector<HTMLElement>("#resume-status");
+  const fileInput = el.querySelector<HTMLInputElement>("#resume-file-input")!;
+  const uploadBtn = el.querySelector<HTMLButtonElement>("#resume-upload-btn")!;
+
+  fileInput.addEventListener("change", () => {
+    uploadBtn.disabled = !fileInput.files?.length;
+  });
+
+  uploadBtn.addEventListener("click", async () => {
+    const pdf = fileInput.files?.[0];
+    if (!pdf) return;
+    if (pdf.type !== "application/pdf") {
+      setStatus(statusEl, "File must be a PDF.", false);
+      return;
+    }
+    uploadBtn.disabled = true;
+    uploadBtn.textContent = "Uploading…";
+    const { error } = await supabase.storage
+      .from(RESUME_PDF_BUCKET)
+      .upload(RESUME_PDF_FILE, pdf, { upsert: true, contentType: "application/pdf" });
+    uploadBtn.disabled = false;
+    uploadBtn.textContent = "Upload";
+    if (error) {
+      setStatus(statusEl, "Error: " + error.message, false);
+      return;
+    }
+    setStatus(statusEl, "Uploaded!", true);
+    void renderResumeTab(el);
+  });
+
+  el.querySelector<HTMLButtonElement>("#resume-delete-btn")?.addEventListener("click", async (e) => {
+    if (!(await confirmDialog("Delete the current résumé PDF? The Download CV button will disappear from the résumé page until you upload a new one."))) return;
+    const btn = e.currentTarget as HTMLButtonElement;
+    btn.disabled = true;
+    const { error } = await supabase.storage.from(RESUME_PDF_BUCKET).remove([RESUME_PDF_FILE]);
+    if (error) {
+      alert("Error: " + error.message);
+      btn.disabled = false;
+      return;
+    }
+    void renderResumeTab(el);
   });
 }
 

@@ -8,6 +8,24 @@ const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+// ─── Résumé PDF (Supabase Storage) ────────────────────────────────────────
+// Admin uploads to this fixed bucket/path (overwriting each time), so the
+// frontend never needs a DB row to know where the file lives.
+export const RESUME_PDF_BUCKET = "resume";
+export const RESUME_PDF_FILE = "cv.pdf";
+
+export function getResumePdfUrl(): string {
+  return supabase.storage.from(RESUME_PDF_BUCKET).getPublicUrl(RESUME_PDF_FILE).data.publicUrl;
+}
+
+export async function resumePdfExists(): Promise<boolean> {
+  const { data, error } = await supabase.storage
+    .from(RESUME_PDF_BUCKET)
+    .list("", { search: RESUME_PDF_FILE });
+  if (error) return false;
+  return (data ?? []).some((f) => f.name === RESUME_PDF_FILE);
+}
+
 // ─── DB row shapes ────────────────────────────────────────────────────────────
 
 interface DBProject {

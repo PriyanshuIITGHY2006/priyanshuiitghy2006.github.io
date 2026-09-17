@@ -62,7 +62,10 @@ function header(data: ResumeData): string {
              onerror="this.closest('.cv-head').classList.add('no-logo')"/>
       </div>
       <table class="cv-head-tab"><tbody>${trs}</tbody></table>
-    </header>`;
+    </header>
+    <div class="cv-download-row">
+      <a id="cv-download-btn" class="pj-link cv-download" href="#" target="_blank" rel="noopener" download="Priyanshu_Debnath_Resume.pdf" style="display:none">Download CV ↓</a>
+    </div>`;
 }
 
 // ── Education table (LaTeX: |c|C|c|c| — col 2 wraps, others centered) ──
