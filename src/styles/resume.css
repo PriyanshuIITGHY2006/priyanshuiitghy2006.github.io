@@ -1,0 +1,671 @@
+/* ─── Computer Modern (LaTeX cfr-lm / Latin Modern equivalent) ──────── */
+@import url("https://cdn.jsdelivr.net/gh/aaaakshat/cm-web-fonts@latest/fonts.css");
+
+:root {
+  --cm: "Computer Modern Serif", "Latin Modern Roman", "CMU Serif", Georgia, serif;
+  --cm-sans: "Computer Modern Sans", "CMU Sans Serif", "Latin Modern Sans", Verdana, Arial, sans-serif;
+
+  /* ─── Semantic palette (light) — redefined under [data-theme="dark"] ── */
+  --bg: #ffffff;         /* page background */
+  --bg-card: #fcfcfc;    /* elevated card/box background */
+  --bg-inset: #f2f2f4;   /* recessed fill: chips, table headers, inline code */
+  --bg-hover: #f6f6f8;   /* hover fill for buttons/links */
+  --ink: #000000;        /* primary text */
+  --ink-soft: #222222;   /* slightly softened body text */
+  --muted: #555555;      /* secondary text */
+  --muted-2: #888888;    /* tertiary/meta text */
+  --border: #dddddd;     /* standard border */
+  --border-soft: #ececec;/* light separators */
+  --border-strong: #999999; /* hover / emphasized borders */
+  --rule: #000000;       /* section-title underline */
+  --link: #000000;       /* LaTeX \hidelinks — links same colour as text */
+  --link-hover: #1a4d2e; /* subtle hover so they still feel interactive */
+  --shadow: rgba(0, 0, 0, 0.12);
+
+  --success-bg: #e8f0e6;
+  --success-ink: #2c5e2e;
+  --success-border: #b9d3b5;
+  --danger-bg: #fbeaea;
+  --danger-ink: #a03030;
+  --danger-border: #e3b8b8;
+
+  /* Single responsive scale: behaves like a PDF zoomed to fit the viewport.
+     LaTeX body is 10pt on a 21 cm A4 page → 10pt occupies ~1.67% of the
+     page width. We mirror that: 1.6vw, with a floor for phones and a soft
+     cap so 4K screens don't render the page absurdly large. */
+  font-size: clamp(12px, 1.6vw, 28px);
+}
+
+/* ─── Dark theme — same values swapped for a near-black/near-white pair
+       rather than pure #000/#fff, so it reads as ink-on-paper inverted
+       rather than a stark terminal. Set via a `data-theme` attribute an
+       inline head script applies before first paint (src/lib/theme.ts). ── */
+:root[data-theme="dark"] {
+  --bg: #0c0c0e;
+  --bg-card: #17171a;
+  --bg-inset: #1e1e22;
+  --bg-hover: #232327;
+  --ink: #e9e9eb;
+  --ink-soft: #d3d3d6;
+  --muted: #a8a8ae;
+  --muted-2: #86868c;
+  --border: #333338;
+  --border-soft: #2a2a2e;
+  --border-strong: #5a5a62;
+  --rule: #e9e9eb;
+  --link: #e9e9eb;
+  --link-hover: #7fd9a0;
+  --shadow: rgba(0, 0, 0, 0.4);
+
+  --success-bg: rgba(44, 94, 46, 0.28);
+  --success-ink: #8fd9a0;
+  --success-border: rgba(143, 217, 160, 0.35);
+  --danger-bg: rgba(160, 48, 48, 0.28);
+  --danger-ink: #f0a8a8;
+  --danger-border: rgba(240, 168, 168, 0.35);
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: var(--bg); }
+
+body {
+  font-family: var(--cm-sans);
+  font-size: 1rem;
+  color: var(--ink);
+  line-height: 1.25;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+/* Headings stay in the original Computer Modern Serif face — only body
+   copy moves to the sans face. */
+h1, h2, h3, h4, h5, h6, .name {
+  font-family: var(--cm);
+}
+
+/* The one-page résumé view (#/resume) keeps its original LaTeX serif
+   typesetting untouched, everywhere else on the site. */
+#cv, #cv * {
+  font-family: var(--cm);
+}
+
+/* ─── Page fills the viewport edge-to-edge — no PDF gutter.
+       Padding mirrors LaTeX \geometry (1.2cm/1.1cm/0.6cm), expressed as
+       viewport-relative so the proportions stay identical at any width. ── */
+.page {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: clamp(8px, 2.85vw, 50px)   /* top    — 0.6 cm */
+           clamp(10px, 5.24vw, 90px)  /* right  — 1.1 cm */
+           clamp(8px, 2.85vw, 50px)   /* bottom — 0.6 cm */
+           clamp(10px, 5.71vw, 100px);/* left   — 1.2 cm */
+  background: var(--bg);
+}
+
+/* ─── Links: same colour as text, subtle dotted underline on hover ──── */
+.link { color: var(--link); text-decoration: none; border-bottom: 1px dotted transparent; }
+.link:hover { color: var(--link-hover); border-bottom-color: currentColor; }
+
+/* ─── LaTeX wordmark (L^aT_eX) ──────────────────────────────────────── */
+.latex { display: inline-block; }
+.latex-a { display: inline-block; font-size: 0.75em; vertical-align: 0.28em; margin: 0 -0.13em 0 -0.05em; }
+.latex-e { display: inline-block; vertical-align: -0.18em; margin: 0 -0.09em; }
+
+/* ─── HEADER (logo + tabularx) ──────────────────────────────────────── */
+.cv-head {
+  display: grid;
+  grid-template-columns: 5rem 1fr;  /* ~2cm logo + content fills the rest */
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 0.1rem 0 0.4rem;
+}
+.cv-logo img {
+  width: 4.6rem;
+  height: auto;
+  display: block;
+  margin-top: 0.1rem;
+}
+/* The crest is multicolour on a white square, not a simple mark, so
+   inverting it would shift its colours — instead give it a fixed white
+   backing so it still sits naturally against a dark page. */
+:root[data-theme="dark"] .cv-logo img {
+  background: #fff;
+  border-radius: 6px;
+  padding: 2px;
+}
+.cv-head.no-logo { grid-template-columns: 1fr; }
+.cv-head.no-logo .cv-logo { display: none; }
+.cv-download-row { display: flex; justify-content: flex-end; margin: 0.3rem 0 0.2rem; }
+.cv-download { border-color: var(--border-strong); }
+.cv-head-tab {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95em;
+  line-height: 1.32;
+}
+.cv-head-tab td { padding: 0; vertical-align: baseline; }
+.cv-head-tab .hl { text-align: left; padding-right: 0.5rem; }
+.cv-head-tab .hr { text-align: right; white-space: nowrap; }
+.name {
+  font-size: 1.85em;             /* LaTeX \LARGE on 10pt ≈ 17pt */
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: 0.2px;
+}
+
+/* ─── Section titles: \scshape\large + \titlerule ──────────────────── */
+.section {
+  font-variant: small-caps;
+  font-weight: 400;
+  font-size: 1.2em;              /* \large at 10pt ≈ 12pt */
+  letter-spacing: 0.5px;
+  margin: 0.55rem 0 0;
+  padding: 0 0 0.05rem;
+  border-bottom: 0.6px solid var(--rule);
+  line-height: 1.1;
+}
+
+/* ─── Section heading links (each heading → its own page) ───────────── */
+.section-link {
+  color: inherit;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.3em;
+  border-bottom: 1px solid transparent;
+  transition: color 0.12s ease, border-color 0.12s ease;
+}
+.section-link:hover {
+  color: var(--link-hover);
+  border-bottom-color: currentColor;
+}
+.section-arrow {
+  font-size: 0.72em;
+  opacity: 0;
+  transform: translateX(-0.2em);
+  transition: opacity 0.12s ease, transform 0.12s ease;
+}
+.section-link:hover .section-arrow {
+  opacity: 0.7;
+  transform: none;
+}
+
+/* ─── Standalone section page (Education / Projects / … ) ───────────── */
+.section-nav {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.6rem;
+  font-size: 0.9em;
+}
+.section-back {
+  color: var(--link);
+  text-decoration: none;
+  border-bottom: 1px dotted transparent;
+}
+.section-back:hover { color: var(--link-hover); border-bottom-color: currentColor; }
+.section-crumb {
+  color: var(--muted);
+  font-style: italic;
+  font-size: 0.92em;
+  text-align: right;
+}
+.section-body .section { font-size: 1.5em; }
+.section-more { margin-top: 1rem; font-size: 0.95em; }
+
+/* ─── Standalone Skills/Positions pages (src/pages/section.ts) — these
+   render a single résumé section with no page-specific wrapper class of
+   their own, so give them the same centered column as every other page. */
+.solo-section-page { max-width: 46rem; margin: 0 auto; }
+
+/* ─── 404 page ────────────────────────────────────────────────────────── */
+.not-found-page { max-width: 40rem; margin: 0 auto; }
+.not-found-body { text-align: center; padding: 3rem 0; }
+.not-found-code { border: none; display: inline-block; font-size: 3em; margin: 0; }
+.not-found-msg { font-size: 1.05em; margin-top: 0.5rem; }
+
+/* ─── Elaborated Education page ─────────────────────────────────────── */
+.edu-page { max-width: 46rem; margin: 0 auto; }
+.edu-sub { margin-top: 1.6rem; }
+.edu-note { font-size: 0.86em; color: var(--muted); font-style: italic; margin: 0.35rem 0 0.7rem; }
+
+.edu-entries { list-style: none; margin: 0.6rem 0 0; padding: 0; display: grid; gap: 0.9rem; }
+.edu-entry { padding-top: 0.6rem; border-top: 0.6px solid var(--border); }
+.edu-entry:first-child { padding-top: 0; border-top: none; }
+.edu-entry-head { display: flex; align-items: baseline; justify-content: space-between; gap: 0.8rem; flex-wrap: wrap; }
+.edu-degree { font-size: 1.04em; font-weight: 700; margin: 0; }
+.edu-tag {
+  font-size: 0.82em; font-style: italic;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.edu-institute { font-size: 0.95em; margin-top: 0.1rem; }
+.edu-facts { display: flex; gap: 1.2rem; margin-top: 0.35rem; flex-wrap: wrap; }
+.edu-fact { font-size: 0.88em; }
+.edu-fact > span { color: var(--muted-2); margin-right: 0.35em; font-size: 0.86em; text-transform: uppercase; letter-spacing: 0.4px; }
+.edu-blurb { font-size: 0.9em; line-height: 1.45; margin: 0.5rem 0 0; text-align: justify; color: var(--ink-soft); }
+.edu-minor { margin-top: 0.6rem; }
+.mn-table { font-size: 0.8em; }
+.mn-sess { white-space: nowrap; color: var(--muted); }
+
+/* ─── Read-only grade card (faithful HTML reproduction) ─────────────── */
+.gradecard {
+  border: 0.6px solid var(--border);
+  border-radius: 4px;
+  padding: 1rem 1.1rem 0.7rem;
+  background: var(--bg-card);
+  -webkit-user-select: text;
+  user-select: text;
+}
+.gc-head { display: flex; align-items: center; gap: 0.8rem; border-bottom: 1.5px solid var(--ink); padding-bottom: 0.5rem; }
+.gc-logo img { width: 2.6rem; height: auto; display: block; }
+:root[data-theme="dark"] .gc-logo img { background: #fff; border-radius: 4px; padding: 1px; }
+.gc-inst { font-size: 1.05em; font-weight: 700; letter-spacing: 0.3px; }
+.gc-sub { font-size: 0.85em; color: var(--muted); margin-top: 0.1rem; }
+.gc-meta {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 0.15rem 1.4rem;
+  font-size: 0.82em; margin: 0.6rem 0 0.4rem;
+}
+.gc-meta > div { display: flex; gap: 0.4em; }
+.gc-meta span { color: var(--muted-2); min-width: 6.2em; }
+
+.gc-sems { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 0.4rem; }
+.gc-sem-title { font-size: 0.82em; font-weight: 700; margin: 0 0 0.25rem; color: var(--ink-soft); }
+.gc-table { width: 100%; border-collapse: collapse; font-size: 0.78em; }
+.gc-table th, .gc-table td { border: 0.5px solid var(--border); padding: 0.16em 0.4em; text-align: left; }
+.gc-table thead th { background: var(--bg-inset); font-weight: 700; font-size: 0.95em; }
+.gc-code { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; white-space: nowrap; color: var(--ink-soft); }
+.gc-cr, .gc-gr { text-align: center !important; white-space: nowrap; }
+.gc-table tfoot td { background: var(--bg-hover); font-weight: 600; font-size: 0.95em; }
+.gc-foot { text-align: right !important; color: var(--muted); }
+.gc-spi { text-align: center !important; font-weight: 700; }
+
+.grade {
+  display: inline-block; min-width: 1.9em; text-align: center;
+  font-weight: 700; font-size: 0.92em; padding: 0.02em 0.3em; border-radius: 3px;
+  background: var(--success-bg); color: var(--success-ink);
+}
+.grade-pp { background: var(--bg-inset); color: var(--muted); }
+
+.gc-summary { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; margin-top: 0.7rem; flex-wrap: wrap; }
+.gc-cpi { border-collapse: collapse; font-size: 0.8em; }
+.gc-cpi th, .gc-cpi td { border: 0.5px solid var(--border); padding: 0.18em 0.7em; text-align: center; }
+.gc-cpi thead th { background: var(--bg-inset); }
+.gc-cpi tbody th { background: var(--bg-hover); text-align: left; }
+.gc-status { vertical-align: middle; color: #a06a00; font-style: italic; }
+.gc-legend { font-size: 0.74em; color: var(--muted); display: flex; flex-wrap: wrap; gap: 0.1rem 0.7rem; align-items: center; }
+.gc-leg-label { text-transform: uppercase; letter-spacing: 0.4px; color: var(--muted-2); margin-right: 0.2rem; }
+.gc-leg-item b { color: var(--success-ink); }
+.gc-foot-row { display: flex; justify-content: space-between; font-size: 0.74em; color: var(--muted-2); margin-top: 0.7rem; border-top: 0.5px solid var(--border); padding-top: 0.35rem; }
+
+/* ─── Curriculum (L-T-P-C) ──────────────────────────────────────────── */
+.cur-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 0.5rem; }
+.cur-title { font-size: 0.9em; font-weight: 700; margin: 0 0 0.3rem; }
+.cur-table { width: 100%; border-collapse: collapse; font-size: 0.8em; }
+.cur-table th, .cur-table td { border: 0.5px solid var(--border); padding: 0.18em 0.4em; text-align: center; }
+.cur-table thead th { background: var(--bg-inset); font-weight: 700; }
+.cur-name { text-align: left !important; }
+.cur-c { font-weight: 700; }
+.cur-table tfoot td { background: var(--bg-hover); font-weight: 700; }
+.cur-foot { text-align: right !important; color: var(--muted); }
+
+@media (max-width: 720px) {
+  .gc-sems, .cur-grid, .gc-meta { grid-template-columns: 1fr; }
+}
+
+/* ─── Detailed Projects page ────────────────────────────────────────── */
+.projects-page { max-width: 46rem; margin: 0 auto; }
+.pj-list { list-style: none; margin: 1rem 0 0; padding: 0; counter-reset: none; }
+.pj {
+  display: grid;
+  grid-template-columns: 2.6rem 1fr;
+  gap: 0.6rem;
+  padding: 1.3rem 0;
+  border-top: 0.6px solid var(--border);
+}
+.pj:first-child { border-top: none; padding-top: 0.4rem; }
+.pj-num {
+  font-size: 1.1em; font-weight: 700; color: var(--border-strong);
+  font-variant-numeric: tabular-nums; line-height: 1.2;
+}
+.pj-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+.pj-title { font-size: 1.12em; font-weight: 700; margin: 0; line-height: 1.25; }
+.pj-date { font-size: 0.82em; color: var(--muted-2); white-space: nowrap; }
+.pj-tagline { font-size: 0.96em; font-style: italic; color: var(--ink-soft); margin: 0.35rem 0 0.55rem; line-height: 1.4; }
+.pj-chips { font-size: 0.86em; font-style: italic; color: var(--muted); margin-bottom: 0.6rem; }
+.pj-detail p { font-size: 0.92em; line-height: 1.55; margin: 0 0 0.6rem; text-align: justify; color: var(--ink-soft); }
+.pj-detail b { font-weight: 700; }
+.pj-hl { margin: 0.2rem 0 0.7rem; }
+.pj-hl-label {
+  display: block; font-size: 0.72em; text-transform: uppercase;
+  letter-spacing: 0.6px; color: var(--muted-2); margin-bottom: 0.2rem;
+}
+.pj-hl ul { margin: 0; padding-left: 1.1em; }
+.pj-hl li { font-size: 0.88em; line-height: 1.4; margin: 0.12em 0; }
+.pj-link {
+  display: inline-block; font-size: 0.85em; font-weight: 600;
+  color: var(--ink); text-decoration: none;
+  border: 0.6px solid var(--border); border-radius: 4px; padding: 0.28em 0.8em;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+.pj-link:hover { background: var(--bg-hover); border-color: var(--border-strong); color: var(--link-hover); }
+.pj-links { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.pj-verify { border-color: var(--success-ink); color: var(--success-ink); }
+.pj-verify:hover { background: var(--success-bg); border-color: var(--success-ink); }
+
+@media (max-width: 640px) {
+  .pj { grid-template-columns: 1.8rem 1fr; gap: 0.4rem; }
+  .pj-num { font-size: 0.95em; }
+}
+
+/* ─── Achievements page (reuses .pj-* chips & links) ────────────────── */
+.achievements-page { max-width: 46rem; margin: 0 auto; }
+.ach { display: grid; grid-template-columns: 2.6rem 1fr; gap: 0.6rem; padding: 1.1rem 0; border-top: 0.6px solid var(--border); }
+.ach:first-child { border-top: none; padding-top: 0.4rem; }
+.ach-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+.ach-title { font-size: 1.05em; font-weight: 700; margin: 0; line-height: 1.3; }
+.ach-date { font-size: 0.82em; color: var(--muted-2); white-space: nowrap; }
+.ach-chips { font-size: 0.86em; font-style: italic; color: var(--muted); margin: 0.35rem 0 0.55rem; }
+.ach-blurb { font-size: 0.92em; line-height: 1.5; margin: 0 0 0.6rem; text-align: justify; color: var(--ink-soft); }
+@media (max-width: 640px) { .ach { grid-template-columns: 1.8rem 1fr; gap: 0.4rem; } }
+
+/* ─── Gallery page ──────────────────────────────────────────────────── */
+.gallery-page { max-width: 50rem; margin: 0 auto; }
+.gl-section { margin-top: 1.2rem; }
+.gl-cat {
+  font-size: 0.78em; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.6px; color: var(--muted); margin: 0 0 0.6rem;
+  display: flex; align-items: center; gap: 0.5rem;
+}
+.gl-count {
+  font-size: 0.85em; font-weight: 600; color: var(--muted-2);
+  background: var(--bg-inset); border-radius: 999px; padding: 0.05em 0.55em;
+}
+.gl-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 0.9rem;
+}
+.gl-card {
+  display: flex; flex-direction: column; text-align: left;
+  background: var(--bg-card); border: 0.6px solid var(--border); border-radius: 7px;
+  overflow: hidden; cursor: pointer; padding: 0;
+  font: inherit; color: inherit;
+  transition: box-shadow 0.14s ease, transform 0.14s ease, border-color 0.14s ease;
+}
+.gl-card:hover { box-shadow: 0 6px 18px var(--shadow); transform: translateY(-2px); border-color: var(--border-strong); }
+.gl-thumb {
+  position: relative; display: block; width: 100%;
+  aspect-ratio: 4 / 3; background: var(--bg-inset); overflow: hidden;
+}
+.gl-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.gl-thumb-pdf {
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, #fbeaea 0%, #f5dada 100%);
+}
+.gl-pdf-badge {
+  font-size: 1.1em; font-weight: 800; letter-spacing: 1px;
+  color: #c0392b; border: 2px solid #c0392b; border-radius: 5px;
+  padding: 0.25em 0.7em; background: rgba(255,255,255,0.6);
+}
+.gl-meta { padding: 0.5rem 0.65rem 0.6rem; display: flex; flex-direction: column; gap: 0.15rem; }
+.gl-card-title { font-size: 0.84em; font-weight: 600; line-height: 1.3; color: var(--ink); }
+.gl-card-date { font-size: 0.74em; color: var(--muted-2); }
+.gl-empty { font-size: 0.9em; color: var(--muted); }
+.gl-empty code { background: var(--bg-inset); padding: 0.1em 0.4em; border-radius: 3px; font-size: 0.92em; }
+
+/* ─── Lightbox / full-screen viewer — always a dark overlay regardless
+       of page theme, so its own chrome stays fixed. ─────────────────── */
+.gl-lightbox { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; }
+.gl-lightbox[hidden] { display: none; }
+.gl-lb-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.88); backdrop-filter: blur(2px); }
+.gl-lb-figure {
+  position: relative; z-index: 1; margin: 0;
+  width: 92vw; max-width: 92vw; height: 92vh;
+  display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
+}
+/* Media area grows to fill remaining height after the caption */
+.gl-lb-media {
+  flex: 1; min-height: 0; width: 100%;
+  display: flex; align-items: center; justify-content: center;
+}
+.gl-lb-img {
+  max-width: 100%; max-height: 100%; object-fit: contain;
+  border-radius: 4px; box-shadow: 0 10px 50px rgba(0,0,0,0.6);
+  background: #fff; cursor: zoom-in;
+}
+.gl-lb-img.gl-zoom { max-width: none; max-height: none; cursor: zoom-out; }
+.gl-lb-pdf {
+  width: 100%; height: 100%; border: none; border-radius: 4px;
+  background: #fff; box-shadow: 0 10px 50px rgba(0,0,0,0.6);
+}
+.gl-lb-cap { flex-shrink: 0; text-align: center; color: #eee; display: flex; flex-direction: column; gap: 0.25rem; max-width: 80vw; }
+.gl-lb-title { font-size: 0.98em; font-weight: 600; }
+.gl-lb-desc { font-size: 0.84em; color: #b9b9b9; }
+.gl-lb-actions { display: flex; gap: 0.6rem; justify-content: center; margin-top: 0.35rem; }
+.gl-lb-action {
+  font-size: 0.8em; color: #ddd; background: rgba(255,255,255,0.1);
+  border: 0.6px solid rgba(255,255,255,0.25); border-radius: 4px;
+  padding: 0.3em 0.8em; cursor: pointer; text-decoration: none;
+}
+.gl-lb-action:hover { background: rgba(255,255,255,0.2); color: #fff; }
+.gl-lb-close {
+  position: absolute; top: 14px; right: 18px; z-index: 2;
+  font-size: 2rem; line-height: 1; color: #ddd;
+  background: none; border: none; cursor: pointer; padding: 0.1em 0.3em;
+}
+.gl-lb-close:hover { color: #fff; }
+.gl-lb-nav {
+  position: absolute; z-index: 2; top: 50%; transform: translateY(-50%);
+  font-size: 2.6rem; line-height: 1; color: #ccc;
+  background: none; border: none; cursor: pointer; padding: 0.2em 0.4em;
+}
+.gl-lb-nav:hover { color: #fff; }
+.gl-lb-prev { left: 1vw; }
+.gl-lb-next { right: 1vw; }
+
+@media (max-width: 640px) {
+  .gl-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.6rem; }
+  .gl-lb-nav { font-size: 2rem; }
+}
+
+/* ─── Education table ───────────────────────────────────────────────── */
+.edu-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92em;             /* \small */
+  margin-top: 0.3rem;
+  table-layout: fixed;
+}
+.edu-table th,
+.edu-table td {
+  border: 0.6px solid var(--ink);
+  padding: 0.22em 0.4em;
+  text-align: center;
+  vertical-align: middle;
+  overflow-wrap: break-word;
+}
+.edu-table th { font-weight: 700; }
+.edu-table th:nth-child(1), .edu-table td:nth-child(1) { width: 24%; }
+.edu-table th:nth-child(2), .edu-table td:nth-child(2) { width: 40%; }
+.edu-table th:nth-child(3), .edu-table td:nth-child(3) { width: 19%; }
+.edu-table th:nth-child(4), .edu-table td:nth-child(4) { width: 17%; }
+
+/* ─── Bullet (\renewcommand{\labelitemi}{\tiny$\bullet$}) ───────────── */
+.proj-list,
+.skill-list,
+.por-list {
+  list-style: none;
+  margin: 0.2rem 0 0;
+  padding: 0;
+}
+.proj-list > li,
+.skill-list > li,
+.por-list > li {
+  position: relative;
+  padding-left: 0.85em;
+  margin: 0.1rem 0;
+}
+.proj-list > li::before,
+.skill-list > li::before,
+.por-list > li::before {
+  content: "•";
+  position: absolute;
+  left: 0.05em;
+  top: -0.05em;
+  font-size: 0.7em;              /* \tiny */
+  line-height: 1.6;
+}
+
+/* ─── Projects (\resumeProject) ─────────────────────────────────────── */
+.proj { font-size: 0.94em; margin: 0.1rem 0 0.2rem; }
+.proj-grid {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  column-gap: 1rem;
+  row-gap: 0;
+  align-items: baseline;
+}
+.pg-title { font-size: 1em; }
+.pg-date  { font-size: 0.86em; white-space: nowrap; }   /* \footnotesize */
+.pg-stack { font-size: 0.86em; }                          /* \footnotesize \textit */
+.pg-link  { font-size: 0.86em; white-space: nowrap; font-style: italic; }
+.pg-link .link { font-style: italic; }
+.proj-bullets {
+  list-style: none;
+  margin: 0.1rem 0 0;
+  padding: 0;
+  font-size: 0.92em;             /* \small inside justify */
+  text-align: justify;
+  text-justify: inter-word;
+  hyphens: auto;
+}
+.proj-bullets > li {
+  position: relative;
+  padding-left: 1.05em;
+  margin: 0.05em 0;
+  line-height: 1.3;
+}
+.proj-bullets > li::before {
+  /* LaTeX default labelitemii at this depth renders as a thin dash */
+  content: "–";
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-size: 1em;
+}
+
+/* ─── Skills ─────────────────────────────────────────────────────────── */
+.skill-list { margin-top: 0.2rem; }
+.skill-list > li { font-size: 0.94em; margin: 0.05rem 0; line-height: 1.32; }
+
+/* ─── Positions of Responsibility & Achievements (\resumePOR) ────────── */
+.por-list > li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.94em;
+  line-height: 1.34;
+}
+.por-text { flex: 1 1 auto; }
+.por-date { flex: 0 0 auto; white-space: nowrap; font-size: 0.86em; }
+
+/* ─── Bottom rule (\rule{1.035\textwidth}{0.1mm}) ───────────────────── */
+.bottom-rule {
+  border: none;
+  height: 0;
+  border-top: 0.6px solid var(--ink);
+  margin: 0.6rem -0.4rem 0;
+}
+
+/* ─── Theme toggle (fixed, persists across route changes) ───────────── */
+.theme-toggle {
+  position: fixed;
+  top: 1rem;
+  right: 1.4rem;
+  width: 2.2rem;
+  height: 2.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 0.6px solid var(--border);
+  background: var(--bg-card);
+  color: var(--ink);
+  font-size: 1.05em;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.14s ease, border-color 0.14s ease, transform 0.14s ease;
+  z-index: 200;
+}
+.theme-toggle:hover { border-color: var(--border-strong); background: var(--bg-hover); }
+.theme-toggle:active { transform: scale(0.92); }
+@media (max-width: 640px) {
+  .theme-toggle { top: 0.6rem; right: 0.6rem; width: 2rem; height: 2rem; font-size: 0.95em; }
+}
+
+/* ─── Print: behave like the original PDF (always light, ignores theme) ── */
+@media print {
+  :root, :root[data-theme="dark"] {
+    --bg: #fff; --bg-card: #fff; --ink: #000; --rule: #000; --link: #000;
+    font-size: 10pt;
+  }
+  body { background: #fff; }
+  .page { padding: 0.6cm 1.1cm; }
+  .link { color: var(--ink) !important; border-bottom: none !important; }
+  .section-link { color: var(--ink) !important; border-bottom: none !important; }
+  .section-arrow, .section-nav, .theme-toggle, .cv-download-row { display: none !important; }
+
+  /* Heatmap cells (Codeforces/GitHub) use hardcoded dark-mode fills meant
+     to read against a near-black page background — on white paper those
+     go near-invisible, so force the light-mode grayscale ramp regardless
+     of which theme was active when printing. */
+  :root[data-theme="dark"] .heat-0 { fill: #eeeeee; }
+  :root[data-theme="dark"] .heat-1 { fill: #c9c9c9; }
+  :root[data-theme="dark"] .heat-2 { fill: #999999; }
+  :root[data-theme="dark"] .heat-3 { fill: #555555; }
+  :root[data-theme="dark"] .heat-4 { fill: #111111; }
+
+  /* Decorative/interactive chrome that means nothing on paper: easter-egg
+     overlays, tab bars, buttons, forms, code-run panels, and embeds that
+     can't render without JS anyway. */
+  #theme-toggle,
+  .blog-graph-canvas,
+  .term-backdrop,
+  .admin-tabbar,
+  .admin-panel-actions,
+  .admin-account-panel,
+  .admin-btn,
+  .pj-link,
+  .blog-controls,
+  .blog-share,
+  .blog-subscribe,
+  .blog-engagement,
+  .blog-progress-bar,
+  .scroll-top-btn,
+  .blog-code-copy-btn,
+  .blog-run-panel,
+  .cf-turnstile,
+  .contact-form,
+  .blog-binviz-controls,
+  .blog-testcases-panel {
+    display: none !important;
+  }
+}
+
+/* ─── Phones: pull padding in tighter, keep the same proportions ────── */
+@media (max-width: 640px) {
+  :root { font-size: clamp(11.5px, 3.6vw, 15px); }
+  .page { padding: 0.5rem 0.65rem 0.8rem; }
+  .cv-head { grid-template-columns: 3.6rem 1fr; gap: 0.6rem; }
+  .cv-logo img { width: 3.4rem; }
+  .por-list > li, .proj-grid { flex-wrap: wrap; }
+  /* The right-hand contact column (email/LinkedIn URL) is too long to
+     stay on one line at phone widths — nowrap there forces the whole
+     header table wider than the viewport. */
+  .cv-head-tab .hr { white-space: normal; overflow-wrap: break-word; }
+}
