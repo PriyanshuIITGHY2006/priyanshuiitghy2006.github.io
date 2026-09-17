@@ -3,15 +3,22 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 import { marked } from "npm:marked@12";
 import { renderEmailLayout } from "./_shared/email-layout.ts";
 
-// Admin-only mass-mail sender for blog_subscribers. Mirrors github-publish's
-// gating (is_admin() run under the caller's own JWT) since this also needs
-// server-held secrets (BREVO_API_KEY, and storage reads for attachments)
-// that the admin panel can't hold client-side. Draft CRUD for
-// email_campaigns happens directly via supabase-js from the admin panel —
-// RLS already gates that on is_admin() — so this function only ever needs
-// to actually send mail.
+// Admin-only mass-mail sender. Mirrors github-publish's gating (is_admin()
+// run under the caller's own JWT) since this also needs server-held secrets
+// (BREVO_API_KEY, and storage reads for attachments) that the admin panel
+// can't hold client-side. Draft CRUD for email_campaigns happens directly
+// via supabase-js from the admin panel — RLS already gates that on
+// is_admin() — so this function only ever needs to actually send mail.
+//
+// Two recipient modes, deliberately rendered differently:
+//   - "subscribers": every row in blog_subscribers, gets the "— Blog"
+//     masthead and a per-recipient unsubscribe footer (they opted in).
+//   - "custom": an arbitrary list of one-off addresses (recruiters,
+//     contacts, ...) who never subscribed to anything — plain masthead, no
+//     unsubscribe copy, nothing that implies a mailing list.
 const DEFAULT_SENDER_DOMAIN = "priyanshudebnath.me";
 const MAX_TOTAL_ATTACHMENT_BYTES = 8 * 1024 * 1024; // Brevo's practical email-size ceiling is ~10MB; leave headroom for the HTML body
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "https://priyanshudebnath.me",
@@ -57,11 +64,29 @@ interface BrevoAttachment {
   content: string;
 }
 
+interface CustomRecipient {
+  name: string | null;
+  email: string;
+}
+
 function isAttachmentRef(v: unknown): v is AttachmentRef {
   return !!v && typeof v === "object"
     && typeof (v as AttachmentRef).name === "string"
     && typeof (v as AttachmentRef).bucket === "string"
     && typeof (v as AttachmentRef).path === "string";
+}
+
+function parseCustomRecipients(raw: unknown): CustomRecipient[] {
+  if (!Array.isArray(raw)) return [];
+  const out: CustomRecipient[] = [];
+  for (const entry of raw) {
+    if (!entry || typeof entry !== "object") continue;
+    const email = (entry as { email?: unknown }).email;
+    const name = (entry as { name?: unknown }).name;
+    if (typeof email !== "string" || !EMAIL_RE.test(email.trim())) continue;
+    out.push({ email: email.trim(), name: typeof name === "string" && name.trim() ? name.trim() : null });
+  }
+  return out;
 }
 
 async function blobToBase64(blob: Blob): Promise<string> {
@@ -172,6 +197,7 @@ Deno.serve(async (req) => {
       const bodyMarkdown: unknown = body.bodyMarkdown;
       const preheader: unknown = body.preheader;
       const testEmail: unknown = body.testEmail;
+      const recipientMode = body.recipientMode === "custom" ? "custom" : "subscribers";
       if (typeof subject !== "string" || !subject || typeof bodyMarkdown !== "string" || !bodyMarkdown || typeof testEmail !== "string" || !testEmail) {
         return json({ error: "subject, bodyMarkdown, and testEmail are required" }, 400);
       }
@@ -183,6 +209,9 @@ Deno.serve(async (req) => {
         preheader: typeof preheader === "string" ? preheader : subject,
         bodyHtml,
         signatureHtml,
+        ...(recipientMode === "subscribers"
+          ? { brandHref: "https://priyanshudebnath.me/blogs", brandSubtitle: "— Blog", unsubscribeUrl: "https://priyanshudebnath.me/unsubscribe?token=test-preview" }
+          : {}),
       });
       const result = await sendBrevoEmail({
         to: testEmail,
@@ -205,7 +234,7 @@ Deno.serve(async (req) => {
 
       const { data: campaign, error: campaignError } = await admin
         .from("email_campaigns")
-        .select("id, subject, preheader, body_markdown, status, sender_name, sender_email, attachments")
+        .select("id, subject, preheader, body_markdown, status, sender_name, sender_email, attachments, recipient_mode, custom_recipients")
         .eq("id", campaignId)
         .maybeSingle();
       if (campaignError) throw campaignError;
@@ -216,30 +245,45 @@ Deno.serve(async (req) => {
 
       const { senderName, senderEmail } = resolveSender(campaign.sender_name, campaign.sender_email);
       const attachments = await resolveAttachments(admin, campaign.attachments);
+      const isCustom = campaign.recipient_mode === "custom";
+
+      let recipients: { email: string; name: string | null; unsubscribeToken?: string }[];
+      if (isCustom) {
+        recipients = parseCustomRecipients(campaign.custom_recipients);
+        if (recipients.length === 0) {
+          return json({ error: "No valid recipients — add at least one email address." }, 400);
+        }
+      } else {
+        const { data: subscribers, error: subscribersError } = await admin
+          .from("blog_subscribers")
+          .select("email, name, unsubscribe_token");
+        if (subscribersError) throw subscribersError;
+        recipients = (subscribers ?? []).map((s) => ({ email: s.email, name: s.name, unsubscribeToken: s.unsubscribe_token }));
+      }
 
       await admin.from("email_campaigns").update({ status: "sending", updated_at: new Date().toISOString() }).eq("id", campaignId);
-
-      const { data: subscribers, error: subscribersError } = await admin
-        .from("blog_subscribers")
-        .select("email, name, unsubscribe_token");
-      if (subscribersError) throw subscribersError;
 
       const bodyHtml = marked.parse(campaign.body_markdown) as string;
 
       let sent = 0;
       let failed = 0;
-      for (const sub of subscribers ?? []) {
-        const unsubscribeUrl = `https://priyanshudebnath.me/unsubscribe?token=${encodeURIComponent(sub.unsubscribe_token)}`;
+      for (const recipient of recipients) {
         const html = renderEmailLayout({
           title: campaign.subject,
           preheader: campaign.preheader || campaign.subject,
           bodyHtml,
           signatureHtml,
-          unsubscribeUrl,
+          ...(isCustom
+            ? {}
+            : {
+                brandHref: "https://priyanshudebnath.me/blogs",
+                brandSubtitle: "— Blog",
+                unsubscribeUrl: `https://priyanshudebnath.me/unsubscribe?token=${encodeURIComponent(recipient.unsubscribeToken!)}`,
+              }),
         });
         const result = await sendBrevoEmail({
-          to: sub.email,
-          toName: sub.name,
+          to: recipient.email,
+          toName: recipient.name,
           subject: campaign.subject,
           html,
           senderName,
@@ -251,7 +295,7 @@ Deno.serve(async (req) => {
         else failed++;
       }
 
-      const total = subscribers?.length ?? 0;
+      const total = recipients.length;
       const finalStatus = sent > 0 ? "sent" : "failed";
       await admin
         .from("email_campaigns")
