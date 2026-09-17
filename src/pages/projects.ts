@@ -1,5 +1,6 @@
 import { resume } from "../data/resume";
 import { PROJECTS, type DetailedProject } from "../data/projects";
+import { loadDetailedProjectsFromDB } from "../lib/supabase";
 
 function esc(s: string): string {
   return s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c] as string));
@@ -18,6 +19,9 @@ function linkBtn(p: DetailedProject): string {
     parts.push(`<a class="pj-link" href="${p.github}" target="_blank" rel="noopener">View on GitHub ↗</a>`);
   } else if (p.link) {
     parts.push(`<a class="pj-link" href="${p.link.href}" target="_blank" rel="noopener">${esc(p.link.label)} ↗</a>`);
+  }
+  for (const l of p.extraLinks ?? []) {
+    parts.push(`<a class="pj-link" href="${l.href}" target="_blank" rel="noopener">${esc(l.label)} ↗</a>`);
   }
   if (p.verifyImg) {
     parts.push(`<a class="pj-link pj-verify" href="/gallery?img=${encodeURIComponent(p.verifyImg)}">Verify ✓</a>`);
@@ -51,8 +55,8 @@ function projectBlock(p: DetailedProject, n: number): string {
     </li>`;
 }
 
-function pageHtml(): string {
-  const blocks = PROJECTS.map((p, i) => projectBlock(p, i + 1)).join("");
+function pageHtml(projects: DetailedProject[]): string {
+  const blocks = projects.map((p, i) => projectBlock(p, i + 1)).join("");
   return `
     <article class="page section-page projects-page">
       <nav class="section-nav">
@@ -66,8 +70,15 @@ function pageHtml(): string {
     </article>`;
 }
 
-// Projects page is fully static (its own curated, detailed write-ups), so
-// there is nothing async to load — render once.
 export function mountProjects(container: HTMLElement): void {
-  container.innerHTML = pageHtml();
+  // Render static content immediately — no blank flash while the DB loads.
+  container.innerHTML = pageHtml(PROJECTS);
+
+  loadDetailedProjectsFromDB()
+    .then((live) => {
+      if (live.length) container.innerHTML = pageHtml(live);
+    })
+    .catch(() => {
+      // DB unreachable — static version already shown
+    });
 }

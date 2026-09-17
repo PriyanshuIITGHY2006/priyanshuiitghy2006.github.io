@@ -2,10 +2,11 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 // Admin-only bridge to the GitHub Contents API: commits gallery images to
-// public/gallery-media/ and blog post markdown to src/data/blogs/, both on
-// the branch the site's existing GitHub Actions workflow deploys from. A
-// commit here triggers that same build+deploy pipeline — nothing else
-// needs to know a publish happened.
+// public/gallery-media/, blog post markdown to src/data/blogs/, and project
+// write-up markdown to src/data/project-writeups/, all on the branch the
+// site's existing GitHub Actions workflow deploys from. A commit here
+// triggers that same build+deploy pipeline — nothing else needs to know a
+// publish happened.
 //
 // The image folder is "gallery-media", not "gallery" — the SPA has a real
 // /gallery route, and GitHub Pages treats a public/gallery/ directory as a
@@ -132,6 +133,19 @@ Deno.serve(async (req) => {
         return json({ error: "slug must contain only lowercase letters, digits, and hyphens" }, 400);
       }
       const { path } = await putFile(`src/data/blogs/${slug}.md`, utf8ToBase64(content), `Publish blog post: ${slug}`);
+      return json({ ok: true, path });
+    }
+
+    if (body.action === "publish_project_writeup") {
+      const id: unknown = body.id;
+      const content: unknown = body.content;
+      if (typeof id !== "string" || typeof content !== "string" || !id || !content) {
+        return json({ error: "id and content are required" }, 400);
+      }
+      if (!/^[a-z0-9-]+$/.test(id)) {
+        return json({ error: "id must contain only lowercase letters, digits, and hyphens" }, 400);
+      }
+      const { path } = await putFile(`src/data/project-writeups/${id}.md`, utf8ToBase64(content), `Publish project write-up: ${id}`);
       return json({ ok: true, path });
     }
 

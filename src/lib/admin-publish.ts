@@ -48,3 +48,7 @@ export async function uploadImageToGithub(file: File): Promise<{ path: string; s
 export async function publishBlogPostToGithub(slug: string, content: string): Promise<{ path: string }> {
   return callGithubPublish<{ path: string }>({ action: "publish_blog_post", slug, content });
 }
+
+export async function publishProjectWriteupToGithub(id: string, content: string): Promise<{ path: string }> {
+  return callGithubPublish<{ path: string }>({ action: "publish_project_writeup", id, content });
+}

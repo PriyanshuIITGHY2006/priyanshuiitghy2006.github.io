@@ -2,6 +2,7 @@ import "../styles/blog.css";
 import "katex/dist/katex.min.css";
 import { resume } from "../data/resume";
 import { PROJECTS, type DetailedProject } from "../data/projects";
+import { loadDetailedProjectsFromDB } from "../lib/supabase";
 import { renderMarkdown } from "../lib/blog";
 import { setPageMeta } from "../lib/seo";
 import { initEditors } from "./blog-post";
@@ -31,6 +32,9 @@ function notFoundHtml(): string {
 
 function pageHtml(project: DetailedProject): string {
   const contentHtml = renderMarkdown(project.body ?? "");
+  const extraLinks = (project.extraLinks ?? [])
+    .map((l) => `<a class="pj-link" href="${l.href}" target="_blank" rel="noopener">${esc(l.label)} ↗</a>`)
+    .join("");
   return `
     <article class="page section-page project-detail-page">
       <nav class="section-nav">
@@ -46,7 +50,10 @@ function pageHtml(project: DetailedProject): string {
           <div class="pj-chips" style="margin-top: 0.7rem;">${chips(project.stack)}</div>
         </header>
         <div class="blog-content" id="project-content">${contentHtml}</div>
-        ${project.github ? `<div class="pj-links" style="margin-top: 1.8rem;"><a class="pj-link" href="${project.github}" target="_blank" rel="noopener">View on GitHub ↗</a></div>` : ""}
+        <div class="pj-links" style="margin-top: 1.8rem;">
+          ${project.github ? `<a class="pj-link" href="${project.github}" target="_blank" rel="noopener">View on GitHub ↗</a>` : ""}
+          ${extraLinks}
+        </div>
         <div class="section-more" style="margin-top: 2rem;">
           <a class="pj-link" href="/projects">← All projects</a>
         </div>
@@ -54,8 +61,8 @@ function pageHtml(project: DetailedProject): string {
     </article>`;
 }
 
-export function mountProjectDetail(container: HTMLElement, id: string | null): void {
-  const project = PROJECTS.find((p) => p.id === id && p.body);
+function render(container: HTMLElement, projects: DetailedProject[], id: string | null): void {
+  const project = projects.find((p) => p.id === id && p.body);
   if (project) {
     setPageMeta({ title: project.title, description: project.tagline, type: "article" });
   } else {
@@ -63,4 +70,17 @@ export function mountProjectDetail(container: HTMLElement, id: string | null): v
   }
   container.innerHTML = project ? pageHtml(project) : notFoundHtml();
   if (project) void initEditors(container);
+}
+
+export function mountProjectDetail(container: HTMLElement, id: string | null): void {
+  // Render from the static list immediately — no blank flash while the DB loads.
+  render(container, PROJECTS, id);
+
+  loadDetailedProjectsFromDB()
+    .then((live) => {
+      if (live.length) render(container, live, id);
+    })
+    .catch(() => {
+      // DB unreachable — static version already shown
+    });
 }

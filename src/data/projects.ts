@@ -10,6 +10,8 @@ export interface DetailedProject {
   stack: string[];
   github?: string;
   link?: { label: string; href: string };
+  /** Additional links beyond `link`/`github` — each rendered with its own label. */
+  extraLinks?: { label: string; href: string }[];
   /** Gallery image id for a "Verify" deep-link (/gallery?img=<id>). */
   verifyImg?: string;
   /** One-line "what it is". */

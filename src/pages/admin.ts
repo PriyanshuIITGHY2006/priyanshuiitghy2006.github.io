@@ -3,6 +3,7 @@ import { supabase, RESUME_PDF_BUCKET, RESUME_PDF_FILE, getResumePdfUrl, loadAllS
 import { confirmDialog } from "../lib/confirm-dialog";
 import { getPageViews } from "../lib/analytics";
 import { uploadImageToGithub } from "../lib/admin-publish";
+import { renderMarkdownHelp } from "../lib/markdown-help";
 
 function esc(s: string): string {
   return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
@@ -227,13 +228,19 @@ function emptyRow(colspan: number, label: string): string {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// PROJECTS TAB
+// PROJECTS TAB — one row backs both the résumé's project line (title/date/
+// stack/bullets) and the standalone /projects + /project?id= pages
+// (tagline/detail/highlights/verify/extra links + a GitHub-published
+// write-up). show_in_cv toggles whether a project also appears on the résumé.
 // ══════════════════════════════════════════════════════════════════════════════
 async function renderProjects(el: HTMLElement): Promise<void> {
-  const [{ data: projects }, { data: bullets }] = await Promise.all([
+  const [{ data: projects }, { data: bullets }, { data: links }, images] = await Promise.all([
     supabase.from("projects").select("*").order("sort_order"),
     supabase.from("project_bullets").select("*").order("sort_order"),
+    supabase.from("project_links").select("*").order("sort_order"),
+    loadAllSiteImages(),
   ]);
+  const verifyOptions = images.filter((i) => i.kind === "gallery");
 
   const bulletsByProject = new Map<string, { id: number; bullet: string }[]>();
   for (const b of bullets ?? []) {
@@ -241,34 +248,42 @@ async function renderProjects(el: HTMLElement): Promise<void> {
     list.push({ id: b.id, bullet: b.bullet });
     bulletsByProject.set(b.project_id, list);
   }
+  const linksByProject = new Map<string, { id: number; label: string; href: string }[]>();
+  for (const l of links ?? []) {
+    const list = linksByProject.get(l.project_id) ?? [];
+    list.push({ id: l.id, label: l.label, href: l.href });
+    linksByProject.set(l.project_id, list);
+  }
 
   el.innerHTML = `
     <div class="admin-form-section">
       <h3>Add project</h3>
       <div id="proj-add-status" class="admin-status" style="display:none"></div>
-      ${projectForm("add")}
+      ${projectForm("add", undefined, [], [], verifyOptions)}
     </div>
     <div class="admin-table-wrap">
     <table class="admin-table">
-      <thead><tr><th>Title</th><th>Date</th><th>Stack</th><th>Bullets</th><th>Actions</th></tr></thead>
+      <thead><tr><th>Title</th><th>Date</th><th>Stack</th><th>In CV</th><th>Write-up</th><th>Actions</th></tr></thead>
       <tbody>
         ${(projects ?? []).length ? (projects ?? []).map((p) => `
           <tr id="proj-row-${esc(p.id)}">
             <td class="truncate">${esc(p.title)}</td>
             <td style="white-space:nowrap">${esc(p.date)}</td>
             <td class="truncate">${esc(p.stack)}</td>
-            <td>${(bulletsByProject.get(p.id) ?? []).length}</td>
+            <td>${p.show_in_cv ? "✓" : "—"}</td>
+            <td>${p.id in PROJECT_WRITEUP_EXISTS ? "✓" : "—"}</td>
             <td>
               <button class="admin-btn" data-proj-edit="${esc(p.id)}">Edit</button>
               <button class="admin-btn admin-btn-danger" data-proj-del="${esc(p.id)}">Delete</button>
             </td>
           </tr>
           <tr id="proj-edit-${esc(p.id)}" style="display:none">
-            <td colspan="5">
+            <td colspan="6">
               <div id="proj-edit-status-${esc(p.id)}" class="admin-status" style="display:none"></div>
-              ${projectForm("edit", p, bulletsByProject.get(p.id) ?? [])}
+              ${projectForm("edit", p, bulletsByProject.get(p.id) ?? [], linksByProject.get(p.id) ?? [], verifyOptions)}
+              ${writeupEditorHtml(p.id)}
             </td>
-          </tr>`).join("") : emptyRow(5, "No projects yet — add one above.")}
+          </tr>`).join("") : emptyRow(6, "No projects yet — add one above.")}
       </tbody>
     </table>
     </div>`;
@@ -290,7 +305,7 @@ async function renderProjects(el: HTMLElement): Promise<void> {
   el.querySelectorAll<HTMLButtonElement>("[data-proj-del]").forEach((btn) => {
     btn.addEventListener("click", async () => {
       const id = btn.dataset.projDel!;
-      if (!(await confirmDialog(`Delete project "${id}" and all its bullets? This can't be undone.`))) return;
+      if (!(await confirmDialog(`Delete project "${id}" and all its bullets/links? This can't be undone (the GitHub write-up file, if any, is left in place).`))) return;
       btn.disabled = true;
       const { error } = await supabase.from("projects").delete().eq("id", id);
       if (error) { alert("Error: " + error.message); btn.disabled = false; return; }
@@ -306,24 +321,52 @@ async function renderProjects(el: HTMLElement): Promise<void> {
       await saveProject(el, "edit", proj, e.currentTarget as HTMLButtonElement);
     });
   });
+
+  // Write-up editors (one per existing project)
+  (projects ?? []).forEach((p) => wireWriteupEditor(el, p.id));
 }
+
+// Set of project ids known to already have a published write-up on GitHub —
+// there's no "does this file exist" check available client-side, so this
+// only ever reflects write-ups published earlier *in this session* (best
+// effort; the ✓/— column just starts blank on a fresh page load).
+const PROJECT_WRITEUP_EXISTS: Record<string, true> = {};
 
 function projectForm(
   mode: "add" | "edit",
-  p?: Record<string, string | number | null>,
+  p?: Record<string, string | number | boolean | null>,
   existingBullets?: { id: number; bullet: string }[],
+  existingLinks?: { id: number; label: string; href: string }[],
+  images: DBSiteImage[] = [],
 ): string {
   const v = (f: string) => esc(String(p?.[f] ?? ""));
   const id = mode === "edit" ? `data-proj-save="${v("id")}"` : `id="proj-add-submit"`;
   const bullets = existingBullets ?? [];
   const bulletRows = bullets
-    .map((b, i) => `
-      <div class="admin-bullet-row" data-bullet-idx="${i}">
+    .map((b) => `
+      <div class="admin-bullet-row" data-bullet-idx="${b.id}">
         <textarea name="bullet">${esc(b.bullet)}</textarea>
         <button type="button" class="admin-btn admin-btn-danger admin-rm-bullet">✕</button>
       </div>`)
     .join("");
+  const linkRows = (existingLinks ?? [])
+    .map((l) => `
+      <div class="admin-link-row" data-link-idx="${l.id}">
+        <input type="text" name="link-label" value="${esc(l.label)}" placeholder="Live demo"/>
+        <input type="text" name="link-href" value="${esc(l.href)}" placeholder="https://..."/>
+        <button type="button" class="admin-btn admin-btn-danger admin-rm-link">✕</button>
+      </div>`)
+    .join("");
   const prefix = mode === "edit" ? `edit-${v("id")}` : "add";
+  const showInCv = mode === "add" ? true : p?.show_in_cv !== false;
+  const currentVerify = String(p?.verify ?? "");
+  const verifyOptions = images
+    .map((img) => `<option value="${esc(img.id)}" ${img.id === currentVerify ? "selected" : ""}>${esc(img.title)}</option>`)
+    .join("");
+  // detail/highlights are stored newline-delimited (one paragraph / one
+  // highlight per line) — a plain multi-line textarea matches that 1:1.
+  const detailLines = String(p?.detail_html ?? "").split("\n").filter(Boolean).join("\n");
+  const highlightLines = String(p?.highlights_text ?? "").split("\n").filter(Boolean).join("\n");
   return `
     <div class="admin-form" data-proj-form="${prefix}">
       <div class="admin-form-row">
@@ -331,14 +374,26 @@ function projectForm(
         <div><label>Date</label><input type="text" name="date" value="${v("date")}" placeholder="Jan 2026 – Present"/></div>
       </div>
       <div><label>Title</label><input type="text" name="title" value="${v("title")}" placeholder="Project Title"/></div>
-      <div><label>Stack</label><input type="text" name="stack" value="${v("stack")}" placeholder="Python, PyTorch"/></div>
+      <div><label>Stack (comma-separated)</label><input type="text" name="stack" value="${v("stack")}" placeholder="Python, PyTorch"/></div>
+      <div><label>Excerpt / tagline — one line, shown on the résumé and the Projects page</label><input type="text" name="tagline" value="${v("tagline")}" placeholder="What this project is, in one sentence"/></div>
+      <label class="admin-checkbox-row"><input type="checkbox" name="show_in_cv" ${showInCv ? "checked" : ""}/> Show in résumé (CV)</label>
+      <div><label>Detail paragraphs — one per line, shown on the Projects page (HTML allowed)</label><textarea name="detail" style="min-height:90px">${esc(detailLines)}</textarea></div>
+      <div><label>Highlights — one per line</label><textarea name="highlights" style="min-height:64px">${esc(highlightLines)}</textarea></div>
+      <div><label>Verify image (from the Images tab)</label>
+        <select name="verify"><option value="">— none —</option>${verifyOptions}</select>
+      </div>
       <div class="admin-form-row">
         <div><label>Link Text</label><input type="text" name="link_text" value="${v("link_text")}" placeholder="Github"/></div>
         <div><label>Link URL</label><input type="text" name="link_href" value="${v("link_href")}" placeholder="https://..."/></div>
       </div>
       <div><label>Link Detail ID</label><input type="text" name="link_detail" value="${v("link_detail")}" placeholder="my-project"/></div>
       <div>
-        <label>Bullets</label>
+        <label>Extra links (beyond the one above)</label>
+        <div class="admin-link-list" id="link-list-${prefix}">${linkRows}</div>
+        <button type="button" class="admin-btn admin-add-link">+ Add link</button>
+      </div>
+      <div>
+        <label>Bullets (résumé only)</label>
         <div class="admin-bullet-list" id="bullet-list-${prefix}">${bulletRows}</div>
         <button type="button" class="admin-btn admin-add-bullet">+ Add bullet</button>
       </div>
@@ -351,7 +406,7 @@ function projectForm(
 async function saveProject(
   el: HTMLElement,
   mode: "add" | "edit",
-  existing: Record<string, string | number | null> | null,
+  existing: Record<string, string | number | boolean | null> | null,
   triggerBtn: HTMLButtonElement,
 ): Promise<void> {
   const prefix = mode === "edit" ? `edit-${existing!.id}` : "add";
@@ -359,12 +414,14 @@ async function saveProject(
   const statusId = mode === "edit" ? `proj-edit-status-${existing!.id}` : "proj-add-status";
   const statusEl = el.querySelector<HTMLElement>(`#${statusId}`);
 
-  const g = (name: string) => (form.querySelector<HTMLInputElement>(`[name="${name}"]`)?.value ?? "").trim();
+  const g = (name: string) =>
+    (form.querySelector<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(`[name="${name}"]`)?.value ?? "").trim();
   const id = g("id");
   if (!id || !g("title") || !g("stack")) {
     setStatus(statusEl, "ID, Title and Stack are required.", false);
     return;
   }
+  const showInCv = form.querySelector<HTMLInputElement>('[name="show_in_cv"]')!.checked;
 
   const row = {
     id,
@@ -374,6 +431,11 @@ async function saveProject(
     link_text: g("link_text") || null,
     link_href: g("link_href") || null,
     link_detail: g("link_detail") || null,
+    show_in_cv: showInCv,
+    tagline: g("tagline") || null,
+    detail_html: g("detail") || null,
+    highlights_text: g("highlights") || null,
+    verify: g("verify") || null,
   };
 
   triggerBtn.disabled = true;
@@ -402,11 +464,32 @@ async function saveProject(
     }
   }
 
+  // Extra links: delete existing then re-insert
+  await supabase.from("project_links").delete().eq("project_id", id);
+  const linkRowEls = form.querySelectorAll<HTMLElement>(".admin-link-row");
+  const newLinks = Array.from(linkRowEls)
+    .map((row, i) => ({
+      project_id: id,
+      label: row.querySelector<HTMLInputElement>('[name="link-label"]')!.value.trim(),
+      href: row.querySelector<HTMLInputElement>('[name="link-href"]')!.value.trim(),
+      sort_order: i + 1,
+    }))
+    .filter((l) => l.label && l.href);
+  if (newLinks.length > 0) {
+    const { error: lErr } = await supabase.from("project_links").insert(newLinks);
+    if (lErr) {
+      setStatus(statusEl, "Links error: " + lErr.message, false);
+      triggerBtn.disabled = false;
+      triggerBtn.textContent = originalLabel;
+      return;
+    }
+  }
+
   setStatus(statusEl, mode === "add" ? "Project added!" : "Saved!", true);
   void renderProjects(el);
 }
 
-// Bullet add/remove (event delegation, set once on the el)
+// Bullet/link add/remove (event delegation, set once on the el)
 document.addEventListener("click", (e) => {
   const target = e.target as HTMLElement;
   if (target.classList.contains("admin-add-bullet")) {
@@ -420,7 +503,94 @@ document.addEventListener("click", (e) => {
   if (target.classList.contains("admin-rm-bullet")) {
     target.closest(".admin-bullet-row")?.remove();
   }
+  if (target.classList.contains("admin-add-link")) {
+    const list = target.previousElementSibling as HTMLElement;
+    if (!list) return;
+    const div = document.createElement("div");
+    div.className = "admin-link-row";
+    div.innerHTML = `<input type="text" name="link-label" placeholder="Live demo"/><input type="text" name="link-href" placeholder="https://..."/><button type="button" class="admin-btn admin-btn-danger admin-rm-link">✕</button>`;
+    list.appendChild(div);
+  }
+  if (target.classList.contains("admin-rm-link")) {
+    target.closest(".admin-link-row")?.remove();
+  }
 });
+
+// ── Write-up sub-editor: composes + publishes src/data/project-writeups/<id>.md ──
+function writeupEditorHtml(projectId: string): string {
+  const safeId = esc(projectId);
+  return `
+    <div class="admin-form-section" style="margin-top:0.8rem;">
+      <h3>Write-up</h3>
+      <p class="edu-note" style="margin-top:0;">
+        Publishing replaces the current write-up (if any) and commits straight to GitHub — live once the next deploy finishes (~1–2 min). No frontmatter here, just the markdown body.
+      </p>
+      ${renderMarkdownHelp("project")}
+      <div class="admin-editor-split" style="margin-top:0.6rem;">
+        <div class="admin-editor-pane">
+          <label class="admin-editor-pane-label">Markdown</label>
+          <textarea id="writeup-body-${safeId}" class="admin-editor-textarea" placeholder="## How it works&#10;&#10;Write the deep-dive here."></textarea>
+        </div>
+        <div class="admin-editor-pane">
+          <label class="admin-editor-pane-label">Live preview</label>
+          <div class="admin-editor-preview">
+            <div class="blog-content" id="writeup-preview-${safeId}"></div>
+          </div>
+        </div>
+      </div>
+      <div class="admin-form-actions" style="margin-top:0.6rem;">
+        <button type="button" class="admin-btn admin-btn-primary" id="writeup-publish-${safeId}">Publish write-up to GitHub</button>
+      </div>
+      <div id="writeup-status-${safeId}" class="admin-status" style="display:none;margin-top:0.6rem;"></div>
+    </div>`;
+}
+
+function wireWriteupEditor(el: HTMLElement, projectId: string): void {
+  const bodyEl = el.querySelector<HTMLTextAreaElement>(`#writeup-body-${CSS.escape(projectId)}`);
+  const previewEl = el.querySelector<HTMLElement>(`#writeup-preview-${CSS.escape(projectId)}`);
+  const publishBtn = el.querySelector<HTMLButtonElement>(`#writeup-publish-${CSS.escape(projectId)}`);
+  const statusEl = el.querySelector<HTMLElement>(`#writeup-status-${CSS.escape(projectId)}`);
+  if (!bodyEl || !previewEl || !publishBtn || !statusEl) return;
+
+  let debounceId: number | undefined;
+  bodyEl.addEventListener("input", () => {
+    window.clearTimeout(debounceId);
+    debounceId = window.setTimeout(async () => {
+      const md = bodyEl.value.trim();
+      if (!md) {
+        previewEl.innerHTML = `<p class="admin-empty-note">Start typing to see a live preview.</p>`;
+        return;
+      }
+      try {
+        const { renderMarkdown } = await import("../lib/blog");
+        previewEl.innerHTML = renderMarkdown(md);
+      } catch (err) {
+        previewEl.innerHTML = `<p class="blog-testcases-error">Preview error: ${esc(err instanceof Error ? err.message : String(err))}</p>`;
+      }
+    }, 150);
+  });
+
+  publishBtn.addEventListener("click", async () => {
+    const content = bodyEl.value.trim();
+    if (!content) {
+      setStatus(statusEl, "Write something first.", false);
+      return;
+    }
+    publishBtn.disabled = true;
+    publishBtn.textContent = "Publishing…";
+    try {
+      const { publishProjectWriteupToGithub } = await import("../lib/admin-publish");
+      await publishProjectWriteupToGithub(projectId, content);
+      PROJECT_WRITEUP_EXISTS[projectId] = true;
+      setStatus(statusEl, `Published! Will be live once the site finishes redeploying (~1–2 min).`, true);
+    } catch (err) {
+      setStatus(statusEl, "Publish error: " + (err instanceof Error ? err.message : String(err)), false);
+    } finally {
+      publishBtn.disabled = false;
+      publishBtn.textContent = "Publish write-up to GitHub";
+    }
+  });
+}
 
 // ══════════════════════════════════════════════════════════════════════════════
 // ACHIEVEMENTS TAB — one row backs both the one-page résumé line (html/date)
