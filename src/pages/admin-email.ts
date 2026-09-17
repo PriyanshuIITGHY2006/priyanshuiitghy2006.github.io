@@ -1,7 +1,12 @@
 // Email tab: mailing-list settings (sender identity, reply-to, signature),
 // a list of past/draft campaigns, and a composer (subject/preheader/
 // markdown body + attachments) that can save a draft, send a one-off test,
-// or fire the campaign to every blog_subscriber.
+// or fire the campaign — either to every blog_subscriber, or to an
+// arbitrary list of one-off addresses (recruiters, contacts, ...) who never
+// subscribed to anything. The two modes render differently: subscriber
+// sends get the blog masthead and a per-recipient unsubscribe footer;
+// custom sends get a plain, professional layout with neither — see
+// supabase/functions/email-campaign/_shared/email-layout.ts.
 //
 // Draft CRUD goes straight through supabase-js (RLS already gates writes on
 // is_admin()). Only the actual Brevo send needs the email-campaign edge
@@ -11,10 +16,11 @@
 // them server-side and base64-embeds them into the outgoing mail.
 
 import { supabase, RESUME_PDF_BUCKET, RESUME_PDF_FILE, EMAIL_ATTACHMENTS_BUCKET, resumePdfExists } from "../lib/supabase";
-import { sendTestCampaignEmail, sendCampaignToAllSubscribers, type CampaignAttachment } from "../lib/admin-publish";
+import { sendTestCampaignEmail, sendCampaign, type CampaignAttachment, type RecipientMode } from "../lib/admin-publish";
 import { confirmDialog } from "../lib/confirm-dialog";
 
 const MAX_ATTACHMENT_BYTES = 8 * 1024 * 1024; // matches the edge function's combined-total cap
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function esc(s: string): string {
   return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
@@ -31,6 +37,31 @@ function formatBytes(n: number): string {
   if (n < 1024) return `${n} B`;
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
   return `${(n / 1024 / 1024).toFixed(1)} MB`;
+}
+
+interface CustomRecipient {
+  name: string | null;
+  email: string;
+}
+
+// Parses "Name <email>" or a bare "email" per line — the same shape either
+// a copy-pasted contact list or a plain list of addresses tends to come in.
+function parseRecipientList(text: string): { recipients: CustomRecipient[]; invalidLines: string[] } {
+  const recipients: CustomRecipient[] = [];
+  const invalidLines: string[] = [];
+  for (const rawLine of text.split("\n")) {
+    const line = rawLine.trim().replace(/[,;]$/, "");
+    if (!line) continue;
+    const angleMatch = line.match(/^(.*)<([^<>]+)>$/);
+    const name = angleMatch ? angleMatch[1].trim().replace(/^["']|["']$/g, "") : null;
+    const email = (angleMatch ? angleMatch[2] : line).trim();
+    if (EMAIL_RE.test(email)) {
+      recipients.push({ name: name || null, email });
+    } else {
+      invalidLines.push(rawLine.trim());
+    }
+  }
+  return { recipients, invalidLines };
 }
 
 interface EmailSettings {
@@ -55,6 +86,8 @@ interface EmailCampaign {
   sender_name: string | null;
   sender_email: string | null;
   attachments: CampaignAttachment[];
+  recipient_mode: RecipientMode;
+  custom_recipients: CustomRecipient[];
 }
 
 let cachedSettings: EmailSettings | null = null;
@@ -105,16 +138,28 @@ export async function renderEmailTab(el: HTMLElement): Promise<void> {
       <h3>Campaigns</h3>
       <div class="admin-table-wrap">
         <table class="admin-table">
-          <thead><tr><th>Subject</th><th>Status</th><th>Recipients</th><th>Updated</th><th>Actions</th></tr></thead>
+          <thead><tr><th>Subject</th><th>To</th><th>Status</th><th>Sent</th><th>Updated</th><th>Actions</th></tr></thead>
           <tbody id="ec-list"></tbody>
         </table>
       </div>
     </div>
 
     <div class="admin-form-section">
-      <h3 id="ec-composer-heading">New campaign</h3>
+      <h3 id="ec-composer-heading">New email</h3>
       <div id="ec-status" class="admin-status" style="display:none"></div>
       <div class="admin-form">
+        <div>
+          <label>Send to</label>
+          <div class="admin-form-row" style="align-items:center;">
+            <label class="admin-checkbox-row" style="margin:0;"><input type="radio" name="ec-mode" id="ec-mode-subscribers" value="subscribers" checked/> Blog subscribers (mailing list, with unsubscribe link)</label>
+            <label class="admin-checkbox-row" style="margin:0;"><input type="radio" name="ec-mode" id="ec-mode-custom" value="custom"/> Custom recipients (recruiters, contacts — plain email, no unsubscribe)</label>
+          </div>
+        </div>
+        <div id="ec-custom-recipients-wrap" style="display:none;">
+          <label>Recipients — one per line, "Name &lt;email&gt;" or just the email</label>
+          <textarea id="ec-custom-recipients" style="min-height:80px" placeholder="Jane Recruiter <jane@company.com>&#10;hiring@company.com"></textarea>
+          <p class="edu-note" id="ec-custom-recipients-note" style="margin:0.3rem 0 0;">No recipients yet.</p>
+        </div>
         <div><label>Subject</label><input type="text" id="ec-subject" placeholder="What's new on the site"/></div>
         <div><label>Preheader (preview text in the inbox)</label><input type="text" id="ec-preheader" placeholder="One short line — shows up next to the subject"/></div>
         <div class="admin-form-row">
@@ -127,7 +172,7 @@ export async function renderEmailTab(el: HTMLElement): Promise<void> {
     <div class="admin-editor-split">
       <div class="admin-editor-pane">
         <label class="admin-editor-pane-label">Markdown</label>
-        <textarea id="ec-body" class="admin-editor-textarea" placeholder="## Hey!&#10;&#10;Write the campaign body here — Markdown, rendered the same as a blog post."></textarea>
+        <textarea id="ec-body" class="admin-editor-textarea" placeholder="Hi,&#10;&#10;Write the email here — Markdown, rendered the same as a blog post."></textarea>
       </div>
       <div class="admin-editor-pane">
         <label class="admin-editor-pane-label">Live preview (approximate — real send re-renders server-side)</label>
@@ -157,13 +202,12 @@ export async function renderEmailTab(el: HTMLElement): Promise<void> {
         <input type="email" id="ec-test-email" placeholder="you@example.com" style="width:auto;"/>
         <button type="button" class="admin-btn" id="ec-send-test">Send test</button>
       </div>
-      <button type="button" class="admin-btn admin-btn-danger" id="ec-send-all">Send to all subscribers</button>
-      <button type="button" class="admin-btn" id="ec-new" style="display:none;">New campaign (cancel edit)</button>
+      <button type="button" class="admin-btn admin-btn-danger" id="ec-send-all">Send</button>
+      <button type="button" class="admin-btn" id="ec-new" style="display:none;">New email (cancel edit)</button>
     </div>`;
 
   wireSettingsForm(el);
   wireComposer(el, campaigns);
-  void refreshRecipientCount(el);
 }
 
 // ── Settings form ────────────────────────────────────────────────────────
@@ -209,6 +253,11 @@ function wireComposer(el: HTMLElement, campaigns: EmailCampaign[]): void {
   const listEl = el.querySelector<HTMLElement>("#ec-list")!;
   const headingEl = el.querySelector<HTMLElement>("#ec-composer-heading")!;
   const statusEl = el.querySelector<HTMLElement>("#ec-status")!;
+  const modeSubscribersEl = el.querySelector<HTMLInputElement>("#ec-mode-subscribers")!;
+  const modeCustomEl = el.querySelector<HTMLInputElement>("#ec-mode-custom")!;
+  const customWrapEl = el.querySelector<HTMLElement>("#ec-custom-recipients-wrap")!;
+  const customRecipientsEl = el.querySelector<HTMLTextAreaElement>("#ec-custom-recipients")!;
+  const customRecipientsNoteEl = el.querySelector<HTMLElement>("#ec-custom-recipients-note")!;
   const subjectEl = el.querySelector<HTMLInputElement>("#ec-subject")!;
   const preheaderEl = el.querySelector<HTMLInputElement>("#ec-preheader")!;
   const senderNameEl = el.querySelector<HTMLInputElement>("#ec-sender-name")!;
@@ -219,6 +268,7 @@ function wireComposer(el: HTMLElement, campaigns: EmailCampaign[]): void {
   const attachInput = el.querySelector<HTMLInputElement>("#ec-attach-input")!;
   const attachBtn = el.querySelector<HTMLButtonElement>("#ec-attach-btn")!;
   const attachResumeBtn = el.querySelector<HTMLButtonElement>("#ec-attach-resume-btn")!;
+  const recipientCountEl = el.querySelector<HTMLElement>("#ec-recipient-count")!;
   const saveDraftBtn = el.querySelector<HTMLButtonElement>("#ec-save-draft")!;
   const testEmailEl = el.querySelector<HTMLInputElement>("#ec-test-email")!;
   const sendTestBtn = el.querySelector<HTMLButtonElement>("#ec-send-test")!;
@@ -227,6 +277,45 @@ function wireComposer(el: HTMLElement, campaigns: EmailCampaign[]): void {
 
   let editingId: string | null = null;
   let attachments: CampaignAttachment[] = [];
+  let subscriberCount = 0;
+
+  function currentMode(): RecipientMode {
+    return modeCustomEl.checked ? "custom" : "subscribers";
+  }
+
+  function currentCustomRecipients(): CustomRecipient[] {
+    return parseRecipientList(customRecipientsEl.value).recipients;
+  }
+
+  async function refreshRecipientCount(): Promise<void> {
+    const { count } = await supabase.from("blog_subscribers").select("*", { count: "exact", head: true });
+    subscriberCount = count ?? 0;
+    updateModeUI();
+  }
+  void refreshRecipientCount();
+
+  function updateModeUI(): void {
+    const isCustom = currentMode() === "custom";
+    customWrapEl.style.display = isCustom ? "" : "none";
+    if (isCustom) {
+      const { recipients, invalidLines } = parseRecipientList(customRecipientsEl.value);
+      customRecipientsNoteEl.textContent = invalidLines.length
+        ? `${recipients.length} valid, ${invalidLines.length} line${invalidLines.length === 1 ? "" : "s"} couldn't be parsed as an email.`
+        : recipients.length
+          ? `${recipients.length} recipient${recipients.length === 1 ? "" : "s"} parsed.`
+          : "No recipients yet.";
+      const n = recipients.length;
+      recipientCountEl.textContent = `${n} custom recipient${n === 1 ? "" : "s"} will receive this email.`;
+      sendAllBtn.textContent = "Send";
+    } else {
+      recipientCountEl.textContent = `${subscriberCount} subscriber${subscriberCount === 1 ? "" : "s"} will receive this campaign.`;
+      sendAllBtn.textContent = "Send to all subscribers";
+    }
+  }
+  modeSubscribersEl.addEventListener("change", updateModeUI);
+  modeCustomEl.addEventListener("change", updateModeUI);
+  customRecipientsEl.addEventListener("input", updateModeUI);
+  updateModeUI();
 
   function renderAttachList(): void {
     attachListEl.innerHTML = attachments.length
@@ -308,6 +397,16 @@ function wireComposer(el: HTMLElement, campaigns: EmailCampaign[]): void {
   bodyEl.addEventListener("input", renderPreview);
   renderPreview();
 
+  function setMode(mode: RecipientMode): void {
+    modeSubscribersEl.checked = mode === "subscribers";
+    modeCustomEl.checked = mode === "custom";
+    updateModeUI();
+  }
+
+  function customRecipientsToText(recipients: CustomRecipient[]): string {
+    return recipients.map((r) => (r.name ? `${r.name} <${r.email}>` : r.email)).join("\n");
+  }
+
   function enterEditMode(c: EmailCampaign): void {
     editingId = c.id;
     subjectEl.value = c.subject;
@@ -316,11 +415,13 @@ function wireComposer(el: HTMLElement, campaigns: EmailCampaign[]): void {
     senderEmailEl.value = c.sender_email ?? "";
     bodyEl.value = c.body_markdown;
     attachments = [...(c.attachments ?? [])];
+    customRecipientsEl.value = customRecipientsToText(c.custom_recipients ?? []);
+    setMode(c.recipient_mode ?? "subscribers");
     renderAttachList();
     renderPreview();
     headingEl.textContent = `Editing: ${c.subject}`;
     newBtn.style.display = "";
-    void refreshRecipientCount(el);
+    void refreshRecipientCount();
   }
 
   function resetComposer(): void {
@@ -331,9 +432,11 @@ function wireComposer(el: HTMLElement, campaigns: EmailCampaign[]): void {
     senderEmailEl.value = "";
     bodyEl.value = "";
     attachments = [];
+    customRecipientsEl.value = "";
+    setMode("subscribers");
     renderAttachList();
     renderPreview();
-    headingEl.textContent = "New campaign";
+    headingEl.textContent = "New email";
     newBtn.style.display = "none";
   }
 
@@ -347,6 +450,8 @@ function wireComposer(el: HTMLElement, campaigns: EmailCampaign[]): void {
       sender_email: senderEmailEl.value.trim() || null,
       body_markdown: bodyEl.value,
       attachments,
+      recipient_mode: currentMode(),
+      custom_recipients: currentCustomRecipients(),
     };
   }
 
@@ -354,6 +459,10 @@ function wireComposer(el: HTMLElement, campaigns: EmailCampaign[]): void {
     const fields = currentFields();
     if (!fields.subject || !fields.body_markdown.trim()) {
       setStatus(statusEl, "Subject and body are required.", false);
+      return null;
+    }
+    if (fields.recipient_mode === "custom" && fields.custom_recipients.length === 0) {
+      setStatus(statusEl, "Add at least one custom recipient (or switch to Blog subscribers).", false);
       return null;
     }
     saveDraftBtn.disabled = true;
@@ -398,6 +507,7 @@ function wireComposer(el: HTMLElement, campaigns: EmailCampaign[]): void {
         preheader: fields.preheader ?? "",
         bodyMarkdown: fields.body_markdown,
         testEmail,
+        recipientMode: fields.recipient_mode,
         senderName: fields.sender_name ?? undefined,
         senderEmail: fields.sender_email ?? undefined,
         attachments: fields.attachments,
@@ -412,13 +522,24 @@ function wireComposer(el: HTMLElement, campaigns: EmailCampaign[]): void {
   });
 
   sendAllBtn.addEventListener("click", async () => {
-    const { count } = await supabase.from("blog_subscribers").select("*", { count: "exact", head: true });
-    const n = count ?? 0;
-    if (n === 0) {
-      setStatus(statusEl, "There are no subscribers to send to yet.", false);
-      return;
+    const mode = currentMode();
+    let n: number;
+    if (mode === "custom") {
+      n = currentCustomRecipients().length;
+      if (n === 0) {
+        setStatus(statusEl, "Add at least one custom recipient first.", false);
+        return;
+      }
+    } else {
+      const { count } = await supabase.from("blog_subscribers").select("*", { count: "exact", head: true });
+      n = count ?? 0;
+      if (n === 0) {
+        setStatus(statusEl, "There are no subscribers to send to yet.", false);
+        return;
+      }
     }
-    if (!(await confirmDialog(`Send this campaign to all ${n} subscriber${n === 1 ? "" : "s"}? This can't be undone.`, `Send to ${n}`))) return;
+    const audience = mode === "custom" ? `${n} custom recipient${n === 1 ? "" : "s"}` : `all ${n} subscriber${n === 1 ? "" : "s"}`;
+    if (!(await confirmDialog(`Send this email to ${audience}? This can't be undone.`, `Send to ${n}`))) return;
 
     const saved = await saveDraft();
     if (!saved) return;
@@ -426,19 +547,19 @@ function wireComposer(el: HTMLElement, campaigns: EmailCampaign[]): void {
     sendAllBtn.disabled = true;
     sendAllBtn.textContent = "Sending…";
     try {
-      const result = await sendCampaignToAllSubscribers(saved.id);
-      setStatus(statusEl, `Sent to ${result.sent}/${result.total} subscribers${result.failed ? ` (${result.failed} failed)` : ""}.`, true);
+      const result = await sendCampaign(saved.id);
+      setStatus(statusEl, `Sent to ${result.sent}/${result.total}${result.failed ? ` (${result.failed} failed)` : ""}.`, true);
       void refreshList();
     } catch (err) {
       setStatus(statusEl, "Send error: " + (err instanceof Error ? err.message : String(err)), false);
     } finally {
       sendAllBtn.disabled = false;
-      sendAllBtn.textContent = "Send to all subscribers";
+      updateModeUI();
     }
   });
 
   async function deleteCampaign(id: string, btn: HTMLButtonElement): Promise<void> {
-    if (!(await confirmDialog("Delete this campaign? This can't be undone."))) return;
+    if (!(await confirmDialog("Delete this email? This can't be undone."))) return;
     btn.disabled = true;
     const { error } = await supabase.from("email_campaigns").delete().eq("id", id);
     if (error) {
@@ -458,16 +579,22 @@ function wireComposer(el: HTMLElement, campaigns: EmailCampaign[]): void {
     senderEmailEl.value = c.sender_email ?? "";
     bodyEl.value = c.body_markdown;
     attachments = [...(c.attachments ?? [])];
+    customRecipientsEl.value = customRecipientsToText(c.custom_recipients ?? []);
+    setMode(c.recipient_mode ?? "subscribers");
     renderAttachList();
     renderPreview();
-    headingEl.textContent = "New campaign";
+    headingEl.textContent = "New email";
     newBtn.style.display = "";
     setStatus(statusEl, "Duplicated into the composer below — save as a new draft.", true);
     headingEl.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
-  function statusBadge(status: EmailCampaign["status"]): string {
-    return status;
+  function toLabel(c: EmailCampaign): string {
+    if (c.recipient_mode === "custom") {
+      const n = (c.custom_recipients ?? []).length;
+      return `Custom (${n})`;
+    }
+    return "Subscribers";
   }
 
   function renderList(rows: EmailCampaign[]): void {
@@ -475,7 +602,8 @@ function wireComposer(el: HTMLElement, campaigns: EmailCampaign[]): void {
       ? rows.map((c) => `
         <tr>
           <td class="truncate">${esc(c.subject)}</td>
-          <td>${esc(statusBadge(c.status))}</td>
+          <td style="white-space:nowrap">${esc(toLabel(c))}</td>
+          <td>${esc(c.status)}</td>
           <td>${c.status === "draft" ? "—" : `${c.sent_count ?? 0}/${c.recipient_count ?? 0}`}</td>
           <td style="white-space:nowrap">${esc(new Date(c.updated_at).toLocaleDateString())}</td>
           <td style="white-space:nowrap">
@@ -484,7 +612,7 @@ function wireComposer(el: HTMLElement, campaigns: EmailCampaign[]): void {
             <button class="admin-btn admin-btn-danger" data-ec-del="${esc(c.id)}">Delete</button>
           </td>
         </tr>`).join("")
-      : `<tr><td colspan="5" class="admin-table-empty">No campaigns yet.</td></tr>`;
+      : `<tr><td colspan="6" class="admin-table-empty">No emails yet.</td></tr>`;
 
     listEl.querySelectorAll<HTMLButtonElement>("[data-ec-edit]").forEach((btn) => {
       btn.addEventListener("click", () => {
@@ -512,13 +640,6 @@ function wireComposer(el: HTMLElement, campaigns: EmailCampaign[]): void {
   }
 
   renderList(campaigns);
-}
-
-async function refreshRecipientCount(el: HTMLElement): Promise<void> {
-  const target = el.querySelector<HTMLElement>("#ec-recipient-count");
-  if (!target) return;
-  const { count } = await supabase.from("blog_subscribers").select("*", { count: "exact", head: true });
-  target.textContent = `${count ?? 0} subscriber${count === 1 ? "" : "s"} will receive this campaign.`;
 }
 
 // Minimal client-side Markdown→HTML for the composer's live preview only —

@@ -101,11 +101,14 @@ export interface CampaignAttachment {
   size: number;
 }
 
+export type RecipientMode = "subscribers" | "custom";
+
 export function sendTestCampaignEmail(fields: {
   subject: string;
   preheader: string;
   bodyMarkdown: string;
   testEmail: string;
+  recipientMode?: RecipientMode;
   senderName?: string;
   senderEmail?: string;
   attachments?: CampaignAttachment[];
@@ -113,6 +116,6 @@ export function sendTestCampaignEmail(fields: {
   return callEmailCampaign<{ ok: true }>({ action: "send_test", ...fields });
 }
 
-export function sendCampaignToAllSubscribers(campaignId: string): Promise<{ ok: true; sent: number; failed: number; total: number }> {
+export function sendCampaign(campaignId: string): Promise<{ ok: true; sent: number; failed: number; total: number }> {
   return callEmailCampaign<{ ok: true; sent: number; failed: number; total: number }>({ action: "send_campaign", campaignId });
 }
