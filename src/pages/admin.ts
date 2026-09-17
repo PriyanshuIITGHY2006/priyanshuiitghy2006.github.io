@@ -1,7 +1,8 @@
 import "../styles/admin.css";
-import { supabase, RESUME_PDF_BUCKET, RESUME_PDF_FILE, getResumePdfUrl } from "../lib/supabase";
+import { supabase, RESUME_PDF_BUCKET, RESUME_PDF_FILE, getResumePdfUrl, loadAllSiteImages, type DBSiteImage } from "../lib/supabase";
 import { confirmDialog } from "../lib/confirm-dialog";
 import { getPageViews } from "../lib/analytics";
+import { uploadImageToGithub } from "../lib/admin-publish";
 
 function esc(s: string): string {
   return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
@@ -84,12 +85,13 @@ function renderLogin(container: HTMLElement, notice?: string): void {
 }
 
 // ── Main panel ───────────────────────────────────────────────────────────────
-type Tab = "projects" | "achievements" | "skills" | "positions" | "resume" | "comments" | "blog-editor" | "analytics";
+type Tab = "projects" | "achievements" | "skills" | "positions" | "images" | "resume" | "comments" | "blog-editor" | "analytics";
 const TABS: { id: Tab; label: string }[] = [
   { id: "projects", label: "Projects" },
   { id: "achievements", label: "Achievements" },
   { id: "skills", label: "Skills" },
   { id: "positions", label: "Positions" },
+  { id: "images", label: "Images" },
   { id: "resume", label: "Resume" },
   { id: "comments", label: "Blog Comments" },
   { id: "blog-editor", label: "New Blog Post" },
@@ -201,6 +203,7 @@ function loadTab(container: HTMLElement): void {
     case "achievements": void renderAchievements(content); break;
     case "skills":       void renderSkills(content);       break;
     case "positions":    void renderPositions(content);    break;
+    case "images":       void renderImages(content);       break;
     case "resume":       void renderResumeTab(content);    break;
     case "comments":     void renderComments(content);     break;
     case "blog-editor":
@@ -420,56 +423,57 @@ document.addEventListener("click", (e) => {
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
-// ACHIEVEMENTS TAB
+// ACHIEVEMENTS TAB — one row backs both the one-page résumé line (html/date)
+// and the standalone /achievements page (title/tags/blurb/verify/link).
 // ══════════════════════════════════════════════════════════════════════════════
 async function renderAchievements(el: HTMLElement): Promise<void> {
-  const { data: rows } = await supabase.from("achievements").select("*").order("sort_order");
+  const [{ data: rows }, images] = await Promise.all([
+    supabase.from("achievements").select("*").order("sort_order"),
+    loadAllSiteImages(),
+  ]);
+  const verifyOptions = images.filter((i) => i.kind === "gallery");
 
   el.innerHTML = `
     <div class="admin-form-section">
       <h3>Add achievement</h3>
       <div id="ach-add-status" class="admin-status" style="display:none"></div>
-      <div class="admin-form" id="ach-add-form">
-        <div class="admin-form-row">
-          <div><label>ID (slug)</label><input type="text" id="ach-id" placeholder="jee-main"/></div>
-          <div><label>Date</label><input type="text" id="ach-date" placeholder="2025"/></div>
-        </div>
-        <div><label>HTML content</label><textarea id="ach-html" style="min-height:72px" placeholder="&lt;b&gt;Title&lt;/b&gt; Description"></textarea></div>
-        <div class="admin-form-actions">
-          <button class="admin-btn admin-btn-primary" id="ach-add-btn">Add achievement</button>
-        </div>
-      </div>
+      ${achievementForm("add", undefined, verifyOptions)}
     </div>
     <div class="admin-table-wrap">
     <table class="admin-table">
-      <thead><tr><th>ID</th><th>HTML (truncated)</th><th>Date</th><th>Actions</th></tr></thead>
+      <thead><tr><th>ID</th><th>Title</th><th>Date</th><th>Verify</th><th>Actions</th></tr></thead>
       <tbody>
         ${(rows ?? []).length ? (rows ?? []).map((a) => `
-          <tr>
+          <tr id="ach-row-${esc(a.id)}">
             <td>${esc(a.id)}</td>
-            <td class="truncate">${esc(a.html)}</td>
-            <td>${esc(a.date)}</td>
+            <td class="truncate">${esc(a.title || a.html)}</td>
+            <td style="white-space:nowrap">${esc(a.date)}</td>
+            <td>${a.verify ? "✓" : "—"}</td>
             <td>
+              <button class="admin-btn" data-ach-edit="${esc(a.id)}">Edit</button>
               <button class="admin-btn admin-btn-danger" data-ach-del="${esc(a.id)}">Delete</button>
             </td>
-          </tr>`).join("") : emptyRow(4, "No achievements yet — add one above.")}
+          </tr>
+          <tr id="ach-edit-${esc(a.id)}" style="display:none">
+            <td colspan="5">
+              <div id="ach-edit-status-${esc(a.id)}" class="admin-status" style="display:none"></div>
+              ${achievementForm("edit", a, verifyOptions)}
+            </td>
+          </tr>`).join("") : emptyRow(5, "No achievements yet — add one above.")}
       </tbody>
     </table>
     </div>`;
 
-  const addBtn = el.querySelector<HTMLButtonElement>("#ach-add-btn")!;
-  addBtn.addEventListener("click", async () => {
-    const id = (el.querySelector<HTMLInputElement>("#ach-id")!.value).trim();
-    const html = (el.querySelector<HTMLTextAreaElement>("#ach-html")!.value).trim();
-    const date = (el.querySelector<HTMLInputElement>("#ach-date")!.value).trim();
-    const statusEl = el.querySelector<HTMLElement>("#ach-add-status");
-    if (!id || !html) { setStatus(statusEl, "ID and HTML are required.", false); return; }
-    addBtn.disabled = true;
-    const maxOrder = Math.max(0, ...(rows ?? []).map((r) => r.sort_order));
-    const { error } = await supabase.from("achievements").insert({ id, html, date, sort_order: maxOrder + 1 });
-    if (error) { setStatus(statusEl, "Error: " + error.message, false); addBtn.disabled = false; return; }
-    setStatus(statusEl, "Added!", true);
-    void renderAchievements(el);
+  el.querySelector<HTMLButtonElement>("#ach-add-submit")!.addEventListener("click", async (e) => {
+    await saveAchievement(el, "add", null, rows ?? [], e.currentTarget as HTMLButtonElement);
+  });
+
+  el.querySelectorAll<HTMLButtonElement>("[data-ach-edit]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const id = btn.dataset.achEdit!;
+      const row = el.querySelector<HTMLElement>(`#ach-edit-${id}`)!;
+      row.style.display = row.style.display === "none" ? "table-row" : "none";
+    });
   });
 
   el.querySelectorAll<HTMLButtonElement>("[data-ach-del]").forEach((btn) => {
@@ -482,6 +486,98 @@ async function renderAchievements(el: HTMLElement): Promise<void> {
       void renderAchievements(el);
     });
   });
+
+  el.querySelectorAll<HTMLButtonElement>("[data-ach-save]").forEach((btn) => {
+    btn.addEventListener("click", async (e) => {
+      const id = btn.dataset.achSave!;
+      const a = (rows ?? []).find((r) => r.id === id)!;
+      await saveAchievement(el, "edit", a, rows ?? [], e.currentTarget as HTMLButtonElement);
+    });
+  });
+}
+
+function achievementForm(
+  mode: "add" | "edit",
+  a: Record<string, string | number | null> | undefined,
+  images: DBSiteImage[],
+): string {
+  const v = (f: string) => esc(String(a?.[f] ?? ""));
+  const idAttr = mode === "edit" ? `data-ach-save="${v("id")}"` : `id="ach-add-submit"`;
+  const prefix = mode === "edit" ? `edit-${v("id")}` : "add";
+  const currentVerify = String(a?.verify ?? "");
+  const verifyOptions = images
+    .map((img) => `<option value="${esc(img.id)}" ${img.id === currentVerify ? "selected" : ""}>${esc(img.title)}</option>`)
+    .join("");
+  return `
+    <div class="admin-form" data-ach-form="${prefix}">
+      <div class="admin-form-row">
+        <div><label>ID (slug)</label><input type="text" name="id" value="${v("id")}" ${mode === "edit" ? "readonly" : ""} placeholder="my-award"/></div>
+        <div><label>Date</label><input type="text" name="date" value="${v("date")}" placeholder="2026"/></div>
+      </div>
+      <div><label>Résumé line (HTML) — the one-page résumé's Achievements section</label><textarea name="html" style="min-height:60px">${v("html")}</textarea></div>
+      <div><label>Title — the standalone Achievements page</label><input type="text" name="title" value="${v("title")}" placeholder="Award Title"/></div>
+      <div><label>Tags (comma-separated)</label><input type="text" name="tags" value="${v("tags")}" placeholder="Gold Medal, AI Challenge"/></div>
+      <div><label>Blurb (HTML allowed)</label><textarea name="blurb" style="min-height:80px">${v("blurb")}</textarea></div>
+      <div><label>Verify image (from the Images tab)</label>
+        <select name="verify"><option value="">— none —</option>${verifyOptions}</select>
+      </div>
+      <div class="admin-form-row">
+        <div><label>Link label</label><input type="text" name="link_label" value="${v("link_label")}" placeholder="Program site"/></div>
+        <div><label>Link URL</label><input type="text" name="link_href" value="${v("link_href")}" placeholder="https://..."/></div>
+      </div>
+      <div class="admin-form-actions">
+        <button type="button" class="admin-btn admin-btn-primary" ${idAttr}>${mode === "add" ? "Add achievement" : "Save changes"}</button>
+      </div>
+    </div>`;
+}
+
+async function saveAchievement(
+  el: HTMLElement,
+  mode: "add" | "edit",
+  existing: Record<string, string | number | null> | null,
+  rows: Record<string, string | number | null>[],
+  triggerBtn: HTMLButtonElement,
+): Promise<void> {
+  const prefix = mode === "edit" ? `edit-${existing!.id}` : "add";
+  const form = el.querySelector<HTMLElement>(`[data-ach-form="${prefix}"]`)!;
+  const statusId = mode === "edit" ? `ach-edit-status-${existing!.id}` : "ach-add-status";
+  const statusEl = el.querySelector<HTMLElement>(`#${statusId}`);
+
+  const g = (name: string) =>
+    (form.querySelector<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(`[name="${name}"]`)?.value ?? "").trim();
+  const id = g("id");
+  const html = g("html");
+  if (!id || !html) {
+    setStatus(statusEl, "ID and the résumé line are required.", false);
+    return;
+  }
+
+  const row = {
+    id,
+    html,
+    date: g("date"),
+    title: g("title") || null,
+    tags: g("tags") || null,
+    blurb: g("blurb") || null,
+    verify: g("verify") || null,
+    link_label: g("link_label") || null,
+    link_href: g("link_href") || null,
+    sort_order: mode === "edit" ? Number(existing!.sort_order) : Math.max(0, ...rows.map((r) => Number(r.sort_order))) + 1,
+  };
+
+  triggerBtn.disabled = true;
+  const originalLabel = triggerBtn.textContent;
+  triggerBtn.textContent = "Saving…";
+
+  const { error } = await supabase.from("achievements").upsert(row);
+  triggerBtn.disabled = false;
+  triggerBtn.textContent = originalLabel;
+  if (error) {
+    setStatus(statusEl, "Error: " + error.message, false);
+    return;
+  }
+  setStatus(statusEl, mode === "add" ? "Achievement added!" : "Saved!", true);
+  void renderAchievements(el);
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -594,6 +690,123 @@ async function renderPositions(el: HTMLElement): Promise<void> {
       const { error } = await supabase.from("positions").delete().eq("id", Number(btn.dataset.posDel));
       if (error) { alert("Error: " + error.message); btn.disabled = false; return; }
       void renderPositions(el);
+    });
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// IMAGES TAB — uploads commit straight to GitHub (public/gallery/), with
+// metadata tracked in site_images. Feeds both the Gallery page and the
+// achievement "verify" / blog cover dropdowns elsewhere in this panel.
+// ══════════════════════════════════════════════════════════════════════════════
+function slugifyFilename(name: string): string {
+  const base = name.replace(/\.[^./]+$/, "");
+  const slug = base.toLowerCase().trim().replace(/[^\w\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-");
+  return slug || `image-${Date.now()}`;
+}
+
+async function renderImages(el: HTMLElement): Promise<void> {
+  const images = await loadAllSiteImages();
+
+  el.innerHTML = `
+    <div class="admin-form-section">
+      <h3>Upload image</h3>
+      <p class="edu-note" style="margin-top:0;">
+        Commits the file straight to GitHub (<code>public/gallery/</code>) — it shows up on the live site once the next deploy finishes, usually 1–2 minutes.
+      </p>
+      <div id="img-add-status" class="admin-status" style="display:none"></div>
+      <div class="admin-form">
+        <div><label>File (image or PDF)</label><input type="file" id="img-file-input" accept="image/*,application/pdf"/></div>
+        <div class="admin-form-row">
+          <div><label>ID (slug)</label><input type="text" id="img-id" placeholder="auto-generated-from-filename"/></div>
+          <div><label>Date</label><input type="text" id="img-date" placeholder="2026"/></div>
+        </div>
+        <div><label>Title</label><input type="text" id="img-title" placeholder="Certificate / image title"/></div>
+        <div><label>Description</label><input type="text" id="img-desc" placeholder="Shown in the gallery lightbox"/></div>
+        <div><label>Shows up in</label>
+          <select id="img-kind">
+            <option value="gallery">Gallery page + achievement "Verify" links</option>
+            <option value="blog-cover">Blog cover picker only</option>
+          </select>
+        </div>
+        <div class="admin-form-actions">
+          <button class="admin-btn admin-btn-primary" id="img-upload-btn" disabled>Upload</button>
+        </div>
+      </div>
+    </div>
+    <div class="admin-table-wrap">
+    <table class="admin-table">
+      <thead><tr><th>Preview</th><th>Title</th><th>Kind</th><th>Actions</th></tr></thead>
+      <tbody>
+        ${images.length ? images.map((img) => `
+          <tr>
+            <td>${/\.pdf$/i.test(img.src)
+              ? `<span class="admin-btn" style="pointer-events:none;">PDF</span>`
+              : `<img src="${esc(img.src)}" alt="" style="width:44px;height:44px;object-fit:cover;border-radius:4px;display:block"/>`}</td>
+            <td class="truncate">${esc(img.title)}</td>
+            <td>${esc(img.kind)}</td>
+            <td><button class="admin-btn admin-btn-danger" data-img-del="${esc(img.id)}">Remove</button></td>
+          </tr>`).join("") : emptyRow(4, "No images uploaded yet.")}
+      </tbody>
+    </table>
+    </div>`;
+
+  const fileInput = el.querySelector<HTMLInputElement>("#img-file-input")!;
+  const idInput = el.querySelector<HTMLInputElement>("#img-id")!;
+  const titleInput = el.querySelector<HTMLInputElement>("#img-title")!;
+  const uploadBtn = el.querySelector<HTMLButtonElement>("#img-upload-btn")!;
+  const statusEl = el.querySelector<HTMLElement>("#img-add-status");
+
+  let idTouched = false;
+  idInput.addEventListener("input", () => { idTouched = true; });
+  fileInput.addEventListener("change", () => {
+    uploadBtn.disabled = !fileInput.files?.length;
+    const f = fileInput.files?.[0];
+    if (f && !idTouched) idInput.value = slugifyFilename(f.name);
+    if (f && !titleInput.value) titleInput.value = f.name.replace(/\.[^./]+$/, "");
+  });
+
+  uploadBtn.addEventListener("click", async () => {
+    const file = fileInput.files?.[0];
+    if (!file) return;
+    const id = idInput.value.trim() || slugifyFilename(file.name);
+    const title = titleInput.value.trim() || file.name;
+    const date = (el.querySelector<HTMLInputElement>("#img-date")!.value).trim();
+    const description = (el.querySelector<HTMLInputElement>("#img-desc")!.value).trim();
+    const kind = el.querySelector<HTMLSelectElement>("#img-kind")!.value as "gallery" | "blog-cover";
+
+    uploadBtn.disabled = true;
+    uploadBtn.textContent = "Uploading to GitHub…";
+    try {
+      const { src } = await uploadImageToGithub(file);
+      const maxOrder = Math.max(0, ...images.map((i) => i.sort_order));
+      const { error } = await supabase.from("site_images").upsert({
+        id,
+        title,
+        src,
+        date: date || null,
+        description: description || null,
+        kind,
+        sort_order: maxOrder + 1,
+      });
+      if (error) throw new Error(error.message);
+      setStatus(statusEl, "Uploaded! It'll appear on the site once the deploy finishes.", true);
+      void renderImages(el);
+    } catch (err) {
+      setStatus(statusEl, "Error: " + (err instanceof Error ? err.message : String(err)), false);
+      uploadBtn.disabled = false;
+      uploadBtn.textContent = "Upload";
+    }
+  });
+
+  el.querySelectorAll<HTMLButtonElement>("[data-img-del]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const id = btn.dataset.imgDel!;
+      if (!(await confirmDialog(`Remove "${id}" from the site? This only removes the listing — the file stays in the GitHub repo.`))) return;
+      btn.disabled = true;
+      const { error } = await supabase.from("site_images").delete().eq("id", id);
+      if (error) { alert("Error: " + error.message); btn.disabled = false; return; }
+      void renderImages(el);
     });
   });
 }
