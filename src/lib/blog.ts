@@ -62,7 +62,7 @@ function slugFromPath(path: string): string {
   return file.replace(/\.md$/, "");
 }
 
-function parseFrontmatter(raw: string): { data: Record<string, string>; body: string } {
+export function parseFrontmatter(raw: string): { data: Record<string, string>; body: string } {
   const match = raw.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/);
   if (!match) return { data: {}, body: raw.trim() };
   const [, frontmatter, body] = match;

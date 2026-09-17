@@ -263,7 +263,7 @@ async function renderProjects(el: HTMLElement): Promise<void> {
     </div>
     <div class="admin-table-wrap">
     <table class="admin-table">
-      <thead><tr><th>Title</th><th>Date</th><th>Stack</th><th>In CV</th><th>Write-up</th><th>Actions</th></tr></thead>
+      <thead><tr><th>Title</th><th>Date</th><th>Stack</th><th>In CV</th><th>Actions</th></tr></thead>
       <tbody>
         ${(projects ?? []).length ? (projects ?? []).map((p) => `
           <tr id="proj-row-${esc(p.id)}">
@@ -271,19 +271,18 @@ async function renderProjects(el: HTMLElement): Promise<void> {
             <td style="white-space:nowrap">${esc(p.date)}</td>
             <td class="truncate">${esc(p.stack)}</td>
             <td>${p.show_in_cv ? "✓" : "—"}</td>
-            <td>${p.id in PROJECT_WRITEUP_EXISTS ? "✓" : "—"}</td>
             <td>
               <button class="admin-btn" data-proj-edit="${esc(p.id)}">Edit</button>
               <button class="admin-btn admin-btn-danger" data-proj-del="${esc(p.id)}">Delete</button>
             </td>
           </tr>
           <tr id="proj-edit-${esc(p.id)}" style="display:none">
-            <td colspan="6">
+            <td colspan="5">
               <div id="proj-edit-status-${esc(p.id)}" class="admin-status" style="display:none"></div>
               ${projectForm("edit", p, bulletsByProject.get(p.id) ?? [], linksByProject.get(p.id) ?? [], verifyOptions)}
               ${writeupEditorHtml(p.id)}
             </td>
-          </tr>`).join("") : emptyRow(6, "No projects yet — add one above.")}
+          </tr>`).join("") : emptyRow(5, "No projects yet — add one above.")}
       </tbody>
     </table>
     </div>`;
@@ -325,12 +324,6 @@ async function renderProjects(el: HTMLElement): Promise<void> {
   // Write-up editors (one per existing project)
   (projects ?? []).forEach((p) => wireWriteupEditor(el, p.id));
 }
-
-// Set of project ids known to already have a published write-up on GitHub —
-// there's no "does this file exist" check available client-side, so this
-// only ever reflects write-ups published earlier *in this session* (best
-// effort; the ✓/— column just starts blank on a fresh page load).
-const PROJECT_WRITEUP_EXISTS: Record<string, true> = {};
 
 function projectForm(
   mode: "add" | "edit",
@@ -517,19 +510,20 @@ document.addEventListener("click", (e) => {
 });
 
 // ── Write-up sub-editor: composes + publishes src/data/project-writeups/<id>.md ──
+// Loads the existing file's content from GitHub on open (if any) so editing
+// never starts from a misleadingly blank box; a project with no write-up
+// yet just stays blank until you write one.
 function writeupEditorHtml(projectId: string): string {
   const safeId = esc(projectId);
   return `
     <div class="admin-form-section" style="margin-top:0.8rem;">
       <h3>Write-up</h3>
-      <p class="edu-note" style="margin-top:0;">
-        Publishing replaces the current write-up (if any) and commits straight to GitHub — live once the next deploy finishes (~1–2 min). No frontmatter here, just the markdown body.
-      </p>
+      <p class="edu-note" id="writeup-load-note-${safeId}" style="margin-top:0;">Loading existing write-up from GitHub…</p>
       ${renderMarkdownHelp("project")}
       <div class="admin-editor-split" style="margin-top:0.6rem;">
         <div class="admin-editor-pane">
           <label class="admin-editor-pane-label">Markdown</label>
-          <textarea id="writeup-body-${safeId}" class="admin-editor-textarea" placeholder="## How it works&#10;&#10;Write the deep-dive here."></textarea>
+          <textarea id="writeup-body-${safeId}" class="admin-editor-textarea" placeholder="## How it works&#10;&#10;Write the deep-dive here. Leave blank for no write-up." disabled></textarea>
         </div>
         <div class="admin-editor-pane">
           <label class="admin-editor-pane-label">Live preview</label>
@@ -540,40 +534,63 @@ function writeupEditorHtml(projectId: string): string {
       </div>
       <div class="admin-form-actions" style="margin-top:0.6rem;">
         <button type="button" class="admin-btn admin-btn-primary" id="writeup-publish-${safeId}">Publish write-up to GitHub</button>
+        <button type="button" class="admin-btn admin-btn-danger" id="writeup-delete-${safeId}" style="display:none;">Delete write-up</button>
       </div>
       <div id="writeup-status-${safeId}" class="admin-status" style="display:none;margin-top:0.6rem;"></div>
     </div>`;
 }
 
 function wireWriteupEditor(el: HTMLElement, projectId: string): void {
-  const bodyEl = el.querySelector<HTMLTextAreaElement>(`#writeup-body-${CSS.escape(projectId)}`);
-  const previewEl = el.querySelector<HTMLElement>(`#writeup-preview-${CSS.escape(projectId)}`);
-  const publishBtn = el.querySelector<HTMLButtonElement>(`#writeup-publish-${CSS.escape(projectId)}`);
-  const statusEl = el.querySelector<HTMLElement>(`#writeup-status-${CSS.escape(projectId)}`);
-  if (!bodyEl || !previewEl || !publishBtn || !statusEl) return;
+  const safe = CSS.escape(projectId);
+  const loadNoteEl = el.querySelector<HTMLElement>(`#writeup-load-note-${safe}`);
+  const bodyEl = el.querySelector<HTMLTextAreaElement>(`#writeup-body-${safe}`);
+  const previewEl = el.querySelector<HTMLElement>(`#writeup-preview-${safe}`);
+  const publishBtn = el.querySelector<HTMLButtonElement>(`#writeup-publish-${safe}`);
+  const deleteBtn = el.querySelector<HTMLButtonElement>(`#writeup-delete-${safe}`);
+  const statusEl = el.querySelector<HTMLElement>(`#writeup-status-${safe}`);
+  if (!bodyEl || !previewEl || !publishBtn || !deleteBtn || !statusEl || !loadNoteEl) return;
+
+  function renderPreview(): void {
+    const md = bodyEl!.value.trim();
+    if (!md) {
+      previewEl!.innerHTML = `<p class="admin-empty-note">Start typing to see a live preview.</p>`;
+      return;
+    }
+    void import("../lib/blog").then(({ renderMarkdown }) => {
+      try {
+        previewEl!.innerHTML = renderMarkdown(md);
+      } catch (err) {
+        previewEl!.innerHTML = `<p class="blog-testcases-error">Preview error: ${esc(err instanceof Error ? err.message : String(err))}</p>`;
+      }
+    });
+  }
 
   let debounceId: number | undefined;
   bodyEl.addEventListener("input", () => {
     window.clearTimeout(debounceId);
-    debounceId = window.setTimeout(async () => {
-      const md = bodyEl.value.trim();
-      if (!md) {
-        previewEl.innerHTML = `<p class="admin-empty-note">Start typing to see a live preview.</p>`;
-        return;
-      }
-      try {
-        const { renderMarkdown } = await import("../lib/blog");
-        previewEl.innerHTML = renderMarkdown(md);
-      } catch (err) {
-        previewEl.innerHTML = `<p class="blog-testcases-error">Preview error: ${esc(err instanceof Error ? err.message : String(err))}</p>`;
-      }
-    }, 150);
+    debounceId = window.setTimeout(renderPreview, 150);
+  });
+
+  void import("../lib/admin-publish").then(async ({ readProjectWriteupFromGithub }) => {
+    try {
+      const { exists, content } = await readProjectWriteupFromGithub(projectId);
+      bodyEl.value = exists ? content : "";
+      deleteBtn.style.display = exists ? "" : "none";
+      loadNoteEl.textContent = exists
+        ? "Editing the current write-up — publishing replaces it. Live once the next deploy finishes (~1–2 min)."
+        : "No write-up yet — write one below, or leave blank.";
+      renderPreview();
+    } catch (err) {
+      loadNoteEl.textContent = "Couldn't load the existing write-up: " + (err instanceof Error ? err.message : String(err));
+    } finally {
+      bodyEl.disabled = false;
+    }
   });
 
   publishBtn.addEventListener("click", async () => {
     const content = bodyEl.value.trim();
     if (!content) {
-      setStatus(statusEl, "Write something first.", false);
+      setStatus(statusEl, "Write something first (or use Delete write-up to remove it).", false);
       return;
     }
     publishBtn.disabled = true;
@@ -581,13 +598,30 @@ function wireWriteupEditor(el: HTMLElement, projectId: string): void {
     try {
       const { publishProjectWriteupToGithub } = await import("../lib/admin-publish");
       await publishProjectWriteupToGithub(projectId, content);
-      PROJECT_WRITEUP_EXISTS[projectId] = true;
+      deleteBtn.style.display = "";
       setStatus(statusEl, `Published! Will be live once the site finishes redeploying (~1–2 min).`, true);
     } catch (err) {
       setStatus(statusEl, "Publish error: " + (err instanceof Error ? err.message : String(err)), false);
     } finally {
       publishBtn.disabled = false;
       publishBtn.textContent = "Publish write-up to GitHub";
+    }
+  });
+
+  deleteBtn.addEventListener("click", async () => {
+    if (!(await confirmDialog(`Delete the write-up for "${projectId}"? The GitHub file will be removed — this can't be undone.`))) return;
+    deleteBtn.disabled = true;
+    try {
+      const { deleteProjectWriteupFromGithub } = await import("../lib/admin-publish");
+      await deleteProjectWriteupFromGithub(projectId);
+      bodyEl.value = "";
+      renderPreview();
+      deleteBtn.style.display = "none";
+      setStatus(statusEl, "Write-up deleted.", true);
+    } catch (err) {
+      setStatus(statusEl, "Delete error: " + (err instanceof Error ? err.message : String(err)), false);
+    } finally {
+      deleteBtn.disabled = false;
     }
   });
 }

@@ -52,3 +52,31 @@ export async function publishBlogPostToGithub(slug: string, content: string): Pr
 export async function publishProjectWriteupToGithub(id: string, content: string): Promise<{ path: string }> {
   return callGithubPublish<{ path: string }>({ action: "publish_project_writeup", id, content });
 }
+
+async function readFileFromGithub(path: string): Promise<{ exists: boolean; content: string }> {
+  return callGithubPublish<{ exists: boolean; content: string }>({ action: "read_file", path });
+}
+
+async function deleteFileFromGithub(path: string): Promise<{ deleted: boolean }> {
+  return callGithubPublish<{ deleted: boolean }>({ action: "delete_file", path });
+}
+
+export function readProjectWriteupFromGithub(id: string): Promise<{ exists: boolean; content: string }> {
+  return readFileFromGithub(`src/data/project-writeups/${id}.md`);
+}
+
+export function deleteProjectWriteupFromGithub(id: string): Promise<{ deleted: boolean }> {
+  return deleteFileFromGithub(`src/data/project-writeups/${id}.md`);
+}
+
+export function readBlogPostFromGithub(slug: string): Promise<{ exists: boolean; content: string }> {
+  return readFileFromGithub(`src/data/blogs/${slug}.md`);
+}
+
+export function deleteBlogPostFromGithub(slug: string): Promise<{ deleted: boolean }> {
+  return deleteFileFromGithub(`src/data/blogs/${slug}.md`);
+}
+
+export function listBlogSlugsFromGithub(): Promise<{ files: string[] }> {
+  return callGithubPublish<{ files: string[] }>({ action: "list_directory", dir: "src/data/blogs" });
+}
