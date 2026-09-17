@@ -86,7 +86,7 @@ function renderLogin(container: HTMLElement, notice?: string): void {
 }
 
 // ── Main panel ───────────────────────────────────────────────────────────────
-type Tab = "projects" | "achievements" | "skills" | "positions" | "images" | "resume" | "comments" | "blog-editor" | "analytics";
+type Tab = "projects" | "achievements" | "skills" | "positions" | "images" | "resume" | "comments" | "blog-editor" | "email" | "analytics";
 const TABS: { id: Tab; label: string }[] = [
   { id: "projects", label: "Projects" },
   { id: "achievements", label: "Achievements" },
@@ -96,6 +96,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "resume", label: "Resume" },
   { id: "comments", label: "Blog Comments" },
   { id: "blog-editor", label: "New Blog Post" },
+  { id: "email", label: "Email" },
   { id: "analytics", label: "Analytics" },
 ];
 
@@ -209,6 +210,9 @@ function loadTab(container: HTMLElement): void {
     case "comments":     void renderComments(content);     break;
     case "blog-editor":
       void import("./admin-blog-editor").then(({ renderBlogEditor }) => renderBlogEditor(content));
+      break;
+    case "email":
+      void import("./admin-email").then(({ renderEmailTab }) => renderEmailTab(content));
       break;
     case "analytics":    void renderAnalytics(content);      break;
   }
