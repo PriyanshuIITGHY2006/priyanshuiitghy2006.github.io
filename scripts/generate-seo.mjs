@@ -1,21 +1,22 @@
 // Runs after `vite build`. Generates:
 //   - dist/blog/<slug>/index.html      (static, crawlable OG/Twitter preview per post)
 //   - dist/project/<id>/index.html     (same, for project deep-dive pages)
+//   - dist/404.html                    (SPA fallback — see bottom of main())
 //   - dist/sitemap.xml
 //   - dist/robots.txt
 //   - dist/feed.xml
 //
-// Why this exists: the site is a hash-routed SPA (see src/lib/router.ts), so
-// "https://.../#/blog?slug=x" is never sent to the server and social-media/
-// search crawlers that don't execute JS only ever see the one static
-// index.html with generic meta tags. This script produces one small static
-// HTML file per post/project at a real path, with per-page title/description/
-// image, so shared links preview correctly. Human visitors who land on it get
-// redirected straight into the SPA. Project data is loaded from the real
-// src/data/projects.ts (via esbuild) rather than duplicated here, so there's
-// one source of truth.
+// Why the post/project preview pages exist: "/blog?slug=x" and "/project?id=x"
+// are query-string routes handled client-side (see src/lib/router.ts), so
+// social-media/search crawlers that don't execute JS only ever see generic
+// meta tags there. This script produces one small static HTML file per
+// post/project at a real, distinct path (/blog/<slug>/, /project/<id>/) with
+// per-page title/description/image, so shared links preview correctly. Human
+// visitors who land on it get redirected straight into the SPA. Project data
+// is loaded from the real src/data/projects.ts (via esbuild) rather than
+// duplicated here, so there's one source of truth.
 
-import { readdirSync, readFileSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { readdirSync, readFileSync, mkdirSync, writeFileSync, rmSync, copyFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { build } from "esbuild";
@@ -72,7 +73,7 @@ function loadPosts() {
 
 function postPreviewHtml(post) {
   const url = `${SITE_ORIGIN}/blog/${post.slug}/`;
-  const target = `/#/blog?slug=${encodeURIComponent(post.slug)}`;
+  const target = `/blog?slug=${encodeURIComponent(post.slug)}`;
   const title = escAttr(post.title);
   const description = escAttr(post.excerpt || "A blog post by Priyanshu Debnath.");
   const image = post.cover ? `${SITE_ORIGIN}/${post.cover.replace(/^\//, "")}` : `${SITE_ORIGIN}/profile.jpg`;
@@ -148,7 +149,7 @@ async function loadProjects() {
 
 function projectPreviewHtml(project) {
   const url = `${SITE_ORIGIN}/project/${project.id}/`;
-  const target = `/#/project?id=${encodeURIComponent(project.id)}`;
+  const target = `/project?id=${encodeURIComponent(project.id)}`;
   const title = escAttr(project.title);
   const description = escAttr(project.tagline || "A project by Priyanshu Debnath.");
   const image = `${SITE_ORIGIN}/profile.jpg`;
@@ -192,6 +193,14 @@ function sitemapXml(posts, projects) {
   const today = new Date().toISOString().slice(0, 10);
   const urls = [
     { loc: `${SITE_ORIGIN}/`, lastmod: today },
+    { loc: `${SITE_ORIGIN}/resume`, lastmod: today },
+    { loc: `${SITE_ORIGIN}/projects`, lastmod: today },
+    { loc: `${SITE_ORIGIN}/education`, lastmod: today },
+    { loc: `${SITE_ORIGIN}/skills`, lastmod: today },
+    { loc: `${SITE_ORIGIN}/positions`, lastmod: today },
+    { loc: `${SITE_ORIGIN}/achievements`, lastmod: today },
+    { loc: `${SITE_ORIGIN}/gallery`, lastmod: today },
+    { loc: `${SITE_ORIGIN}/blogs`, lastmod: today },
     { loc: `${SITE_ORIGIN}/blog/`, lastmod: today },
     ...posts.map((p) => ({ loc: `${SITE_ORIGIN}/blog/${p.slug}/`, lastmod: isoDate(p.date) })),
     ...projects.map((p) => ({ loc: `${SITE_ORIGIN}/project/${p.id}/`, lastmod: today })),
@@ -205,7 +214,8 @@ function sitemapXml(posts, projects) {
 }
 
 // Real, crawlable index of every post at a static path (unlike the SPA's
-// hash-routed #/blogs), so search engines have genuine content + internal
+// client-routed /blogs, which needs JS), so search engines have genuine
+// content + internal
 // links to follow into each post rather than only a sitemap entry.
 function blogIndexHtml(posts) {
   const url = `${SITE_ORIGIN}/blog/`;
@@ -258,14 +268,14 @@ function blogIndexHtml(posts) {
 
     <script type="application/ld+json">${JSON.stringify(jsonLd)}</script>
 
-    <meta http-equiv="refresh" content="0; url=/#/blogs" />
-    <script>location.replace("/#/blogs");</script>
+    <meta http-equiv="refresh" content="0; url=/blogs" />
+    <script>location.replace("/blogs");</script>
   </head>
   <body>
     <h1>Blog</h1>
     <p>${escAttr(description)}</p>
     <ul>${items}</ul>
-    <p>Redirecting to <a href="/#/blogs">the blog</a>…</p>
+    <p>Redirecting to <a href="/blogs">the blog</a>…</p>
   </body>
 </html>
 `;
@@ -304,7 +314,7 @@ function feedXml(posts) {
 <rss version="2.0">
 <channel>
   <title>Priyanshu Debnath — Blog</title>
-  <link>${SITE_ORIGIN}/#/blogs</link>
+  <link>${SITE_ORIGIN}/blogs</link>
   <description>Notes on competitive programming, mathematics, and systems programming.</description>
   <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
 ${items}
@@ -336,8 +346,17 @@ async function main() {
   writeFileSync(join(DIST, "robots.txt"), robotsTxt(), "utf-8");
   writeFileSync(join(DIST, "feed.xml"), feedXml(posts), "utf-8");
 
+  // SPA fallback for GitHub Pages: the router now uses real paths
+  // (History API, see src/lib/router.ts) instead of "#/...", so a hard
+  // load or refresh on e.g. /resume has to actually resolve server-side.
+  // GitHub Pages has no rewrites, but it does serve 404.html (with a 404
+  // status, URL unchanged) for any path that isn't a real file — so an
+  // exact copy of the built index.html there lets the app boot normally
+  // and read the real URL itself.
+  copyFileSync(join(DIST, "index.html"), join(DIST, "404.html"));
+
   console.log(
-    `generate-seo: wrote ${posts.length} blog preview page(s), ${projects.length} project preview page(s), sitemap.xml, robots.txt, feed.xml`,
+    `generate-seo: wrote ${posts.length} blog preview page(s), ${projects.length} project preview page(s), sitemap.xml, robots.txt, feed.xml, 404.html`,
   );
 }
 

@@ -6,9 +6,9 @@
 // Self-terminating by design: since this canvas is appended to <body>
 // directly (so it can sit fixed behind the page) rather than inside #app,
 // the SPA's `app.innerHTML = ""` on route change never removes it — so the
-// render loop checks the current hash route itself each frame and tears
-// itself down the moment the visitor navigates away from #/blogs. No
-// unmount wiring needed in main.ts.
+// render loop checks the current route itself each frame and tears itself
+// down the moment the visitor navigates away from /blogs. No unmount
+// wiring needed in main.ts.
 
 interface Particle {
   x: number;
@@ -46,8 +46,7 @@ function readPalette(): { line: string; dot: string } {
 const BLOG_ROUTES = new Set(["/blogs", "/blog"]);
 
 function currentPath(): string {
-  const raw = location.hash.slice(1) || "/";
-  return raw.split("?")[0] || "/";
+  return location.pathname || "/";
 }
 
 function onBlogRoute(): boolean {

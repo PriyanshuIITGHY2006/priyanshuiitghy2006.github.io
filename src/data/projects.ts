@@ -1,6 +1,6 @@
 // ─── Detailed project write-ups (Projects page) ───────────────────────
 // Longer-form explanations of each project, shown one after another on the
-// #/projects page. Metrics mirror the résumé; the prose explains, in plain
+// /projects page. Metrics mirror the résumé; the prose explains, in plain
 // terms, what each project actually is and how it works.
 
 export interface DetailedProject {
@@ -10,7 +10,7 @@ export interface DetailedProject {
   stack: string[];
   github?: string;
   link?: { label: string; href: string };
-  /** Gallery image id for a "Verify" deep-link (#/gallery?img=<id>). */
+  /** Gallery image id for a "Verify" deep-link (/gallery?img=<id>). */
   verifyImg?: string;
   /** One-line "what it is". */
   verify?: string;
@@ -21,13 +21,13 @@ export interface DetailedProject {
   highlights: string[];
   /**
    * Optional long-form deep-dive, rendered as markdown on its own page
-   * (#/project?id=<id>) via the same pipeline as the blog — separate from
+   * (/project?id=<id>) via the same pipeline as the blog — separate from
    * the blog itself, but reusable across any project that has one.
    */
   body?: string;
 }
 
-// Long-form deep-dive for the Hackathon-Squad project page (#/project?id=hackathon-squad).
+// Long-form deep-dive for the Hackathon-Squad project page (/project?id=hackathon-squad).
 // Kept out of the PROJECTS array literal just so the markdown block reads cleanly.
 // Code excerpts below are copied verbatim from the real solution.cpp — not
 // reconstructed or paraphrased — so they match the actual repo line for line.
@@ -588,7 +588,7 @@ are written up separately in the repo:
 [RESEARCH.md](https://github.com/PriyanshuIITGHY2006/Hackathon-Squad/blob/main/RESEARCH.md).
 `.trim();
 
-// Long-form deep-dive for Prag-Dristi (#/project?id=prag-dristi). Code
+// Long-form deep-dive for Prag-Dristi (/project?id=prag-dristi). Code
 // excerpts copied verbatim from the real repo — src/models/lstm_seq2seq.py,
 // train.py, and src/evaluation/metrics.py.
 const PRAG_DRISTI_BODY = `
@@ -767,7 +767,7 @@ On unseen years (data the model never trained on):
 | FAR (False Alarm Ratio) | **0.065** | only 6.5% of flood alarms are false |
 `.trim();
 
-// Long-form deep-dive for MemoryOS (#/project?id=memoryos). Code excerpts
+// Long-form deep-dive for MemoryOS (/project?id=memoryos). Code excerpts
 // copied verbatim from the real repo — backend/managers/context_manager.py,
 // backend/managers/graph_manager.py, and backend/managers/archival_manager.py.
 // Two honesty notes are called out explicitly below: the README's Hebbian
@@ -985,7 +985,7 @@ resolution here is agent-driven, not a standalone deterministic algorithm.
 `.trim();
 
 // Long-form deep-dive for the Minimum-Variance Portfolio Optimizer
-// (#/project?id=min-variance). Code excerpts copied verbatim from app.py —
+// (/project?id=min-variance). Code excerpts copied verbatim from app.py —
 // the entire real script is short enough to show almost in full. Note this
 // version computes the sample covariance directly (no Ledoit-Wolf shrinkage
 // library in the actual code) and PSD-corrects it manually.
@@ -1075,7 +1075,7 @@ Saved weights.csv
 `.trim();
 
 // Long-form deep-dive for the Automated Competitive Programming Archive
-// (#/project?id=cp-archive). Code excerpts copied verbatim from fetch.py.
+// (/project?id=cp-archive). Code excerpts copied verbatim from fetch.py.
 const CP_ARCHIVE_BODY = `
 ## What it does
 

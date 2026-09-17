@@ -84,7 +84,7 @@ h1, h2, h3, h4, h5, h6, .name {
   font-family: var(--cm);
 }
 
-/* The one-page résumé view (#/resume) keeps its original LaTeX serif
+/* The one-page résumé view (/resume) keeps its original LaTeX serif
    typesetting untouched, everywhere else on the site. */
 #cv, #cv * {
   font-family: var(--cm);

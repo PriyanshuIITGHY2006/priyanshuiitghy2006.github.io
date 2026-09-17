@@ -12,7 +12,7 @@ function chips(tags: string[]): string {
 function links(a: DetailedAchievement): string {
   const parts: string[] = [];
   if (a.verify) {
-    parts.push(`<a class="pj-link pj-verify" href="#/gallery?img=${encodeURIComponent(a.verify)}">Verify ✓</a>`);
+    parts.push(`<a class="pj-link pj-verify" href="/gallery?img=${encodeURIComponent(a.verify)}">Verify ✓</a>`);
   }
   if (a.link) {
     const ext = a.link.href.startsWith("#") ? "" : ' target="_blank" rel="noopener"';
@@ -42,7 +42,7 @@ function pageHtml(): string {
   return `
     <article class="page section-page achievements-page">
       <nav class="section-nav">
-        <a class="section-back" href="#/">← back</a>
+        <a class="section-back" href="/">← back</a>
         <span class="section-crumb">${esc(resume.name)} · Achievements</span>
       </nav>
       <div class="section-body">
@@ -52,7 +52,7 @@ function pageHtml(): string {
         </p>
         <ol class="ach-list pj-list">${blocks}</ol>
         <p class="section-more">
-          <a class="section-back" href="#/gallery">View all certificates &amp; PDFs in the Gallery →</a>
+          <a class="section-back" href="/gallery">View all certificates &amp; PDFs in the Gallery →</a>
         </p>
       </div>
     </article>`;

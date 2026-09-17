@@ -32,7 +32,7 @@ function pageHtml(): string {
   return `
     <article class="page section-page gallery-page">
       <nav class="section-nav">
-        <a class="section-back" href="#/">← back</a>
+        <a class="section-back" href="/">← back</a>
         <span class="section-crumb">${esc(resume.name)} · Gallery</span>
       </nav>
       <div class="section-body">
@@ -64,7 +64,7 @@ function pageHtml(): string {
 }
 
 let keyHandler: ((e: KeyboardEvent) => void) | null = null;
-let hashChangeHandler: (() => void) | null = null;
+let popStateHandler: (() => void) | null = null;
 
 export function mountGallery(container: HTMLElement, initialImg?: string | null): void {
   container.innerHTML = pageHtml();
@@ -79,8 +79,8 @@ export function mountGallery(container: HTMLElement, initialImg?: string | null)
   let current = -1;
 
   const setUrl = (id: string | null) => {
-    const hash = id ? `#/gallery?img=${encodeURIComponent(id)}` : "#/gallery";
-    history.replaceState(null, "", hash);
+    const path = id ? `/gallery?img=${encodeURIComponent(id)}` : "/gallery";
+    history.replaceState(null, "", path);
   };
 
   function open(index: number): void {
@@ -132,7 +132,7 @@ export function mountGallery(container: HTMLElement, initialImg?: string | null)
   copyBtn.addEventListener("click", async () => {
     const item = GALLERY[current];
     if (!item) return;
-    const url = `${location.origin}${location.pathname}#/gallery?img=${encodeURIComponent(item.id)}`;
+    const url = `${location.origin}/gallery?img=${encodeURIComponent(item.id)}`;
     try {
       await navigator.clipboard.writeText(url);
       copyBtn.textContent = "Copied ✓";
@@ -152,10 +152,12 @@ export function mountGallery(container: HTMLElement, initialImg?: string | null)
   };
   document.addEventListener("keydown", keyHandler);
 
-  // Reset overflow whenever the user navigates away via any hash link
-  if (hashChangeHandler) window.removeEventListener("hashchange", hashChangeHandler);
-  hashChangeHandler = () => { document.body.style.overflow = ""; };
-  window.addEventListener("hashchange", hashChangeHandler);
+  // Reset overflow if the user navigates away via the browser back/forward
+  // buttons while the lightbox is open (the lightbox itself covers every
+  // in-page link, so that's the only way to leave without calling close()).
+  if (popStateHandler) window.removeEventListener("popstate", popStateHandler);
+  popStateHandler = () => { document.body.style.overflow = ""; };
+  window.addEventListener("popstate", popStateHandler);
 
   // Deep-link: open the requested file immediately
   if (initialImg) {

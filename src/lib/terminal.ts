@@ -13,6 +13,7 @@
 import type { Terminal } from "@xterm/xterm";
 import type { FitAddon } from "@xterm/addon-fit";
 import { resume } from "../data/resume";
+import { navigate } from "./router";
 
 function isEditableTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
@@ -170,7 +171,7 @@ function runCommand(term: Terminal, raw: string, close: () => void): void {
       const route = ROUTES[arg];
       if (route) {
         term.writeln(`Navigating to ${route === "/" ? "home" : arg}…`);
-        setTimeout(() => { location.hash = "#" + route; close(); }, 250);
+        setTimeout(() => { navigate(route); close(); }, 250);
       } else {
         term.writeln(`${ANSI_RED}cd: ${arg || "(missing page)"}: no such page — try: home, about, projects, skills, blog${ANSI_RESET}`);
       }

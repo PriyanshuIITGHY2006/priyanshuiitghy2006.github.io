@@ -18,13 +18,13 @@ function notFoundHtml(): string {
   return `
     <article class="page section-page project-detail-page">
       <nav class="section-nav">
-        <a class="section-back" href="#/projects">← back to projects</a>
+        <a class="section-back" href="/projects">← back to projects</a>
         <span class="section-crumb">${esc(resume.name)} · Projects</span>
       </nav>
       <div class="section-body">
         <h2 class="section">Write-up not found</h2>
         <p class="edu-note">This project may not have a deep-dive page yet.</p>
-        <a class="pj-link" href="#/projects">← All projects</a>
+        <a class="pj-link" href="/projects">← All projects</a>
       </div>
     </article>`;
 }
@@ -34,7 +34,7 @@ function pageHtml(project: DetailedProject): string {
   return `
     <article class="page section-page project-detail-page">
       <nav class="section-nav">
-        <a class="section-back" href="#/projects">← back to projects</a>
+        <a class="section-back" href="/projects">← back to projects</a>
         <span class="section-crumb">${esc(resume.name)} · Projects</span>
       </nav>
       <div class="section-body">
@@ -48,7 +48,7 @@ function pageHtml(project: DetailedProject): string {
         <div class="blog-content" id="project-content">${contentHtml}</div>
         ${project.github ? `<div class="pj-links" style="margin-top: 1.8rem;"><a class="pj-link" href="${project.github}" target="_blank" rel="noopener">View on GitHub ↗</a></div>` : ""}
         <div class="section-more" style="margin-top: 2rem;">
-          <a class="pj-link" href="#/projects">← All projects</a>
+          <a class="pj-link" href="/projects">← All projects</a>
         </div>
       </div>
     </article>`;
