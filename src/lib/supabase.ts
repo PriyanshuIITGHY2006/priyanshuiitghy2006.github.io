@@ -1,6 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
 import type { ResumeData } from "../types";
 import { resume as staticResume } from "../data/resume";
+import { ACHIEVEMENTS as staticAchievements, type DetailedAchievement } from "../data/achievements";
+import { GALLERY as staticGallery, type GalleryItem } from "../data/gallery";
 
 // Pull credentials securely from Vite environment variables
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
@@ -50,6 +52,22 @@ interface DBAchievement {
   id: string;
   html: string;
   date: string;
+  sort_order: number;
+  title: string | null;
+  tags: string | null;
+  blurb: string | null;
+  verify: string | null;
+  link_label: string | null;
+  link_href: string | null;
+}
+
+export interface DBSiteImage {
+  id: string;
+  title: string;
+  src: string;
+  date: string | null;
+  description: string | null;
+  kind: "gallery" | "blog-cover";
   sort_order: number;
 }
 
@@ -148,4 +166,67 @@ export async function loadResumeFromDB(): Promise<ResumeData> {
     console.warn("[supabase] unexpected error — falling back to static resume", err);
     return staticResume;
   }
+}
+
+// The standalone /achievements page reads the same `achievements` table as
+// the résumé view, just using its richer columns (title/tags/blurb/verify/
+// link) instead of the plain `html` line.
+export async function loadDetailedAchievementsFromDB(): Promise<DetailedAchievement[]> {
+  try {
+    const { data, error } = await supabase.from("achievements").select("*").order("sort_order");
+    if (error || !data) {
+      console.warn("[supabase] achievements fetch error — falling back to static list", error);
+      return staticAchievements;
+    }
+    const rows = data as DBAchievement[];
+    // Rows without a title haven't been given rich content yet — skip them
+    // on this page rather than showing a blank card.
+    return rows
+      .filter((a): a is DBAchievement & { title: string; blurb: string } => !!a.title && !!a.blurb)
+      .map((a) => ({
+        id: a.id,
+        title: a.title,
+        date: a.date,
+        tags: a.tags ? a.tags.split(",").map((t) => t.trim()).filter(Boolean) : [],
+        blurb: a.blurb,
+        ...(a.verify ? { verify: a.verify } : {}),
+        ...(a.link_label && a.link_href ? { link: { label: a.link_label, href: a.link_href } } : {}),
+      }));
+  } catch (err) {
+    console.warn("[supabase] unexpected error — falling back to static achievements", err);
+    return staticAchievements;
+  }
+}
+
+export async function loadGalleryFromDB(): Promise<GalleryItem[]> {
+  try {
+    const { data, error } = await supabase
+      .from("site_images")
+      .select("*")
+      .eq("kind", "gallery")
+      .order("sort_order");
+    if (error || !data) {
+      console.warn("[supabase] gallery fetch error — falling back to static list", error);
+      return staticGallery;
+    }
+    return (data as DBSiteImage[]).map((g) => ({
+      id: g.id,
+      title: g.title,
+      src: g.src,
+      ...(g.date ? { date: g.date } : {}),
+      ...(g.description ? { description: g.description } : {}),
+    }));
+  } catch (err) {
+    console.warn("[supabase] unexpected error — falling back to static gallery", err);
+    return staticGallery;
+  }
+}
+
+// Every uploaded image regardless of kind — used to populate the "pick an
+// already-uploaded image" dropdowns in the admin panel (achievement verify
+// links, blog covers).
+export async function loadAllSiteImages(): Promise<DBSiteImage[]> {
+  const { data, error } = await supabase.from("site_images").select("*").order("sort_order");
+  if (error || !data) return [];
+  return data as DBSiteImage[];
 }

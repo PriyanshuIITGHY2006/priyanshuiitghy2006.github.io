@@ -4,10 +4,13 @@
 // :::gist/:::binviz extensions), so what you see here is what the post will
 // actually look like — not an approximation.
 //
-// This does not publish anywhere yet (no GitHub write path exists) — it
-// assembles the exact markdown file a real post needs and lets you copy it,
-// matching the frontmatter format src/lib/blog.ts already parses. Once a
-// GitHub-push path exists, the "Publish" step just swaps in for "Copy".
+// Publish commits src/data/blogs/<slug>.md straight to GitHub via the
+// github-publish edge function, which triggers the site's existing build
+// pipeline — the post is live once that deploy finishes (~1-2 min). "Copy
+// markdown" is kept as a manual fallback.
+
+import { supabase, loadAllSiteImages, type DBSiteImage } from "../lib/supabase";
+import { publishBlogPostToGithub, uploadImageToGithub } from "../lib/admin-publish";
 
 function esc(s: string): string {
   return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
@@ -38,18 +41,25 @@ function buildMarkdownFile(fields: {
   return lines.join("\n");
 }
 
+function coverOptionsHtml(images: DBSiteImage[], selectedSrc: string): string {
+  const options = images
+    .map((img) => `<option value="${esc(img.src)}" ${img.src === selectedSrc ? "selected" : ""}>${esc(img.title)}</option>`)
+    .join("");
+  return `<option value="">— none —</option>${options}`;
+}
+
 export async function renderBlogEditor(el: HTMLElement): Promise<void> {
-  await Promise.all([
+  const [, , images] = await Promise.all([
     import("../styles/blog.css"),
     import("katex/dist/katex.min.css"),
+    loadAllSiteImages(),
   ]);
 
   el.innerHTML = `
     <div class="admin-form-section">
       <h3>New blog post</h3>
       <p class="edu-note" style="margin-top:-0.4rem;">
-        This doesn't publish yet — it renders a live preview through the real blog pipeline and gives you
-        a ready-to-commit markdown file for <code>src/data/blogs/&lt;slug&gt;.md</code>.
+        Publish commits the post straight to GitHub — it's live once the next deploy finishes (~1–2 min).
       </p>
       <div class="admin-form">
         <div class="admin-form-row">
@@ -58,7 +68,14 @@ export async function renderBlogEditor(el: HTMLElement): Promise<void> {
         </div>
         <div class="admin-form-row">
           <div><label>Date</label><input type="text" id="be-date" value="${esc(todayISO())}"/></div>
-          <div><label>Cover (path, optional)</label><input type="text" id="be-cover" placeholder="blogs/my-post/cover.jpg"/></div>
+          <div>
+            <label>Cover (optional)</label>
+            <div style="display:flex;gap:0.4rem;align-items:center;">
+              <select id="be-cover" style="flex:1;">${coverOptionsHtml(images, "")}</select>
+              <input type="file" id="be-cover-upload" accept="image/*" style="display:none;"/>
+              <button type="button" class="admin-btn" id="be-cover-upload-btn">Upload new…</button>
+            </div>
+          </div>
         </div>
         <div><label>Tags (comma-separated)</label><input type="text" id="be-tags" placeholder="C++, Performance, Data Structures"/></div>
         <div><label>Excerpt</label><input type="text" id="be-excerpt" placeholder="One or two sentences shown on the blog list card"/></div>
@@ -79,7 +96,8 @@ export async function renderBlogEditor(el: HTMLElement): Promise<void> {
     </div>
 
     <div class="admin-form-actions" style="margin-top:0.8rem;">
-      <button type="button" class="admin-btn admin-btn-primary" id="be-copy">Copy markdown file</button>
+      <button type="button" class="admin-btn admin-btn-primary" id="be-publish">Publish to GitHub</button>
+      <button type="button" class="admin-btn" id="be-copy">Copy markdown file</button>
       <span id="be-copy-path" class="edu-note" style="margin:0;"></span>
     </div>
     <div id="be-copy-status" class="admin-status" style="display:none;margin-top:0.6rem;"></div>`;
@@ -87,11 +105,14 @@ export async function renderBlogEditor(el: HTMLElement): Promise<void> {
   const titleEl = el.querySelector<HTMLInputElement>("#be-title")!;
   const slugEl = el.querySelector<HTMLInputElement>("#be-slug")!;
   const dateEl = el.querySelector<HTMLInputElement>("#be-date")!;
-  const coverEl = el.querySelector<HTMLInputElement>("#be-cover")!;
+  const coverEl = el.querySelector<HTMLSelectElement>("#be-cover")!;
+  const coverUploadInput = el.querySelector<HTMLInputElement>("#be-cover-upload")!;
+  const coverUploadBtn = el.querySelector<HTMLButtonElement>("#be-cover-upload-btn")!;
   const tagsEl = el.querySelector<HTMLInputElement>("#be-tags")!;
   const excerptEl = el.querySelector<HTMLInputElement>("#be-excerpt")!;
   const bodyEl = el.querySelector<HTMLTextAreaElement>("#be-body")!;
   const previewEl = el.querySelector<HTMLElement>("#be-preview")!;
+  const publishBtn = el.querySelector<HTMLButtonElement>("#be-publish")!;
   const copyBtn = el.querySelector<HTMLButtonElement>("#be-copy")!;
   const copyPathEl = el.querySelector<HTMLElement>("#be-copy-path")!;
   const copyStatusEl = el.querySelector<HTMLElement>("#be-copy-status")!;
@@ -109,6 +130,37 @@ export async function renderBlogEditor(el: HTMLElement): Promise<void> {
     copyPathEl.textContent = `→ src/data/blogs/${slug}.md`;
   }
   updatePath();
+
+  coverUploadBtn.addEventListener("click", () => coverUploadInput.click());
+  coverUploadInput.addEventListener("change", async () => {
+    const file = coverUploadInput.files?.[0];
+    if (!file) return;
+    coverUploadBtn.disabled = true;
+    coverUploadBtn.textContent = "Uploading…";
+    try {
+      const { src } = await uploadImageToGithub(file);
+      const { error } = await supabase.from("site_images").upsert({
+        id: slugify(file.name.replace(/\.[^./]+$/, "")) || `cover-${Date.now()}`,
+        title: file.name,
+        src,
+        kind: "blog-cover",
+        sort_order: 0,
+      });
+      if (error) throw new Error(error.message);
+      const opt = document.createElement("option");
+      opt.value = src;
+      opt.textContent = file.name;
+      opt.selected = true;
+      coverEl.appendChild(opt);
+      setStatus("Cover uploaded.", true);
+    } catch (err) {
+      setStatus("Upload error: " + (err instanceof Error ? err.message : String(err)), false);
+    } finally {
+      coverUploadBtn.disabled = false;
+      coverUploadBtn.textContent = "Upload new…";
+      coverUploadInput.value = "";
+    }
+  });
 
   const { renderMarkdown } = await import("../lib/blog");
 
@@ -131,19 +183,43 @@ export async function renderBlogEditor(el: HTMLElement): Promise<void> {
   bodyEl.addEventListener("input", renderPreview);
   renderPreview();
 
-  copyBtn.addEventListener("click", async () => {
-    if (!titleEl.value.trim() || !bodyEl.value.trim()) {
-      setStatus("Title and body are required before copying.", false);
-      return;
-    }
-    const file = buildMarkdownFile({
+  function currentFields() {
+    return {
       title: titleEl.value.trim(),
       date: dateEl.value.trim() || todayISO(),
       tags: tagsEl.value,
       cover: coverEl.value,
       excerpt: excerptEl.value,
       body: bodyEl.value,
-    });
+    };
+  }
+
+  publishBtn.addEventListener("click", async () => {
+    const fields = currentFields();
+    const slug = slugEl.value.trim() || slugify(titleEl.value);
+    if (!fields.title || !fields.body.trim() || !slug) {
+      setStatus("Title, slug, and body are required before publishing.", false);
+      return;
+    }
+    publishBtn.disabled = true;
+    publishBtn.textContent = "Publishing…";
+    try {
+      await publishBlogPostToGithub(slug, buildMarkdownFile(fields));
+      setStatus(`Published! "${slug}" will be live once the site finishes redeploying (~1–2 min).`, true);
+    } catch (err) {
+      setStatus("Publish error: " + (err instanceof Error ? err.message : String(err)), false);
+    } finally {
+      publishBtn.disabled = false;
+      publishBtn.textContent = "Publish to GitHub";
+    }
+  });
+
+  copyBtn.addEventListener("click", async () => {
+    if (!titleEl.value.trim() || !bodyEl.value.trim()) {
+      setStatus("Title and body are required before copying.", false);
+      return;
+    }
+    const file = buildMarkdownFile(currentFields());
     try {
       await navigator.clipboard.writeText(file);
       setStatus(`Copied — save as src/data/blogs/${slugEl.value.trim() || slugify(titleEl.value)}.md`, true);

@@ -1,5 +1,6 @@
 import { resume } from "../data/resume";
 import { GALLERY, type GalleryItem } from "../data/gallery";
+import { loadGalleryFromDB } from "../lib/supabase";
 
 function esc(s: string): string {
   return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] as string));
@@ -25,10 +26,10 @@ function card(item: GalleryItem): string {
     </button>`;
 }
 
-function pageHtml(): string {
-  const body = GALLERY.length
-    ? `<div class="gl-grid">${GALLERY.map(card).join("")}</div>`
-    : `<p class="gl-empty">No files yet — drop images or PDFs into <code>public/gallery/</code> and list them in <code>src/data/gallery.ts</code>.</p>`;
+function pageHtml(items: GalleryItem[]): string {
+  const body = items.length
+    ? `<div class="gl-grid">${items.map(card).join("")}</div>`
+    : `<p class="gl-empty">No files yet — upload one from the admin panel.</p>`;
   return `
     <article class="page section-page gallery-page">
       <nav class="section-nav">
@@ -66,8 +67,8 @@ function pageHtml(): string {
 let keyHandler: ((e: KeyboardEvent) => void) | null = null;
 let popStateHandler: (() => void) | null = null;
 
-export function mountGallery(container: HTMLElement, initialImg?: string | null): void {
-  container.innerHTML = pageHtml();
+function render(container: HTMLElement, items: GalleryItem[], initialImg?: string | null): void {
+  container.innerHTML = pageHtml(items);
 
   const lb = container.querySelector<HTMLElement>("#gl-lightbox")!;
   const media = container.querySelector<HTMLElement>("#gl-lb-media")!;
@@ -84,7 +85,7 @@ export function mountGallery(container: HTMLElement, initialImg?: string | null)
   };
 
   function open(index: number): void {
-    const item = GALLERY[index];
+    const item = items[index];
     if (!item) return;
     current = index;
     if (isPdf(item.src)) {
@@ -112,13 +113,13 @@ export function mountGallery(container: HTMLElement, initialImg?: string | null)
 
   const step = (delta: number) => {
     if (current < 0) return;
-    open((current + delta + GALLERY.length) % GALLERY.length);
+    open((current + delta + items.length) % items.length);
   };
 
   container.querySelectorAll<HTMLElement>(".gl-card").forEach((el) => {
     el.addEventListener("click", () => {
       const id = el.getAttribute("data-img");
-      const idx = GALLERY.findIndex((g) => g.id === id);
+      const idx = items.findIndex((g) => g.id === id);
       if (idx >= 0) open(idx);
     });
   });
@@ -130,7 +131,7 @@ export function mountGallery(container: HTMLElement, initialImg?: string | null)
   lb.querySelector<HTMLElement>("[data-next]")?.addEventListener("click", () => step(1));
 
   copyBtn.addEventListener("click", async () => {
-    const item = GALLERY[current];
+    const item = items[current];
     if (!item) return;
     const url = `${location.origin}/gallery?img=${encodeURIComponent(item.id)}`;
     try {
@@ -161,7 +162,20 @@ export function mountGallery(container: HTMLElement, initialImg?: string | null)
 
   // Deep-link: open the requested file immediately
   if (initialImg) {
-    const idx = GALLERY.findIndex((g) => g.id === initialImg);
+    const idx = items.findIndex((g) => g.id === initialImg);
     if (idx >= 0) open(idx);
   }
+}
+
+export function mountGallery(container: HTMLElement, initialImg?: string | null): void {
+  // Render static content immediately — no blank flash while the DB loads.
+  render(container, GALLERY, initialImg);
+
+  loadGalleryFromDB()
+    .then((live) => {
+      if (live.length) render(container, live, initialImg);
+    })
+    .catch(() => {
+      // DB unreachable — static version already shown
+    });
 }
