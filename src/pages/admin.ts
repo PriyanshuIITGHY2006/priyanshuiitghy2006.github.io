@@ -86,12 +86,13 @@ function renderLogin(container: HTMLElement, notice?: string): void {
 }
 
 // ── Main panel ───────────────────────────────────────────────────────────────
-type Tab = "projects" | "achievements" | "skills" | "positions" | "images" | "resume" | "comments" | "blog-editor" | "email" | "analytics";
+type Tab = "projects" | "achievements" | "skills" | "positions" | "education" | "images" | "resume" | "comments" | "blog-editor" | "email" | "analytics";
 const TABS: { id: Tab; label: string }[] = [
   { id: "projects", label: "Projects" },
   { id: "achievements", label: "Achievements" },
   { id: "skills", label: "Skills" },
   { id: "positions", label: "Positions" },
+  { id: "education", label: "Education" },
   { id: "images", label: "Images" },
   { id: "resume", label: "Resume" },
   { id: "comments", label: "Blog Comments" },
@@ -205,6 +206,9 @@ function loadTab(container: HTMLElement): void {
     case "achievements": void renderAchievements(content); break;
     case "skills":       void renderSkills(content);       break;
     case "positions":    void renderPositions(content);    break;
+    case "education":
+      void import("./admin-education").then(({ renderEducationTab }) => renderEducationTab(content));
+      break;
     case "images":       void renderImages(content);       break;
     case "resume":       void renderResumeTab(content);    break;
     case "comments":     void renderComments(content);     break;

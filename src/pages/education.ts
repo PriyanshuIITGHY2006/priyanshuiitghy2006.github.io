@@ -1,43 +1,19 @@
 import type { ResumeData } from "../types";
 import { resume } from "../data/resume";
-import { loadResumeFromDB } from "../lib/supabase";
+import { loadResumeFromDB, loadGradeCardFromDB } from "../lib/supabase";
 import {
   TRANSCRIPT,
   MINOR,
   GRADE_POINTS,
   type CourseGrade,
   type TranscriptSemester,
+  type Transcript,
+  type MinorCourse,
 } from "../data/academics";
 
 function esc(s: string): string {
   return s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c] as string));
 }
-
-// Short elaboration for each résumé education entry, keyed by degree text.
-const ELABORATION: Record<string, { tag: string; blurb: string }> = {
-  "B.Tech. Major": {
-    tag: "Undergraduate · Ongoing",
-    blurb:
-      "Four-year Bachelor of Technology in Electronics &amp; Electrical Engineering. " +
-      "First-year core spans circuits, signals &amp; systems, digital logic, " +
-      "electromagnetics and a full engineering-mathematics sequence, alongside " +
-      "programming and data structures in C. Currently among the top of the cohort.",
-  },
-  "B.Tech. Minor (Mathematics)": {
-    tag: "Minor · Ongoing",
-    blurb:
-      "An additional structured stream in Mathematics taken on top of the EEE major, " +
-      "deepening the analysis, linear algebra and probability foundations that underpin " +
-      "signal processing, machine learning and quantitative work.",
-  },
-  "Senior Secondary": {
-    tag: "Class XII · Completed",
-    blurb:
-      "West Bengal Council of Higher Secondary Education (WBCHSE), Science stream. " +
-      "Scored 95.0%, and cleared JEE Advanced 2025 with All-India Rank 1941 " +
-      "(top 1% of 1.5 lakh+ candidates) to enter IIT Guwahati.",
-  },
-};
 
 function gradeBadge(g: string): string {
   const pts = GRADE_POINTS[g];
@@ -79,12 +55,18 @@ function transcriptSemester(s: TranscriptSemester): string {
     </div>`;
 }
 
-function gradeCard(): string {
-  const t = TRANSCRIPT;
+// The summary table's two CPI columns (semI/semII) are a fixed pair on
+// grade_card_meta rather than one column per semester, so — same as the
+// original static design — it always reflects the two most recent
+// semesters. Guarded with fallback text rather than indexing blindly, in
+// case an admin edit ever leaves fewer than 2 semesters.
+function gradeCard(t: Transcript): string {
   const legend = Object.entries(GRADE_POINTS)
     .filter(([g]) => g !== "BC" && g !== "CC" && g !== "CD" && g !== "DD")
     .map(([g, p]) => `<span class="gc-leg-item"><b>${g}</b> ${p}</span>`)
     .join("");
+  const sem1Spi = t.semesters[0]?.spi ?? "—";
+  const sem2Spi = t.semesters[1]?.spi ?? "—";
   return `
     <section class="gradecard"
              aria-label="IIT Guwahati Bachelor of Technology Grade Card for Priyanshu Debnath">
@@ -117,7 +99,7 @@ function gradeCard(): string {
             <tr><th></th><th>Sem I</th><th>Sem II</th><th>Status</th></tr>
           </thead>
           <tbody>
-            <tr><th>S.P.I</th><td>${esc(t.semesters[0].spi)}</td><td>${esc(t.semesters[1].spi)}</td><td rowspan="2" class="gc-status">${esc(t.status)}</td></tr>
+            <tr><th>S.P.I</th><td>${esc(sem1Spi)}</td><td>${esc(sem2Spi)}</td><td rowspan="2" class="gc-status">${esc(t.status)}</td></tr>
             <tr><th>C.P.I</th><td>${esc(t.cpi.semI)}</td><td><b>${esc(t.cpi.semII)}</b></td></tr>
           </tbody>
         </table>
@@ -126,8 +108,8 @@ function gradeCard(): string {
     </section>`;
 }
 
-function minorCourses(): string {
-  const rows = MINOR.courses
+function minorCourses(minor: MinorCourse[]): string {
+  const rows = minor
     .map(
       (c) => `
         <tr>
@@ -149,30 +131,29 @@ function minorCourses(): string {
     </div>`;
 }
 
-function eduEntries(data: ResumeData): string {
+function eduEntries(data: ResumeData, minor: MinorCourse[]): string {
   return data.education
     .map((r) => {
-      const e = ELABORATION[r.degree];
       const isMinor = /minor/i.test(r.degree);
       return `
         <li class="edu-entry">
           <div class="edu-entry-head">
             <h3 class="edu-degree">${esc(r.degree)}</h3>
-            ${e ? `<span class="edu-tag">${e.tag}</span>` : ""}
+            ${r.tag ? `<span class="edu-tag">${esc(r.tag)}</span>` : ""}
           </div>
           <div class="edu-institute">${esc(r.institute)}</div>
           <div class="edu-facts">
             <span class="edu-fact"><span>Score</span>${esc(r.score)}</span>
             <span class="edu-fact"><span>Year</span>${esc(r.year)}</span>
           </div>
-          ${e ? `<p class="edu-blurb">${e.blurb}</p>` : ""}
-          ${isMinor ? minorCourses() : ""}
+          ${r.blurb ? `<p class="edu-blurb">${r.blurb}</p>` : ""}
+          ${isMinor ? minorCourses(minor) : ""}
         </li>`;
     })
     .join("");
 }
 
-function pageHtml(data: ResumeData): string {
+function pageHtml(data: ResumeData, transcript: Transcript, minor: MinorCourse[]): string {
   return `
     <article class="page section-page edu-page">
       <nav class="section-nav">
@@ -182,10 +163,10 @@ function pageHtml(data: ResumeData): string {
 
       <div class="section-body">
         <h2 class="section">Education</h2>
-        <ul class="edu-entries">${eduEntries(data)}</ul>
+        <ul class="edu-entries">${eduEntries(data, minor)}</ul>
 
         <h2 class="section edu-sub">Official Grade Card</h2>
-        ${gradeCard()}
+        ${gradeCard(transcript)}
       </div>
     </article>`;
 }
@@ -193,11 +174,11 @@ function pageHtml(data: ResumeData): string {
 // Render the elaborated Education page. Static copy first, then swap in
 // live Supabase data (matching the home page) so there is no blank flash.
 export function mountEducation(container: HTMLElement): void {
-  container.innerHTML = pageHtml(resume);
+  container.innerHTML = pageHtml(resume, TRANSCRIPT, MINOR.courses);
 
-  loadResumeFromDB()
-    .then((live) => {
-      container.innerHTML = pageHtml(live);
+  Promise.all([loadResumeFromDB(), loadGradeCardFromDB()])
+    .then(([liveResume, { transcript, minor }]) => {
+      container.innerHTML = pageHtml(liveResume, transcript, minor);
     })
     .catch(() => {
       /* DB unreachable — static version already shown */
