@@ -5,6 +5,7 @@ import { ACHIEVEMENTS as staticAchievements, type DetailedAchievement } from "..
 import { GALLERY as staticGallery, type GalleryItem } from "../data/gallery";
 import { PROJECTS as staticProjects, type DetailedProject } from "../data/projects";
 import { getProjectWriteup } from "./project-writeups";
+import { TRANSCRIPT as staticTranscript, MINOR as staticMinor, type Transcript, type MinorCourse } from "../data/academics";
 
 // Pull credentials securely from Vite environment variables
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
@@ -106,6 +107,58 @@ interface DBPosition {
   sort_order: number;
 }
 
+interface DBEducation {
+  id: string;
+  degree: string;
+  institute: string;
+  score: string;
+  year: string;
+  tag: string | null;
+  blurb: string | null;
+  sort_order: number;
+}
+
+interface DBGradeCardMeta {
+  institute: string;
+  programme: string;
+  discipline: string;
+  division: string;
+  name: string;
+  roll: string;
+  admission: string;
+  min_duration: string;
+  cpi_sem1: string;
+  cpi_sem2: string;
+  status: string;
+  issued: string;
+}
+
+interface DBGradeCardSemester {
+  id: number;
+  label: string;
+  spi: string;
+  sort_order: number;
+}
+
+interface DBGradeCardCourse {
+  id: number;
+  semester_id: number;
+  code: string;
+  name: string;
+  credits: number;
+  grade: string;
+  sort_order: number;
+}
+
+interface DBMinorCourse {
+  id: number;
+  code: string;
+  name: string;
+  session: string;
+  grade: string;
+  sort_order: number;
+}
+
 // ─── Loader ───────────────────────────────────────────────────────────────────
 
 export async function loadResumeFromDB(): Promise<ResumeData> {
@@ -116,21 +169,24 @@ export async function loadResumeFromDB(): Promise<ResumeData> {
       { data: achievements, error: aErr },
       { data: skills, error: sErr },
       { data: positions, error: posErr },
+      { data: education, error: eduErr },
     ] = await Promise.all([
       supabase.from("projects").select("*").order("sort_order"),
       supabase.from("project_bullets").select("*").order("sort_order"),
       supabase.from("achievements").select("*").order("sort_order"),
       supabase.from("skills").select("*").order("sort_order"),
       supabase.from("positions").select("*").order("sort_order"),
+      supabase.from("education").select("*").order("sort_order"),
     ]);
 
-    if (pErr || bErr || aErr || sErr || posErr) {
+    if (pErr || bErr || aErr || sErr || posErr || eduErr) {
       console.warn("[supabase] fetch error — falling back to static resume", {
         pErr,
         bErr,
         aErr,
         sErr,
         posErr,
+        eduErr,
       });
       return staticResume;
     }
@@ -177,17 +233,105 @@ export async function loadResumeFromDB(): Promise<ResumeData> {
       date: p.date,
     }));
 
+    const mappedEducation = ((education as DBEducation[]) ?? []).map((e) => ({
+      degree: e.degree,
+      institute: e.institute,
+      score: e.score,
+      year: e.year,
+      ...(e.tag ? { tag: e.tag } : {}),
+      ...(e.blurb ? { blurb: e.blurb } : {}),
+    }));
+
     return {
-      // Static fields not stored in DB (header info, education, pdf details)
+      // Static fields not stored in DB (header info, pdf details)
       ...staticResume,
       projects: mappedProjects,
       achievements: mappedAchievements,
       skills: mappedSkills,
       positions: mappedPositions,
+      education: mappedEducation.length ? mappedEducation : staticResume.education,
     };
   } catch (err) {
     console.warn("[supabase] unexpected error — falling back to static resume", err);
     return staticResume;
+  }
+}
+
+// The Education page's grade card + minor-courses table. Separate from
+// loadResumeFromDB() since it's only needed on /education, not the
+// one-page résumé.
+export async function loadGradeCardFromDB(): Promise<{ transcript: Transcript; minor: MinorCourse[] }> {
+  try {
+    const [
+      { data: meta, error: metaErr },
+      { data: semesters, error: semErr },
+      { data: courses, error: courseErr },
+      { data: minorCourses, error: minorErr },
+    ] = await Promise.all([
+      supabase.from("grade_card_meta").select("*").eq("id", 1).maybeSingle<DBGradeCardMeta>(),
+      supabase.from("grade_card_semesters").select("*").order("sort_order"),
+      supabase.from("grade_card_courses").select("*").order("sort_order"),
+      supabase.from("minor_courses").select("*").order("sort_order"),
+    ]);
+
+    if (metaErr || semErr || courseErr || minorErr || !meta) {
+      console.warn("[supabase] grade card fetch error — falling back to static transcript", {
+        metaErr,
+        semErr,
+        courseErr,
+        minorErr,
+      });
+      return { transcript: staticTranscript, minor: staticMinor.courses };
+    }
+
+    const coursesBySemester = new Map<number, DBGradeCardCourse[]>();
+    for (const c of (courses as DBGradeCardCourse[]) ?? []) {
+      const list = coursesBySemester.get(c.semester_id) ?? [];
+      list.push(c);
+      coursesBySemester.set(c.semester_id, list);
+    }
+
+    const mappedSemesters = ((semesters as DBGradeCardSemester[]) ?? []).map((s) => ({
+      label: s.label,
+      spi: s.spi,
+      courses: (coursesBySemester.get(s.id) ?? []).map((c) => ({
+        code: c.code,
+        name: c.name,
+        credits: c.credits,
+        grade: c.grade,
+      })),
+    }));
+
+    if (mappedSemesters.length === 0) {
+      return { transcript: staticTranscript, minor: staticMinor.courses };
+    }
+
+    const transcript: Transcript = {
+      institute: meta.institute,
+      programme: meta.programme,
+      discipline: meta.discipline,
+      division: meta.division,
+      name: meta.name,
+      roll: meta.roll,
+      admission: meta.admission,
+      minDuration: meta.min_duration,
+      semesters: mappedSemesters,
+      cpi: { semI: meta.cpi_sem1, semII: meta.cpi_sem2 },
+      status: meta.status,
+      issued: meta.issued,
+    };
+
+    const mappedMinor = ((minorCourses as DBMinorCourse[]) ?? []).map((c) => ({
+      code: c.code,
+      name: c.name,
+      session: c.session,
+      grade: c.grade,
+    }));
+
+    return { transcript, minor: mappedMinor };
+  } catch (err) {
+    console.warn("[supabase] unexpected error — falling back to static transcript", err);
+    return { transcript: staticTranscript, minor: staticMinor.courses };
   }
 }
 

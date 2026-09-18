@@ -23,6 +23,10 @@ export interface EduRow {
   institute: string;
   score: string;
   year: string;
+  /** Badge shown next to the degree on the Education page (e.g. "Undergraduate · Ongoing"). */
+  tag?: string;
+  /** Elaboration paragraph on the Education page. May contain HTML. */
+  blurb?: string;
 }
 
 export interface Project {

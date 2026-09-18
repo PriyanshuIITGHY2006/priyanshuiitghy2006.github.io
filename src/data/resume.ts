@@ -34,18 +34,34 @@ export const resume: ResumeData = {
       institute: "Indian Institute of Technology, Guwahati",
       score: "9.52 (Current)",
       year: "2025-Present",
+      tag: "Undergraduate · Ongoing",
+      blurb:
+        "Four-year Bachelor of Technology in Electronics &amp; Electrical Engineering. " +
+        "First-year core spans circuits, signals &amp; systems, digital logic, " +
+        "electromagnetics and a full engineering-mathematics sequence, alongside " +
+        "programming and data structures in C. Currently among the top of the cohort.",
     },
     {
       degree: "B.Tech. Minor (Mathematics)",
       institute: "Indian Institute of Technology, Guwahati",
       score: "9.00 (Current)",
       year: "2026-Present",
+      tag: "Minor · Ongoing",
+      blurb:
+        "An additional structured stream in Mathematics taken on top of the EEE major, " +
+        "deepening the analysis, linear algebra and probability foundations that underpin " +
+        "signal processing, machine learning and quantitative work.",
     },
     {
       degree: "Senior Secondary",
       institute: "WBCHSE Board",
       score: "95.0%",
       year: "2025",
+      tag: "Class XII · Completed",
+      blurb:
+        "West Bengal Council of Higher Secondary Education (WBCHSE), Science stream. " +
+        "Scored 95.0%, and cleared JEE Advanced 2025 with All-India Rank 1941 " +
+        "(top 1% of 1.5 lakh+ candidates) to enter IIT Guwahati.",
     },
   ],
 
