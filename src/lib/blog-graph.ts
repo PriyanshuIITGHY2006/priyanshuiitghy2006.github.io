@@ -20,11 +20,13 @@ interface Particle {
 const AREA_PER_PARTICLE = 9000; // px^2 per particle — density knob
 const MAX_PARTICLES = 110;
 const MIN_PARTICLES = 40;
-const DRIFT_SPEED = 0.18;
+const DRIFT_SPEED = 0.07;
 const LINK_DIST = 150;
 const MOUSE_RADIUS = 150;
-const MOUSE_FORCE = 3.2;
+const MOUSE_FORCE = 1.4;
 const PARTICLE_RADIUS = 2;
+const DOT_ALPHA = 0.4;
+const LINE_ALPHA = 0.28;
 
 function hexToRgba(hex: string, alpha: number): string {
   const h = hex.trim().replace("#", "");
@@ -161,7 +163,7 @@ export function mountBlogGraph(): void {
         const dx = a.x - b.x, dy = a.y - b.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
         if (dist < LINK_DIST) {
-          ctx!.strokeStyle = hexToRgba(palette.line, 0.5 * (1 - dist / LINK_DIST));
+          ctx!.strokeStyle = hexToRgba(palette.line, LINE_ALPHA * (1 - dist / LINK_DIST));
           ctx!.beginPath();
           ctx!.moveTo(a.x, a.y);
           ctx!.lineTo(b.x, b.y);
@@ -170,7 +172,7 @@ export function mountBlogGraph(): void {
       }
     }
 
-    ctx!.fillStyle = hexToRgba(palette.dot, 0.7);
+    ctx!.fillStyle = hexToRgba(palette.dot, DOT_ALPHA);
     for (const p of particles) {
       ctx!.beginPath();
       ctx!.arc(p.x, p.y, PARTICLE_RADIUS, 0, Math.PI * 2);
