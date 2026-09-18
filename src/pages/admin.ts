@@ -1093,6 +1093,21 @@ async function renderResumeTab(el: HTMLElement): Promise<void> {
     }
     void renderResumeTab(el);
   });
+
+  el.insertAdjacentHTML("beforeend", `
+    <div class="admin-form-section">
+      <h3>Edit résumé in Overleaf</h3>
+      <p class="edu-note" style="margin-top:0;">
+        Compile the LaTeX source here, then download the PDF and upload it above to replace the live résumé.
+        Overleaf may refuse to load inside this panel (it blocks embedding on some accounts/browsers) —
+        if the box below stays blank, use <a class="link" href="https://www.overleaf.com/project" target="_blank" rel="noopener">Open Overleaf in a new tab ↗</a> instead.
+      </p>
+      <iframe
+        src="https://www.overleaf.com/project"
+        title="Overleaf"
+        style="width:100%;height:80vh;border:1px solid var(--border);border-radius:6px;"
+      ></iframe>
+    </div>`);
 }
 
 interface AdminBlogComment {
