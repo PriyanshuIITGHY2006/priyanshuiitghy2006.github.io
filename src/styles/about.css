@@ -210,8 +210,7 @@
   z-index: 0;
   opacity: 0;
   transition: opacity 1.6s ease;
-  touch-action: pan-y;
+  pointer-events: none; /* hover-only: the cursor is tracked on window */
 }
 .landing-attractor.is-visible { opacity: 1; }
-.landing-attractor.is-dragging { cursor: grabbing; }
 @media print { .landing-attractor { display: none; } }
