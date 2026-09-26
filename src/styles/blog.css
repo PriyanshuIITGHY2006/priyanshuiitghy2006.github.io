@@ -1076,7 +1076,7 @@
 /* ─── Print / Save as PDF ─────────────────────────────────────────────────── */
 @media print {
   .section-nav, .blog-progress-bar, .blog-share, .blog-engagement, .blog-read-more,
-  .blog-subscribe, .section-more, .blog-postnav, .blog-textsize, .blog-run-panel,
+  .blog-subscribe, .section-more, .blog-postnav, .blog-textsize, .blog-pdf-btn, .blog-run-panel,
   .blog-testcases-panel, .blog-code-actions, .blog-heading-anchor, .blog-resume,
   .blog-toast, .blog-video-embed, canvas, [class*="scroll-top"] { display: none !important; }
   body, .blog-post-page { background: #fff !important; color: #000 !important; }
@@ -1086,3 +1086,19 @@
   .blog-spoiler > *:not(summary) { display: block !important; }
   .monaco-editor-container { height: auto !important; }
 }
+
+/* ─── PDF download (icon only) ────────────────────────────────────────────── */
+.blog-pdf-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75em;
+  height: 1.55em;
+  border: 0.6px solid var(--border);
+  border-radius: 4px;
+  color: var(--ink-soft);
+  background: var(--bg-card);
+  text-decoration: none;
+}
+.blog-pdf-btn:hover { color: var(--ink); background: var(--bg-hover); border-color: var(--border-strong); }
+.blog-pdf-btn svg { width: 0.9em; height: 0.9em; }

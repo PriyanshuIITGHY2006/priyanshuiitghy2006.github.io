@@ -53,6 +53,8 @@ export interface BlogPost {
   updated?: string;
   /** Posts sharing a `series:` name are linked together, oldest first. */
   series?: string;
+  /** Site-relative path of the typeset PDF (frontmatter `pdf:`), uploaded from admin. */
+  pdf?: string;
 }
 
 const files = import.meta.glob("/src/data/blogs/*.md", {
@@ -97,6 +99,7 @@ export const BLOG_POSTS: BlogPost[] = Object.entries(files)
       rawBody: body,
       updated: data.updated || undefined,
       series: data.series || undefined,
+      pdf: data.pdf || undefined,
     };
   })
   .sort((a, b) => (a.date && b.date ? (a.date < b.date ? 1 : -1) : a.date ? -1 : 1));
