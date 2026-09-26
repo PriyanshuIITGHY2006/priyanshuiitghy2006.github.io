@@ -1,6 +1,6 @@
 // Landing-page background: up to ~262k particles simulated on the GPU every
 // frame (three.js GPUComputationRenderer). They open by streaming out of
-// noise into a hand-drawn "PD" monogram, then dissolve into four strange attractors
+// noise into a calligraphic "pd" monogram, then dissolve into four strange attractors
 // (Lorenz, Aizawa, Thomas, Halvorsen, integrated with RK4) and come back to
 // the monogram. It sits full-screen behind the hero text, deliberately faint.
 // Click an empty area to skip ahead; drag to rotate.
@@ -18,6 +18,7 @@ import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
+import monogramFontUrl from "@fontsource/great-vibes/files/great-vibes-latin-400-normal.woff2?url";
 
 interface Attractor {
   /** Attractor-space centre, scale into display space, y/z swap, step, speed normaliser. */
@@ -39,7 +40,10 @@ const ATTRACTORS: Attractor[] = [
 ];
 const MONOGRAM = 4; // shader kind for the "P.D." stage
 const STAGES = [MONOGRAM, 0, 1, 2, 3]; // cycle order
-const HOLD_MS = { monogram: 12000, attractor: 16000 };
+// Every stage: particles gather (fading in), hold, then scatter and fade out.
+const GATHER_MS = 2200;
+const HOLD_MS = { monogram: 7000, attractor: 12000 };
+const VANISH_MS = 2200;
 
 const SIM_SHADER = /* glsl */ `
 uniform float uTime;
@@ -52,6 +56,7 @@ uniform float uSpeedNorm;
 uniform float uRespawn;
 uniform sampler2D uTargets;
 uniform float uTargetScale;
+uniform float uScatter;
 
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 
@@ -89,6 +94,16 @@ void main() {
   vec2 uv = gl_FragCoord.xy / resolution.xy;
   vec4 cur = texture2D(texturePosition, uv);
 
+  // Vanishing: every particle drifts outward along its own direction with a
+  // slow swirl, accelerating as the stage ends (the renderer fades them out).
+  if (uScatter > 0.0) {
+    vec3 dir = normalize(cur.xyz + (vec3(hash(uv), hash(uv + 0.5), hash(uv + 0.9)) - 0.5) * 0.6 + 1e-4);
+    vec3 swirl = vec3(sin(cur.y * 2.3 + uTime), sin(cur.z * 2.1 + uTime * 1.3), sin(cur.x * 1.9 + uTime * 0.7));
+    vec3 next = cur.xyz + (dir * (0.006 + 0.03 * uScatter) + swirl * 0.008) * (0.4 + hash(uv + 0.2));
+    gl_FragColor = vec4(next, cur.w * 0.97);
+    return;
+  }
+
   // Monogram: each particle springs toward its own point on the glyphs,
   // with a faint shimmer so the letters stay alive.
   if (uKind == ${MONOGRAM}) {
@@ -97,7 +112,7 @@ void main() {
     vec3 shimmer = vec3(sin(target.y * 6.0 + uTime * 1.7),
                         sin(target.x * 5.0 + uTime * 1.3 + 1.7),
                         sin(target.x * 4.0 + target.y * 3.0 + uTime * 1.1)) * 0.0009;
-    gl_FragColor = vec4(cur.xyz + delta * 0.06 + shimmer, 0.3 + clamp(length(delta) * 1.5, 0.0, 0.7));
+    gl_FragColor = vec4(cur.xyz + delta * 0.045 + shimmer, 0.3 + clamp(length(delta) * 1.5, 0.0, 0.7));
     return;
   }
 
@@ -140,12 +155,13 @@ void main() {
 const POINT_FRAG = /* glsl */ `
 uniform vec3 uColor;
 uniform float uAlpha;
+uniform float uFade;
 varying float vSpeed;
 void main() {
   float d = length(gl_PointCoord - 0.5);
   if (d > 0.5) discard;
   float soft = 1.0 - smoothstep(0.1, 0.5, d);
-  float a = uAlpha * soft * (0.35 + 0.65 * vSpeed);
+  float a = uAlpha * uFade * soft * (0.35 + 0.65 * vSpeed);
   gl_FragColor = vec4(uColor, a);
 }
 `;
@@ -159,60 +175,56 @@ function cssColor(name: string, fallback: string): THREE.Color {
   }
 }
 
-/**
- * Draws the "PD" monogram: an original hand-drawn mark, monoline with round
- * caps. The P's bowl enters with a lead-in stroke from the left of its stem;
- * the D's stem starts inside the P's bowl. Coordinates on a 1400×520 canvas.
- */
-function drawMonogram(ctx: CanvasRenderingContext2D): void {
-  ctx.lineCap = "round";
-  ctx.lineJoin = "round";
-  ctx.lineWidth = 32;
-  ctx.strokeStyle = "#000";
-  ctx.translate(700, 260);
-  ctx.transform(1, 0, -0.08, 1, 0, 0); // slight hand slant
-  ctx.translate(-700, -260);
-  const stroke = (path: () => void) => {
+/** A cubic Bézier stroked in short segments whose width tapers w0 → w1. */
+function taperedCurve(
+  ctx: CanvasRenderingContext2D,
+  p0: [number, number], p1: [number, number], p2: [number, number], p3: [number, number],
+  w0: number, w1: number,
+): void {
+  const N = 90;
+  let prev = p0;
+  for (let i = 1; i <= N; i++) {
+    const t = i / N, u = 1 - t;
+    const x = u * u * u * p0[0] + 3 * u * u * t * p1[0] + 3 * u * t * t * p2[0] + t * t * t * p3[0];
+    const y = u * u * u * p0[1] + 3 * u * u * t * p1[1] + 3 * u * t * t * p2[1] + t * t * t * p3[1];
+    ctx.lineWidth = w0 + (w1 - w0) * t;
     ctx.beginPath();
-    path();
+    ctx.moveTo(prev[0], prev[1]);
+    ctx.lineTo(x, y);
     ctx.stroke();
-  };
-  // P stem
-  stroke(() => {
-    ctx.moveTo(512, 452);
-    ctx.bezierCurveTo(508, 360, 514, 220, 524, 118);
-  });
-  // P bowl, entering from the left of the stem
-  stroke(() => {
-    ctx.moveTo(430, 152);
-    ctx.bezierCurveTo(520, 92, 660, 84, 706, 132);
-    ctx.bezierCurveTo(748, 176, 700, 250, 600, 262);
-    ctx.bezierCurveTo(572, 265, 545, 262, 524, 256);
-  });
-  // D stem, starting inside the P's bowl
-  stroke(() => {
-    ctx.moveTo(662, 180);
-    ctx.bezierCurveTo(660, 280, 664, 380, 672, 446);
-  });
-  // D bowl: from the top of its stem, round and back to its foot
-  stroke(() => {
-    ctx.moveTo(640, 150);
-    ctx.bezierCurveTo(760, 64, 948, 110, 962, 262);
-    ctx.bezierCurveTo(976, 410, 820, 470, 688, 446);
-  });
+    prev = [x, y];
+  }
+}
+
+/**
+ * Draws the "pd" monogram: lowercase "pd" in Great Vibes (SIL OFL) with two
+ * swashes of our own — a hairline wave leading into the p from the left and
+ * a long sweep out of the d's foot that curls up at the tip. 1400×520 canvas.
+ */
+function drawMonogram(ctx: CanvasRenderingContext2D, family: string): void {
+  ctx.fillStyle = "#000";
+  ctx.strokeStyle = "#000";
+  ctx.lineCap = "round";
+  ctx.font = `400 360px ${family}`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "alphabetic";
+  ctx.fillText("pd", 700, 330);
+  taperedCurve(ctx, [250, 262], [340, 200], [430, 300], [598, 232], 2, 9);
+  taperedCurve(ctx, [812, 318], [900, 300], [1000, 250], [1080, 262], 9, 6);
+  taperedCurve(ctx, [1080, 262], [1140, 270], [1180, 250], [1170, 222], 6, 2);
 }
 
 /**
  * Samples the monogram into one target point per particle, in units where
  * the mark is 1 wide and centred on the origin (z = a thin slab for depth).
  */
-function sampleMonogram(count: number, out: Float32Array): void {
+function sampleMonogram(family: string, count: number, out: Float32Array): void {
   const W = 1400, H = 520;
   const c = document.createElement("canvas");
   c.width = W;
   c.height = H;
   const ctx = c.getContext("2d")!;
-  drawMonogram(ctx);
+  drawMonogram(ctx, family);
   const px = ctx.getImageData(0, 0, W, H).data;
 
   const filled: number[] = [];
@@ -266,19 +278,31 @@ export function mountLandingAttractor(host: HTMLElement): boolean {
   const initial = gpu.createTexture();
   const data = initial.image.data as Float32Array;
   for (let i = 0; i < data.length; i += 4) {
-    data[i] = (Math.random() - 0.5) * 6;
-    data[i + 1] = (Math.random() - 0.5) * 3.6;
-    data[i + 2] = (Math.random() - 0.5) * 3;
+    data[i] = (Math.random() - 0.5) * 7;
+    data[i + 1] = (Math.random() - 0.5) * 4.4;
+    data[i + 2] = (Math.random() - 0.5) * 3.5;
     data[i + 3] = 0;
   }
   const posVar: Variable = gpu.addVariable("texturePosition", SIM_SHADER, initial);
   gpu.setVariableDependencies(posVar, [posVar]);
 
-  // Monogram targets: one point on the drawn strokes per particle.
+  // Monogram targets: one point on the drawn strokes per particle. Sampled
+  // with a fallback script face first, then again once the bundled Great
+  // Vibes has loaded (it's same-origin and small, so normally near-instant;
+  // the particles just re-flow).
   const targetData = new Float32Array(COUNT * 4);
   const targets = new THREE.DataTexture(targetData, SIZE, SIZE, THREE.RGBAFormat, THREE.FloatType);
-  sampleMonogram(COUNT, targetData);
+  sampleMonogram(`"Brush Script MT", cursive`, COUNT, targetData);
   targets.needsUpdate = true;
+  const face = new FontFace("PD Monogram", `url(${monogramFontUrl})`);
+  const fontReady = face.load().then((loaded) => {
+    document.fonts.add(loaded);
+    sampleMonogram(`"PD Monogram"`, COUNT, targetData);
+    targets.needsUpdate = true;
+  });
+  fontReady.catch(() => {
+    // Keep the fallback face.
+  });
 
   const simU = posVar.material.uniforms;
   simU.uTime = { value: 0 };
@@ -291,6 +315,7 @@ export function mountLandingAttractor(host: HTMLElement): boolean {
   simU.uRespawn = { value: 0.002 };
   simU.uTargets = { value: targets };
   simU.uTargetScale = { value: 4 };
+  simU.uScatter = { value: 0 };
   if (gpu.init() !== null) {
     renderer.dispose();
     targets.dispose();
@@ -317,6 +342,7 @@ export function mountLandingAttractor(host: HTMLElement): boolean {
       uSize: { value: 1 },
       uColor: { value: new THREE.Color() },
       uAlpha: { value: 0.1 },
+      uFade: { value: 0 },
     },
     transparent: true,
     depthWrite: false,
@@ -391,6 +417,7 @@ export function mountLandingAttractor(host: HTMLElement): boolean {
   let px = 0, py = 0, smx = 0, smy = 0;
   let dragging = false, moved = 0, lastX = 0, lastY = 0;
   let stageStart = performance.now();
+  let skipRequested = false;
   const onDown = (e: PointerEvent) => {
     dragging = true;
     moved = 0;
@@ -417,10 +444,7 @@ export function mountLandingAttractor(host: HTMLElement): boolean {
     dragging = false;
     canvas.classList.remove("is-dragging");
     if (canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
-    if (moved < 6) {
-      select(stage + 1);
-      stageStart = performance.now();
-    }
+    if (moved < 6) skipRequested = true;
   };
   canvas.addEventListener("pointerdown", onDown);
   window.addEventListener("pointermove", onMove, { passive: true });
@@ -464,13 +488,18 @@ export function mountLandingAttractor(host: HTMLElement): boolean {
 
   if (reduceMotion) {
     // One settled still frame of the monogram; a click re-settles the next stage.
+    material.uniforms.uFade.value = 1;
     const settle = () => {
       if (!canvas.isConnected) return teardown();
       for (let i = 0; i < 300; i++) step(i * 0.016);
       render();
     };
     settle();
-    canvas.addEventListener("pointerup", settle);
+    void fontReady.then(settle, () => undefined);
+    canvas.addEventListener("pointerup", () => {
+      select(stage + 1);
+      settle();
+    });
     window.addEventListener("resize", () => (canvas.isConnected ? render() : teardown()));
     new MutationObserver(() => (canvas.isConnected ? render() : teardown())).observe(document.documentElement, {
       attributes: true,
@@ -494,9 +523,27 @@ export function mountLandingAttractor(host: HTMLElement): boolean {
         yawVel *= 0.95;
         pitchVel *= 0.9;
       }
-      if (now - stageStart > (onMonogram ? HOLD_MS.monogram : HOLD_MS.attractor)) {
+      // gather (fade in) → hold → vanish (scatter + fade out) → next stage
+      const hold = onMonogram ? HOLD_MS.monogram : HOLD_MS.attractor;
+      if (skipRequested) {
+        skipRequested = false;
+        const e = now - stageStart;
+        if (e < GATHER_MS + hold) stageStart = now - (GATHER_MS + hold);
+      }
+      const e = now - stageStart;
+      if (e >= GATHER_MS + hold + VANISH_MS) {
         select(stage + 1);
         stageStart = now;
+        simU.uScatter.value = 0;
+        material.uniforms.uFade.value = 0;
+      } else if (e >= GATHER_MS + hold) {
+        const v = (e - GATHER_MS - hold) / VANISH_MS;
+        simU.uScatter.value = v;
+        material.uniforms.uFade.value = 1 - v * v;
+      } else {
+        simU.uScatter.value = 0;
+        const g = Math.min(1, e / GATHER_MS);
+        material.uniforms.uFade.value = g * g * (3 - 2 * g);
       }
       step(t);
       render();
