@@ -4,6 +4,7 @@ date: 2026-07-07
 tags: Algorithms, Complexity Theory, Approximation Algorithms, Competitive Programming
 cover: blog-media/bin-packing-np-hardness-approximation-algorithms/cover.png
 excerpt: A full pass through bin packing — the formal problem, why the decision version is NP-complete (and why the optimization version is strongly so), every classical approximation algorithm with its proven bound, the special cases that collapse back to polynomial time, and the backtracking/bitmask-DP techniques you'd actually use to solve small instances in a contest.
+pdf: gallery-media/bin-packing-np-hardness-approximation-algorithms.pdf
 ---
 
 I was solving [Codeforces 2038L — Bridge Renovation](https://codeforces.com/contest/2038/problem/L), got a clean closed-form answer out of it, and then asked myself the obvious follow-up: what if the constraints hadn't been so generous? That question is what turned into this post — the formal bin-packing problem, exactly why it's NP-hard (and the sharper, less commonly explained fact that it's *strongly* NP-hard), every classical approximation algorithm with a proof of its worst-case bound (not just a citation of one), the handful of special cases where the problem quietly becomes polynomial, and the backtracking/bitmask techniques you'd reach for if a contest handed you a small instance and expected an exact answer.
