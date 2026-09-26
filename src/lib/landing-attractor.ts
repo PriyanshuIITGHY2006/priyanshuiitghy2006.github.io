@@ -1,6 +1,6 @@
 // Landing-page background: up to ~262k particles simulated on the GPU every
 // frame (three.js GPUComputationRenderer). They open by streaming out of
-// noise into a "P.D." monogram, then dissolve into four strange attractors
+// noise into a hand-drawn "PD" monogram, then dissolve into four strange attractors
 // (Lorenz, Aizawa, Thomas, Halvorsen, integrated with RK4) and come back to
 // the monogram. It sits full-screen behind the hero text, deliberately faint.
 // Click an empty area to skip ahead; drag to rotate.
@@ -18,7 +18,6 @@ import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
-import monogramFontUrl from "@fontsource/playfair-display/files/playfair-display-latin-900-italic.woff2?url";
 
 interface Attractor {
   /** Attractor-space centre, scale into display space, y/z swap, step, speed normaliser. */
@@ -97,8 +96,8 @@ void main() {
     vec3 delta = target - cur.xyz;
     vec3 shimmer = vec3(sin(target.y * 6.0 + uTime * 1.7),
                         sin(target.x * 5.0 + uTime * 1.3 + 1.7),
-                        sin(target.x * 4.0 + target.y * 3.0 + uTime * 1.1)) * 0.0025;
-    gl_FragColor = vec4(cur.xyz + delta * 0.055 + shimmer, 0.3 + clamp(length(delta) * 1.5, 0.0, 0.7));
+                        sin(target.x * 4.0 + target.y * 3.0 + uTime * 1.1)) * 0.0009;
+    gl_FragColor = vec4(cur.xyz + delta * 0.06 + shimmer, 0.3 + clamp(length(delta) * 1.5, 0.0, 0.7));
     return;
   }
 
@@ -161,26 +160,65 @@ function cssColor(name: string, fallback: string): THREE.Color {
 }
 
 /**
- * Samples "P.D." into one target point per particle, in units where the
- * text is 1 wide and centred on the origin (z = a thin slab for depth).
+ * Draws the "PD" monogram: an original hand-drawn mark, monoline with round
+ * caps. The P's bowl enters with a lead-in stroke from the left of its stem;
+ * the D's stem starts inside the P's bowl. Coordinates on a 1400×520 canvas.
  */
-function sampleMonogram(font: string, count: number, out: Float32Array): void {
+function drawMonogram(ctx: CanvasRenderingContext2D): void {
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.lineWidth = 32;
+  ctx.strokeStyle = "#000";
+  ctx.translate(700, 260);
+  ctx.transform(1, 0, -0.08, 1, 0, 0); // slight hand slant
+  ctx.translate(-700, -260);
+  const stroke = (path: () => void) => {
+    ctx.beginPath();
+    path();
+    ctx.stroke();
+  };
+  // P stem
+  stroke(() => {
+    ctx.moveTo(512, 452);
+    ctx.bezierCurveTo(508, 360, 514, 220, 524, 118);
+  });
+  // P bowl, entering from the left of the stem
+  stroke(() => {
+    ctx.moveTo(430, 152);
+    ctx.bezierCurveTo(520, 92, 660, 84, 706, 132);
+    ctx.bezierCurveTo(748, 176, 700, 250, 600, 262);
+    ctx.bezierCurveTo(572, 265, 545, 262, 524, 256);
+  });
+  // D stem, starting inside the P's bowl
+  stroke(() => {
+    ctx.moveTo(662, 180);
+    ctx.bezierCurveTo(660, 280, 664, 380, 672, 446);
+  });
+  // D bowl: from the top of its stem, round and back to its foot
+  stroke(() => {
+    ctx.moveTo(640, 150);
+    ctx.bezierCurveTo(760, 64, 948, 110, 962, 262);
+    ctx.bezierCurveTo(976, 410, 820, 470, 688, 446);
+  });
+}
+
+/**
+ * Samples the monogram into one target point per particle, in units where
+ * the mark is 1 wide and centred on the origin (z = a thin slab for depth).
+ */
+function sampleMonogram(count: number, out: Float32Array): void {
   const W = 1400, H = 520;
   const c = document.createElement("canvas");
   c.width = W;
   c.height = H;
   const ctx = c.getContext("2d")!;
-  ctx.fillStyle = "#000";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.font = `italic 900 380px ${font}`;
-  ctx.fillText("P.D.", W / 2, H / 2 + 10);
+  drawMonogram(ctx);
   const px = ctx.getImageData(0, 0, W, H).data;
 
   const filled: number[] = [];
   let minX = W, maxX = 0, minY = H, maxY = 0;
-  for (let y = 0; y < H; y += 1)
-    for (let x = 0; x < W; x += 1)
+  for (let y = 0; y < H; y++)
+    for (let x = 0; x < W; x++)
       if (px[(y * W + x) * 4 + 3] > 128) {
         filled.push(x, y);
         if (x < minX) minX = x;
@@ -197,7 +235,7 @@ function sampleMonogram(font: string, count: number, out: Float32Array): void {
     const y = n ? filled[k * 2 + 1] + Math.random() : cy;
     out[i * 4] = (x - cx) / width;
     out[i * 4 + 1] = -(y - cy) / width;
-    out[i * 4 + 2] = (Math.random() - 0.5) * 0.05;
+    out[i * 4 + 2] = (Math.random() - 0.5) * 0.015;
     out[i * 4 + 3] = 1;
   }
 }
@@ -236,23 +274,11 @@ export function mountLandingAttractor(host: HTMLElement): boolean {
   const posVar: Variable = gpu.addVariable("texturePosition", SIM_SHADER, initial);
   gpu.setVariableDependencies(posVar, [posVar]);
 
-  // Monogram targets: sampled now with a fallback serif, then again once the
-  // bundled Playfair Display face has loaded (the particles simply re-flow).
+  // Monogram targets: one point on the drawn strokes per particle.
   const targetData = new Float32Array(COUNT * 4);
   const targets = new THREE.DataTexture(targetData, SIZE, SIZE, THREE.RGBAFormat, THREE.FloatType);
-  sampleMonogram(`Georgia, "Times New Roman", serif`, COUNT, targetData);
+  sampleMonogram(COUNT, targetData);
   targets.needsUpdate = true;
-  const face = new FontFace("PD Monogram", `url(${monogramFontUrl})`, { style: "italic", weight: "900" });
-  face
-    .load()
-    .then((loaded) => {
-      document.fonts.add(loaded);
-      sampleMonogram(`"PD Monogram"`, COUNT, targetData);
-      targets.needsUpdate = true;
-    })
-    .catch(() => {
-      // Keep the fallback serif.
-    });
 
   const simU = posVar.material.uniforms;
   simU.uTime = { value: 0 };
@@ -332,10 +358,11 @@ export function mountLandingAttractor(host: HTMLElement): boolean {
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
     material.uniforms.uSize.value = (small ? 9 : 7) * dpr;
-    // Monogram spans ~78% of the visible width (capped so it isn't huge on
-    // very wide screens), measured at the camera's distance.
-    const visibleWidth = 2 * CAM_DIST * HALF_FOV_TAN * camera.aspect;
-    simU.uTargetScale.value = Math.min(visibleWidth * 0.78, 6.2);
+    // Monogram spans ~60% of the visible width, capped by the visible
+    // height so it never overflows, measured at the camera's distance.
+    const visibleHeight = 2 * CAM_DIST * HALF_FOV_TAN;
+    const visibleWidth = visibleHeight * camera.aspect;
+    simU.uTargetScale.value = Math.min(visibleWidth * 0.6, visibleHeight * 1.05);
     applyTheme();
   };
 
@@ -449,7 +476,6 @@ export function mountLandingAttractor(host: HTMLElement): boolean {
       attributes: true,
       attributeFilter: ["data-theme"],
     });
-    void face.loaded.then(settle, () => undefined);
   } else {
     const start = performance.now();
     const loop = (now: number) => {
