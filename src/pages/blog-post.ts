@@ -13,7 +13,9 @@ import {
   binVizRegistry,
   type TocEntry,
   type BlogPost,
+  type TestCase,
 } from "../lib/blog";
+import { previewText, formatSize, downloadText, downloadZip, firstDiff } from "../lib/testcase-files";
 import { mountBinPackingViz, type BinVizController } from "../lib/bin-packing-viz";
 import { runCode, VerificationRequiredError, type CompilerResult } from "../lib/compiler";
 import {
@@ -77,6 +79,12 @@ export async function initEditors(container: HTMLElement) {
          fontSize: 14,
        });
        
+       // Ctrl/Cmd+Enter runs the block, same as clicking Run.
+       if (block.isRunnable) {
+         editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => {
+           container.querySelector<HTMLButtonElement>(`.blog-run-panel[data-run-id="${id}"] [data-run-action="run"]:not(:disabled)`)?.click();
+         });
+       }
        editorInstances.set(id, editor);
     });
   } catch (err) {
@@ -267,6 +275,8 @@ export function mountBlogPost(container: HTMLElement, slug: string | null): void
   wireRunnableCode(container);
   wireTestcases(container);
   wireCopyButtons(container);
+  wireCodeDownloads(container);
+  wireHeadingAnchors(container);
   wireToc(container);
   wireProgressBar(container);
   wireShareButtons(container);
@@ -318,6 +328,39 @@ function wireCopyButtons(container: HTMLElement): void {
 
 // ─── Test-case runner (paired with a runnable code block) ──────────────────
 
+type TestCaseData = { input: string; expected: string };
+
+/** Resolves a case's input/expected, fetching `inputUrl`/`expectedUrl` once if set. */
+function makeCaseLoader(c: TestCase): () => Promise<TestCaseData> {
+  let pending: Promise<TestCaseData> | null = null;
+  const fetchText = async (url: string) => {
+    const res = await fetch(`/${url.replace(/^\//, "")}`);
+    if (!res.ok) throw new Error(`could not load ${url} (${res.status})`);
+    return res.text();
+  };
+  return () =>
+    (pending ??= Promise.all([
+      c.inputUrl ? fetchText(c.inputUrl) : Promise.resolve(c.input ?? ""),
+      c.expectedUrl ? fetchText(c.expectedUrl) : Promise.resolve(c.expected ?? ""),
+    ]).then(([input, expected]) => ({ input, expected })));
+}
+
+function previewBlockHtml(label: string, text: string, kind: string): string {
+  const p = previewText(text);
+  const note = p.truncated
+    ? `<p class="blog-tc-trunc">Showing a preview of ${formatSize(p.totalChars)} (${p.totalLines.toLocaleString()} lines). Download for the full file.</p>`
+    : "";
+  return `
+    <div class="blog-tc-block">
+      <div class="blog-tc-block-head">
+        <span>${label}</span>
+        <button type="button" class="blog-tc-link" data-tc-dl="${kind}">Download</button>
+      </div>
+      <pre class="blog-tc-pre">${esc(p.text) || "(empty)"}</pre>
+      ${note}
+    </div>`;
+}
+
 function wireTestcases(container: HTMLElement): void {
   container.querySelectorAll<HTMLElement>(".blog-testcases-panel").forEach((panel) => {
     const runId = panel.dataset.testcasesFor;
@@ -327,6 +370,65 @@ function wireTestcases(container: HTMLElement): void {
     if (!cases || !cases.length) return;
 
     const runPanel = container.querySelector<HTMLElement>(`.blog-run-panel[data-run-id="${runId}"]`);
+    const stdinInput = runPanel?.querySelector<HTMLTextAreaElement>(".blog-run-stdin-input");
+    const rows = panel.querySelectorAll<HTMLDetailsElement>(".blog-testcase-row");
+    const loaders = cases.map(makeCaseLoader);
+    const outputs: (string | null)[] = cases.map(() => null);
+    const fileBase = (i: number) => `test${String(i + 1).padStart(2, "0")}`;
+
+    const renderBody = async (i: number) => {
+      const body = rows[i]?.querySelector<HTMLElement>("[data-tc-body]");
+      if (!body) return;
+      try {
+        const { input, expected } = await loaders[i]();
+        const out = outputs[i];
+        const diff = out !== null ? firstDiff(expected.trim(), out) : null;
+        body.innerHTML = `
+          ${previewBlockHtml("Input", input, "in")}
+          ${previewBlockHtml("Expected output", expected, "ans")}
+          ${out !== null ? previewBlockHtml("Your output", out, "out") : ""}
+          ${diff ? `<p class="blog-tc-diff">First difference on line ${diff.line}: expected <code>${esc(previewText(diff.expected, 1, 120).text)}</code>, got <code>${esc(previewText(diff.actual, 1, 120).text)}</code></p>` : ""}
+          ${stdinInput ? `<button type="button" class="blog-tc-link" data-tc-use-stdin>Use this input in the editor's stdin</button>` : ""}`;
+      } catch (err) {
+        body.innerHTML = `<p class="blog-tc-trunc">${esc(err instanceof Error ? err.message : "Could not load this test case.")}</p>`;
+      }
+    };
+
+    rows.forEach((row, i) => {
+      row.addEventListener("toggle", () => {
+        if (row.open) void renderBody(i);
+      });
+      row.addEventListener("click", async (e) => {
+        const target = e.target as HTMLElement;
+        const kind = target.dataset.tcDl;
+        if (kind) {
+          const { input, expected } = await loaders[i]();
+          const text = kind === "in" ? input : kind === "ans" ? expected : outputs[i] ?? "";
+          downloadText(text, `${fileBase(i)}.${kind}.txt`);
+        } else if (target.hasAttribute("data-tc-use-stdin") && stdinInput) {
+          stdinInput.value = (await loaders[i]()).input;
+          stdinInput.closest("details")?.setAttribute("open", "");
+          stdinInput.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      });
+    });
+
+    panel.querySelector<HTMLButtonElement>("[data-tc-download-all]")?.addEventListener("click", async (e) => {
+      const btn = e.currentTarget as HTMLButtonElement;
+      btn.disabled = true;
+      try {
+        const all = await Promise.all(loaders.map((load) => load()));
+        const files = all.flatMap((d, i) => [
+          { name: `${fileBase(i)}.in.txt`, text: d.input },
+          { name: `${fileBase(i)}.ans.txt`, text: d.expected },
+        ]);
+        downloadZip(files, `${runId}-testcases.zip`);
+      } catch {
+        btn.textContent = "Download failed";
+      } finally {
+        btn.disabled = false;
+      }
+    });
 
     runBtn.addEventListener("click", async () => {
       const block = codeBlocksRegistry.get(runId);
@@ -334,7 +436,6 @@ function wireTestcases(container: HTMLElement): void {
       const editor = editorInstances.get(runId);
       const sourceCode = editor ? editor.getValue() : block.code;
 
-      const rows = panel.querySelectorAll<HTMLElement>(".blog-testcase-row");
       runBtn.disabled = true;
       const originalLabel = runBtn.textContent;
       runBtn.textContent = "Running…";
@@ -346,13 +447,19 @@ function wireTestcases(container: HTMLElement): void {
           statusEl.className = "blog-testcase-status";
         }
         try {
-          const result = await executeCode(runPanel, block.compilerId, sourceCode, cases[i].input);
+          const { input, expected } = await loaders[i]();
+          const result = await executeCode(runPanel, block.compilerId, sourceCode, input);
           const actual = (result.output ?? "").trim();
-          const expected = cases[i].expected.trim();
-          const pass = actual === expected && result.status !== "error";
+          outputs[i] = actual;
+          const pass = result.status !== "error" && firstDiff(expected.trim(), actual) === null;
           if (statusEl) {
-            statusEl.textContent = pass ? "passed" : `failed — got: ${actual.slice(0, 120) || "(no output)"}`;
+            const time = result.time ? ` · ${result.time}s` : "";
+            statusEl.textContent = pass ? `passed${time}` : result.status === "error" ? `error${time}` : `failed${time}`;
             statusEl.className = `blog-testcase-status ${pass ? "tc-pass" : "tc-fail"}`;
+          }
+          if (rows[i]?.open || !pass) {
+            if (!pass) rows[i].open = true;
+            void renderBody(i);
           }
         } catch (err) {
           if (statusEl) {
@@ -372,6 +479,51 @@ function wireTestcases(container: HTMLElement): void {
       runBtn.textContent = originalLabel;
     });
   });
+}
+
+// ─── Code download + heading anchors ────────────────────────────────────────
+
+const CODE_EXTENSIONS: Record<string, string> = {
+  cpp: "cpp", "c++": "cpp", c: "c", python: "py", py: "py", java: "java",
+  javascript: "js", js: "js", typescript: "ts", ts: "ts", rust: "rs", go: "go",
+  bash: "sh", sh: "sh", shell: "sh", json: "json", sql: "sql", html: "html", css: "css", latex: "tex", tex: "tex",
+};
+
+function wireCodeDownloads(container: HTMLElement): void {
+  container.querySelectorAll<HTMLButtonElement>("[data-download-code]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const id = btn.dataset.downloadCode;
+      if (!id) return;
+      const block = codeBlocksRegistry.get(id);
+      const editor = editorInstances.get(id);
+      const text = editor ? editor.getValue() : block?.code ?? "";
+      const ext = CODE_EXTENSIONS[(block?.language ?? "").toLowerCase()] ?? "txt";
+      downloadText(text, `${block?.language === "java" ? "Main" : "solution"}.${ext}`);
+    });
+  });
+}
+
+function wireHeadingAnchors(container: HTMLElement): void {
+  container.querySelectorAll<HTMLAnchorElement>(".blog-heading-anchor").forEach((a) => {
+    a.addEventListener("click", async (e) => {
+      e.preventDefault();
+      const id = a.dataset.anchor;
+      if (!id) return;
+      const url = `${location.origin}${location.pathname}${location.search}#${id}`;
+      history.replaceState(history.state, "", url);
+      document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      try {
+        await navigator.clipboard.writeText(url);
+        a.classList.add("copied");
+        setTimeout(() => a.classList.remove("copied"), 1200);
+      } catch {
+        // Clipboard unavailable — the URL bar still has the link.
+      }
+    });
+  });
+  // Deep link: /blog?slug=x#some-heading
+  const hash = decodeURIComponent(location.hash.slice(1));
+  if (hash) requestAnimationFrame(() => container.querySelector<HTMLElement>(`#${CSS.escape(hash)}`)?.scrollIntoView({ block: "start" }));
 }
 
 // ─── Table of contents ──────────────────────────────────────────────────────

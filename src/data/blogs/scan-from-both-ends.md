@@ -152,11 +152,16 @@ int main() {
 [
   { "name": "sample", "input": "4\n3\n1 4 1\n4\n1 2 3 4\n4\n1 6 1 2\n3\n3 3 3", "expected": "2\n1\n3\n0" },
   { "name": "single element", "input": "1\n1\n1", "expected": "1" },
-  { "name": "balanced tree", "input": "1\n3\n1 4 1", "expected": "2" }
+  { "name": "balanced tree", "input": "1\n3\n1 4 1", "expected": "2" },
+  { "name": "skewed, n = 100000", "inputUrl": "blog-media/scan-from-both-ends/skewed-100k.in.txt", "expectedUrl": "blog-media/scan-from-both-ends/skewed-100k.ans.txt" }
 ]
 :::
 
-One heads-up: the recursion can go $n$ levels deep on a skewed input. Codeforces gives you a big stack, so it's fine there. On your own machine you may need `ulimit -s unlimited` before testing a worst case.
+:::warning Stack depth
+The recursion can go $n$ levels deep on a skewed input. Codeforces gives you a big stack, so it's fine there. On your own machine you may need `ulimit -s unlimited` before testing a worst case.
+:::
+
+The last test case is the skewed worst case at $n = 100000$. It's too big to show inline, so expand it for a preview, or grab everything with **Download all**.
 
 ## Where else this shows up
 

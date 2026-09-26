@@ -52,7 +52,7 @@ function commonSections(): string {
     <h4>Code blocks</h4>
     <p>Fenced with a language tag for syntax highlighting: <code>cpp</code>, <code>python</code>/<code>py</code>, <code>javascript</code>/<code>js</code>, <code>typescript</code>/<code>ts</code>, <code>bash</code>/<code>sh</code>, <code>json</code>, <code>sql</code>, <code>java</code>, <code>html</code>, <code>css</code>, <code>latex</code>, <code>plaintext</code>. Anything else falls back to auto-detection.</p>
     ${example('```cpp\nint main() { return 0; }\n```')}
-    <p>Add <code> runnable</code> after the language to get an in-browser Run button (compiles and executes for real). Supported runnable languages: cpp/c++, c, python/py, java, javascript/js, typescript/ts, rust, go.</p>
+    <p>Every code block gets Copy and Download buttons. Add <code> runnable</code> after the language to get an in-browser Run button (compiles and executes for real; Ctrl/Cmd+Enter in the editor runs it too). Supported runnable languages: cpp/c++, c, python/py, java, javascript/js, typescript/ts, rust, go.</p>
     ${example('```cpp runnable\nint main() { return 0; }\n```')}
   </div>
 
@@ -60,6 +60,15 @@ function commonSections(): string {
     <h4>Test cases</h4>
     <p>Immediately after a <code>runnable</code> code block, a <code>:::testcases</code> block adds a "Run all tests" panel. Body is a JSON array of <code>{ name?, input, expected }</code> — stdout is diffed against <code>expected</code> (trimmed) after feeding <code>input</code> to stdin.</p>
     ${example(':::testcases\n[\n  { "name": "basic", "input": "3\\n1 2 3", "expected": "6" }\n]\n:::')}
+  </div>
+    <p>Each case expands to show its input and expected output, truncated with a download link when large; readers can also download every case as a .zip or load an input into stdin. For big cases, upload the files and reference them with <code>inputUrl</code> / <code>expectedUrl</code> instead of inlining them — they're fetched only when needed.</p>
+    ${example(':::testcases\n[\n  { "name": "max n", "inputUrl": "blog-media/my-post/big.in.txt", "expectedUrl": "blog-media/my-post/big.ans.txt" }\n]\n:::')}
+  </div>
+
+  <div class="admin-help-section">
+    <h4>Callouts</h4>
+    <p><code>:::note</code>, <code>:::tip</code>, <code>:::warning</code> or <code>:::important</code>, with an optional title after the keyword. The body is regular Markdown.</p>
+    ${example(':::tip Faster I/O\nUse <code>cin.tie(nullptr)</code> for large inputs.\n:::')}
   </div>
 
   <div class="admin-help-section">
