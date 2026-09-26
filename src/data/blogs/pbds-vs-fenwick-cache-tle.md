@@ -2,7 +2,7 @@
 title: Why My PBDS ordered_multiset Solution TLE'd (and the Fenwick Fix)
 date: 2026-07-05
 tags: Competitive Programming, C++, Data Structures, Performance
-cover: blog-media/pbds-vs-fenwick-cache-tle/cover.png
+cover: gallery-media/1000505831.png
 excerpt: My approach to Zhily and Barknights was correct from the start, but the PBDS ordered_multiset implementation TLE'd twice. This post covers how Red-Black trees and order statistics work, and why a Fenwick tree passed instead.
 ---
 
