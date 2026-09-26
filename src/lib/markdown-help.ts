@@ -14,7 +14,7 @@ function example(code: string): string {
 const FRONTMATTER_SECTION = `
   <div class="admin-help-section">
     <h4>Frontmatter (top of the file, blog posts only)</h4>
-    <p>Five plain <code>key: value</code> lines between two <code>---</code> markers. Only <code>title</code> and <code>date</code> are required.</p>
+    <p>Plain <code>key: value</code> lines between two <code>---</code> markers. Only <code>title</code> and <code>date</code> are required.</p>
     ${example(`---
 title: Why My Cache Keeps Missing
 date: 2026-09-17
@@ -24,7 +24,8 @@ excerpt: One or two sentences shown on the blog list card.
 ---
 
 Post body starts here.`)}
-    <p>Set <code>cover</code> to a path an uploaded image actually lives at (pick it from the cover dropdown instead of typing it by hand).</p>
+    <p>Optional extras: <code>updated: 2026-10-01</code> shows an "Updated" date, and <code>series: Name</code> links every post with the same series name in a parts box (oldest first).</p>
+        <p>Set <code>cover</code> to a path an uploaded image actually lives at (pick it from the cover dropdown instead of typing it by hand).</p>
   </div>`;
 
 const NO_FRONTMATTER_SECTION = `

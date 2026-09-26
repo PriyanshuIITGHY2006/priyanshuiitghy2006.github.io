@@ -49,7 +49,7 @@ function controlsHtml(): string {
         type="search"
         id="blog-search-input"
         class="blog-search-input"
-        placeholder="Search posts…"
+        placeholder="Search posts… ( / )"
         aria-label="Search posts"
       />
       ${tags.length ? `
@@ -57,6 +57,10 @@ function controlsHtml(): string {
         <option value="">All tags</option>
         ${tagOptions}
       </select>` : ""}
+      <select id="blog-sort-select" class="blog-tag-select" aria-label="Sort posts">
+        <option value="new">Newest first</option>
+        <option value="old">Oldest first</option>
+      </select>
       <a class="blog-rss-link" href="/feed.xml" target="_blank" rel="noopener noreferrer" title="RSS feed">RSS</a>
     </div>
     <p class="blog-empty-filtered" id="blog-empty-filtered" hidden>No posts match your search or filters.</p>`;
@@ -120,6 +124,26 @@ function wireFilters(container: HTMLElement): void {
 
   searchInput?.addEventListener("input", apply);
   tagSelect?.addEventListener("change", apply);
+
+  // Cards are rendered newest first; "old" just reverses them.
+  const list = container.querySelector<HTMLElement>("#blog-list");
+  container.querySelector<HTMLSelectElement>("#blog-sort-select")?.addEventListener("change", (e) => {
+    const order = (e.target as HTMLSelectElement).value === "old" ? [...cards].reverse() : cards;
+    order.forEach((c) => list?.appendChild(c));
+  });
+
+  // "/" focuses search, like most docs sites.
+  const onKey = (e: KeyboardEvent) => {
+    if (!searchInput?.isConnected) {
+      document.removeEventListener("keydown", onKey);
+      return;
+    }
+    const t = e.target as HTMLElement;
+    if (e.key !== "/" || e.ctrlKey || e.metaKey || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable) return;
+    e.preventDefault();
+    searchInput.focus();
+  };
+  document.addEventListener("keydown", onKey);
 }
 
 function bgAudioBtnHtml(playing: boolean): string {

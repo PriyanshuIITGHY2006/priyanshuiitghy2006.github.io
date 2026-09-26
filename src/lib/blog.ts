@@ -49,6 +49,10 @@ export interface BlogPost {
   cover?: string;
   excerpt: string;
   rawBody: string;
+  /** Last meaningful revision (frontmatter `updated:`), if any. */
+  updated?: string;
+  /** Posts sharing a `series:` name are linked together, oldest first. */
+  series?: string;
 }
 
 const files = import.meta.glob("/src/data/blogs/*.md", {
@@ -91,6 +95,8 @@ export const BLOG_POSTS: BlogPost[] = Object.entries(files)
       cover: data.cover || undefined,
       excerpt: data.excerpt || "",
       rawBody: body,
+      updated: data.updated || undefined,
+      series: data.series || undefined,
     };
   })
   .sort((a, b) => (a.date && b.date ? (a.date < b.date ? 1 : -1) : a.date ? -1 : 1));
@@ -111,6 +117,18 @@ export function getRelatedPosts(current: BlogPost, limit = 2): BlogPost[] {
     .sort((a, b) => b.overlap - a.overlap || (a.post.date < b.post.date ? 1 : -1))
     .slice(0, limit)
     .map((x) => x.post);
+}
+
+/** The chronologically previous (older) and next (newer) posts. */
+export function getAdjacentPosts(current: BlogPost): { older?: BlogPost; newer?: BlogPost } {
+  const i = BLOG_POSTS.findIndex((p) => p.slug === current.slug);
+  if (i === -1) return {};
+  return { newer: BLOG_POSTS[i - 1], older: BLOG_POSTS[i + 1] };
+}
+
+/** Every post in the same series, oldest first. */
+export function getSeriesPosts(series: string): BlogPost[] {
+  return BLOG_POSTS.filter((p) => p.series === series).reverse();
 }
 
 /** All distinct tags across posts, in descending frequency order. */
@@ -657,14 +675,15 @@ export function renderMarkdown(md: string): string {
   const html = marked.parse(md, { async: false }) as string;
   lastToc = currentToc;
   return DOMPurify.sanitize(html, {
-    ADD_TAGS: ["span", "iframe", "button", "textarea", "details", "summary", "div", "figure", "figcaption"],
+    // semantics/annotation keep KaTeX's LaTeX source (used by click-to-copy).
+    ADD_TAGS: ["span", "iframe", "button", "textarea", "details", "summary", "div", "figure", "figcaption", "semantics", "annotation"],
     ADD_ATTR: [
       "target", "rel", "class", "id", "style", // id and style added to allow Monaco sizing
       "src", "title", "loading", "referrerpolicy", "allow", "allowfullscreen", "frameborder",
       "rows", "placeholder", "hidden", "type", "open",
       "data-run-id", "data-run-action", "data-sitekey", // Data attributes explicitly allowed
       "data-copy-target", "data-testcases-for", "data-tc-run", "data-tc-index", "data-tc-status", "disabled",
-      "data-download-code", "data-anchor", "data-tc-run-one", "data-tab-group", "data-tab-index", "data-tab-label", "data-tab-panel", "data-tc-body", "data-tc-download-all", "href", "aria-label",
+      "encoding", "data-download-code", "data-anchor", "data-tc-run-one", "data-tab-group", "data-tab-index", "data-tab-label", "data-tab-panel", "data-tc-body", "data-tc-download-all", "href", "aria-label",
       "data-binviz-canvas", "data-binviz-action", "data-binviz-status",
     ],
     USE_PROFILES: { html: true, svg: true, svgFilters: true, mathMl: true },
