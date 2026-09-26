@@ -186,8 +186,11 @@ function tocHtml(toc: TocEntry[]): string {
     .join("");
   return `
     <details class="blog-toc" open>
-      <summary class="blog-toc-summary">Contents</summary>
-      <ul class="blog-toc-list">${items}</ul>
+      <summary class="blog-toc-summary">On this page</summary>
+      <div class="blog-toc-rail">
+        <span class="blog-toc-marker" aria-hidden="true"></span>
+        <ul class="blog-toc-list">${items}</ul>
+      </div>
     </details>`;
 }
 
@@ -957,6 +960,7 @@ function wireHeadingAnchors(container: HTMLElement): void {
       try {
         await navigator.clipboard.writeText(url);
         a.classList.add("copied");
+        showToast("Link copied");
         setTimeout(() => a.classList.remove("copied"), 1200);
       } catch {
         // Clipboard unavailable — the URL bar still has the link.
@@ -974,7 +978,8 @@ function wireHeadingAnchors(container: HTMLElement): void {
 // instead of jumping instantly.
 
 function wireToc(container: HTMLElement): void {
-  container.querySelectorAll<HTMLAnchorElement>(".blog-toc-link").forEach((link) => {
+  const links = [...container.querySelectorAll<HTMLAnchorElement>(".blog-toc-link")];
+  links.forEach((link) => {
     link.addEventListener("click", (e) => {
       e.preventDefault();
       const id = link.dataset.tocTarget;
@@ -982,6 +987,59 @@ function wireToc(container: HTMLElement): void {
       target?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
   });
+
+  const toc = container.querySelector<HTMLDetailsElement>(".blog-toc");
+  const marker = container.querySelector<HTMLElement>(".blog-toc-marker");
+  if (!toc || !marker || !links.length) return;
+
+  // Wide screens show the list as a sidebar, which must always be open.
+  const wide = window.matchMedia("(min-width: 1360px)");
+  const syncOpen = () => {
+    if (wide.matches) toc.open = true;
+  };
+  syncOpen();
+  wide.addEventListener("change", syncOpen);
+
+  // Scrollspy: the active section is the last heading above ~1/4 of the viewport.
+  const headings = links
+    .map((l) => container.querySelector<HTMLElement>(`#${CSS.escape(l.dataset.tocTarget ?? "")}`))
+    .filter((h): h is HTMLElement => Boolean(h));
+  let active = -1;
+  let frame = 0;
+  const update = () => {
+    frame = 0;
+    if (!toc.isConnected) return cleanup();
+    const line = window.innerHeight * 0.25;
+    let idx = -1;
+    headings.forEach((h, i) => {
+      if (h.getBoundingClientRect().top <= line) idx = i;
+    });
+    if (idx === active) return;
+    active = idx;
+    links.forEach((l, i) => l.classList.toggle("active", i === idx));
+    if (idx === -1) {
+      marker.style.opacity = "0";
+      return;
+    }
+    const li = links[idx].parentElement!;
+    marker.style.opacity = "1";
+    marker.style.transform = `translateY(${li.offsetTop}px)`;
+    marker.style.height = `${li.offsetHeight}px`;
+    // Keep the active item visible when the sidebar itself scrolls.
+    if (wide.matches) li.scrollIntoView({ block: "nearest" });
+  };
+  const onScroll = () => {
+    if (!frame) frame = requestAnimationFrame(update);
+  };
+  const cleanup = () => {
+    window.removeEventListener("scroll", onScroll);
+    window.removeEventListener("resize", onScroll);
+    wide.removeEventListener("change", syncOpen);
+  };
+  window.addEventListener("scroll", onScroll, { passive: true });
+  window.addEventListener("resize", onScroll, { passive: true });
+  pageCleanups.push(cleanup);
+  update();
 }
 
 // ─── Reading progress bar ───────────────────────────────────────────────────

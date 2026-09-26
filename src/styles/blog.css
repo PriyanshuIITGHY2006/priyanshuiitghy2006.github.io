@@ -516,22 +516,68 @@
   font-family: var(--cm-sans);
   font-size: 0.95em;
 }
+.blog-toc-rail { position: relative; margin: 0.6rem 0 0.2rem; border-left: 1px solid var(--border); }
+.blog-toc-marker {
+  position: absolute;
+  left: -1px;
+  top: 0;
+  width: 2px;
+  height: 0;
+  background: var(--ink);
+  opacity: 0;
+  transition: transform 0.25s ease, height 0.25s ease, opacity 0.2s;
+}
 .blog-toc-list {
   list-style: none;
-  margin: 0.6rem 0 0.2rem;
+  margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
 }
-.blog-toc-item { line-height: 1.35; }
-.blog-toc-level-3 { padding-left: 1.1rem; font-size: 0.94em; }
+.blog-toc-item { line-height: 1.35; padding: 0.2rem 0 0.2rem 0.85rem; }
+.blog-toc-level-3 { padding-left: 1.7rem; font-size: 0.94em; }
 .blog-toc-link {
-  color: var(--ink-soft);
+  color: var(--muted);
   text-decoration: none;
-  border-bottom: 1px dotted var(--border-strong);
+  border-bottom: none;
+  transition: color 0.15s;
 }
-.blog-toc-link:hover { color: var(--ink); border-bottom-color: var(--muted); }
+.blog-toc-link:hover { color: var(--ink); }
+.blog-toc-link.active { color: var(--ink); font-weight: 600; }
+
+/* Wide screens: the contents list becomes a fixed "On this page" sidebar
+   to the right of the 44rem article column. */
+@media (min-width: 1360px) {
+  .blog-toc {
+    position: fixed;
+    z-index: 5;
+    top: 6rem;
+    left: calc(50% + 22rem + 2rem);
+    width: min(15rem, calc(50vw - 22rem - 3.5rem));
+    max-height: calc(100vh - 9rem);
+    overflow-y: auto;
+    margin: 0;
+    padding: 0;
+    border: none;
+    border-radius: 0;
+    background: none;
+    scrollbar-width: thin;
+  }
+  .blog-toc-summary {
+    pointer-events: none;
+    list-style: none;
+    font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+    font-size: 0.6em;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted-2);
+  }
+  .blog-toc-summary::-webkit-details-marker { display: none; }
+  .blog-toc-list { font-size: 0.68em; }
+  .blog-toc-item { padding: 0.3rem 0 0.3rem 0.9rem; }
+  .blog-toc-link { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+}
 
 /* ─── Share buttons ───────────────────────────────────────────────────────── */
 .blog-share {
@@ -768,19 +814,23 @@
 
 /* ─── Heading anchors ─────────────────────────────────────────────────────── */
 .blog-heading-anchor {
-  margin-left: 0.4em;
+  display: inline-flex;
+  vertical-align: middle;
+  margin-left: 0.45em;
   color: var(--muted-2);
   text-decoration: none;
   border-bottom: none;
-  font-weight: 400;
   opacity: 0;
-  transition: opacity 0.15s;
+  transition: opacity 0.15s, color 0.15s;
 }
+.blog-content a.blog-heading-anchor { border-bottom: none; color: var(--muted-2); }
+.blog-content a.blog-heading-anchor:hover { color: var(--ink); }
+.blog-heading-anchor svg { width: 0.75em; height: 0.75em; }
+.blog-heading-anchor:hover { color: var(--ink); }
 .blog-content h2:hover .blog-heading-anchor,
 .blog-content h3:hover .blog-heading-anchor,
 .blog-heading-anchor:focus-visible { opacity: 1; }
 .blog-heading-anchor.copied { opacity: 1; color: var(--success-ink); }
-.blog-heading-anchor.copied::after { content: " link copied"; font-size: 0.6em; }
 @media (hover: none) { .blog-heading-anchor { opacity: 0.5; } }
 
 /* ─── Callouts (:::note / :::tip / :::warning / :::important) ─────────────── */
