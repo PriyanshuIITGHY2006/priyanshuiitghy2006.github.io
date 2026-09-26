@@ -143,8 +143,11 @@ let codeBlockCounter = 0;
 
 export interface TestCase {
   name?: string;
-  input: string;
-  expected: string;
+  input?: string;
+  expected?: string;
+  /** Site-relative paths for cases too big to inline (fetched on demand). */
+  inputUrl?: string;
+  expectedUrl?: string;
 }
 
 /** Keyed by the runnable code block's id (e.g. "code-block-3"). */
@@ -205,7 +208,10 @@ renderer.heading = function (this: { parser: { parseInline: (t: Tokens.Generic[]
   const id = slugifyHeading(plain);
   if (depth === 2 || depth === 3) currentToc.push({ id, text: plain, level: depth });
   const inline = this.parser.parseInline(tokens);
-  return `<h${depth} id="${id}">${inline}</h${depth}>\n`;
+  const anchor = depth === 2 || depth === 3
+    ? `<a class="blog-heading-anchor" href="#${id}" data-anchor="${id}" aria-label="Copy link to this section">#</a>`
+    : "";
+  return `<h${depth} id="${id}">${inline}${anchor}</h${depth}>\n`;
 };
 
 renderer.code = ({ text, lang }: Tokens.Code): string => {
@@ -275,7 +281,10 @@ renderer.code = ({ text, lang }: Tokens.Code): string => {
   return `
     <div class="blog-code-block" style="position: relative; margin-bottom: 1.5rem;">
       ${langLabel}
-      <button type="button" class="blog-code-copy-btn" data-copy-target="${id}" aria-label="Copy code">Copy</button>
+      <div class="blog-code-actions">
+        <button type="button" class="blog-code-copy-btn" data-download-code="${id}" aria-label="Download code">Download</button>
+        <button type="button" class="blog-code-copy-btn" data-copy-target="${id}" aria-label="Copy code">Copy</button>
+      </div>
       <div id="${id}" class="monaco-editor-container" style="${editorStyle}">
         <pre style="margin:0; padding:16px; height:100%; overflow:auto;"><code class="hljs${usedLang ? ` language-${usedLang}` : ""}">${highlighted}</code></pre>
       </div>
@@ -318,6 +327,44 @@ const spoilerExtension = {
   },
 };
 
+// ─── Callouts: :::note / :::tip / :::warning / :::important ─────────────────
+const CALLOUT_KINDS = ["note", "tip", "warning", "important"] as const;
+type CalloutKind = (typeof CALLOUT_KINDS)[number];
+
+interface CalloutToken extends Tokens.Generic {
+  type: "callout";
+  kind: CalloutKind;
+  title: string;
+  tokens: Tokens.Generic[];
+}
+
+const calloutExtension = {
+  name: "callout",
+  level: "block" as const,
+  start(src: string): number | undefined {
+    const m = /:::(?:note|tip|warning|important)\b/.exec(src);
+    return m ? m.index : undefined;
+  },
+  tokenizer(this: { lexer: { blockTokens: (s: string, t: Tokens.Generic[]) => void } }, src: string) {
+    const match = /^:::(note|tip|warning|important)\b([^\n]*)\n([\s\S]*?)\n:::(?:\n|$)/.exec(src);
+    if (!match) return undefined;
+    const kind = match[1] as CalloutKind;
+    const token: CalloutToken = {
+      type: "callout",
+      raw: match[0],
+      kind,
+      title: match[2].trim() || kind[0].toUpperCase() + kind.slice(1),
+      tokens: [],
+    };
+    this.lexer.blockTokens(match[3], token.tokens);
+    return token;
+  },
+  renderer(this: { parser: { parse: (t: Tokens.Generic[]) => string } }, token: Tokens.Generic): string {
+    const t = token as CalloutToken;
+    return `<div class="blog-callout blog-callout-${t.kind}"><p class="blog-callout-title">${esc(t.title)}</p>${this.parser.parse(t.tokens)}</div>`;
+  },
+};
+
 // ─── Test-case panels ─────────────────────────────────────────────────────────
 // A `:::testcases` block must come right after a ```lang runnable``` block.
 // Its body is a JSON array of { name?, input, expected }. Rendered as a panel
@@ -356,13 +403,18 @@ const testcasesExtension = {
     }
     testcasesRegistry.set(runId, cases);
 
+    // Row bodies (input/expected previews, downloads) are filled in at
+    // mount time by wireTestcases, straight from testcasesRegistry.
     const rows = cases
       .map(
         (c, i) => `
-      <div class="blog-testcase-row" data-tc-index="${i}">
-        <span class="blog-testcase-name">${esc(c.name || `Test ${i + 1}`)}</span>
-        <span class="blog-testcase-status" data-tc-status>not run</span>
-      </div>`,
+      <details class="blog-testcase-row" data-tc-index="${i}">
+        <summary class="blog-testcase-summary">
+          <span class="blog-testcase-name">${esc(c.name || `Test ${i + 1}`)}</span>
+          <span class="blog-testcase-status" data-tc-status>not run</span>
+        </summary>
+        <div class="blog-testcase-body" data-tc-body></div>
+      </details>`,
       )
       .join("");
 
@@ -370,7 +422,10 @@ const testcasesExtension = {
       <div class="blog-testcases-panel" data-testcases-for="${runId}">
         <div class="blog-testcases-head">
           <span class="blog-testcases-title">Test cases (${cases.length})</span>
-          <button type="button" class="blog-testcases-run-btn" data-tc-run disabled>Run all tests</button>
+          <span class="blog-testcases-actions">
+            <button type="button" class="blog-testcases-run-btn" data-tc-download-all>Download all (.zip)</button>
+            <button type="button" class="blog-testcases-run-btn" data-tc-run disabled>Run all tests</button>
+          </span>
         </div>
         <div class="blog-testcases-list">${rows}</div>
       </div>`;
@@ -497,7 +552,7 @@ const youtubeExtension = {
   },
 };
 
-marked.use({ renderer, breaks: false, gfm: true, extensions: [spoilerExtension, youtubeExtension, testcasesExtension, binVizExtension] });
+marked.use({ renderer, breaks: false, gfm: true, extensions: [spoilerExtension, calloutExtension, youtubeExtension, testcasesExtension, binVizExtension] });
 marked.use(markedKatex({ throwOnError: false, nonStandard: true }));
 
 export function renderMarkdown(md: string): string {
@@ -514,6 +569,7 @@ export function renderMarkdown(md: string): string {
       "rows", "placeholder", "hidden", "type", "open",
       "data-run-id", "data-run-action", "data-sitekey", // Data attributes explicitly allowed
       "data-copy-target", "data-testcases-for", "data-tc-run", "data-tc-index", "data-tc-status", "disabled",
+      "data-download-code", "data-anchor", "data-tc-body", "data-tc-download-all", "href", "aria-label",
       "data-binviz-canvas", "data-binviz-action", "data-binviz-status",
     ],
     USE_PROFILES: { html: true, svg: true, svgFilters: true, mathMl: true },
