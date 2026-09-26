@@ -49,6 +49,11 @@ export async function publishBlogPostToGithub(slug: string, content: string): Pr
   return callGithubPublish<{ path: string }>({ action: "publish_blog_post", slug, content });
 }
 
+/** Commits latex/<slug>.tex; the "Compile blog PDFs" workflow does the rest. */
+export async function publishLatexToGithub(slug: string, content: string): Promise<{ path: string }> {
+  return callGithubPublish<{ path: string }>({ action: "publish_latex", slug, content });
+}
+
 export async function publishProjectWriteupToGithub(id: string, content: string): Promise<{ path: string }> {
   return callGithubPublish<{ path: string }>({ action: "publish_project_writeup", id, content });
 }

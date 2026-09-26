@@ -15,7 +15,7 @@
 // rebuild yet.
 
 import { supabase, loadAllSiteImages, type DBSiteImage } from "../lib/supabase";
-import { publishBlogPostToGithub, uploadImageToGithub } from "../lib/admin-publish";
+import { publishBlogPostToGithub, uploadImageToGithub, publishLatexToGithub } from "../lib/admin-publish";
 import { renderMarkdownHelp } from "../lib/markdown-help";
 import { confirmDialog } from "../lib/confirm-dialog";
 import { BLOG_POSTS } from "../lib/blog";
@@ -135,17 +135,19 @@ export async function renderBlogEditor(el: HTMLElement): Promise<void> {
     <details class="admin-form-section admin-latex" id="be-latex" open>
       <summary><h3 style="display:inline;">LaTeX export</h3> <span class="edu-note">— for a typeset PDF of this post</span></summary>
       <ol class="admin-latex-steps">
-        <li>Click <b>Generate LaTeX</b>, then <b>Download Overleaf project (.zip)</b> — it holds <code>main.tex</code> and every image the post uses.</li>
-        <li>In Overleaf: <b>New Project → Upload Project</b>, pick the zip. It compiles as-is (pdfLaTeX, the default).</li>
-        <li>Download the PDF, then use <b>Upload PDF…</b> above and click <b>Update on GitHub</b>.</li>
+        <li><b>Automatic:</b> click <b>Compile &amp; publish PDF</b>. GitHub compiles it with TeX Live, attaches the PDF to the post and redeploys (~3 min). Progress shows below.</li>
+        <li><b>To tweak it by hand first:</b> <b>Open in Overleaf</b> (or <b>Download Overleaf project (.zip)</b> → Overleaf <b>New Project → Upload Project</b>), edit, download the PDF, then <b>Upload PDF…</b> above and <b>Update on GitHub</b>.</li>
       </ol>
       <p class="edu-note" style="margin-top:-0.3rem;">Updating an existing Overleaf project instead? Use <b>Copy</b> to replace <code>main.tex</code> and upload any new images from the list below.</p>
       <div class="admin-form-actions">
-        <button type="button" class="admin-btn admin-btn-primary" id="be-latex-gen">Generate LaTeX</button>
+        <button type="button" class="admin-btn admin-btn-primary" id="be-latex-compile">Compile &amp; publish PDF</button>
+        <button type="button" class="admin-btn" id="be-latex-gen">Generate LaTeX</button>
+        <button type="button" class="admin-btn" id="be-latex-overleaf">Open in Overleaf</button>
         <button type="button" class="admin-btn" id="be-latex-zip" disabled>Download Overleaf project (.zip)</button>
         <button type="button" class="admin-btn" id="be-latex-copy" disabled>Copy</button>
         <button type="button" class="admin-btn" id="be-latex-download" disabled>Download .tex</button>
       </div>
+      <div id="be-latex-progress" class="admin-latex-progress" hidden></div>
       <div id="be-latex-info"></div>
       <textarea id="be-latex-out" class="admin-editor-textarea admin-latex-out" readonly spellcheck="false" placeholder="Generated LaTeX appears here." style="display:none;"></textarea>
       <details class="admin-latex-rules">
@@ -355,6 +357,119 @@ export async function renderBlogEditor(el: HTMLElement): Promise<void> {
       latexZipBtn.textContent = label;
     }
   });
+  // ── Compile on GitHub Actions ────────────────────────────────────────────
+  const REPO_API = "https://api.github.com/repos/PriyanshuIITGHY2006/priyanshuiitghy2006.github.io";
+  const progressEl = el.querySelector<HTMLElement>("#be-latex-progress")!;
+  const compileBtn = el.querySelector<HTMLButtonElement>("#be-latex-compile")!;
+  let pollTimer: number | undefined;
+
+  function showProgress(html: string): void {
+    progressEl.hidden = false;
+    progressEl.innerHTML = html;
+  }
+
+  /** Polls the public Actions API for the newest run of a workflow created after `since`. */
+  async function latestRun(workflow: string, since: number): Promise<{ status: string; conclusion: string | null; html_url: string } | null> {
+    const res = await fetch(`${REPO_API}/actions/workflows/${workflow}/runs?branch=Website&per_page=5`, {
+      headers: { Accept: "application/vnd.github+json" },
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { workflow_runs: { status: string; conclusion: string | null; html_url: string; created_at: string }[] };
+    return data.workflow_runs.find((r) => Date.parse(r.created_at) >= since - 60_000) ?? null;
+  }
+
+  function watchCompile(slug: string, since: number): void {
+    window.clearTimeout(pollTimer);
+    let stage: "compile" | "deploy" = "compile";
+    let tries = 0;
+    const tick = async () => {
+      if (!progressEl.isConnected) return;
+      tries++;
+      try {
+        const run = await latestRun(stage === "compile" ? "latex-pdf.yml" : "static.yml", since);
+        const link = run ? ` <a href="${esc(run.html_url)}" target="_blank" rel="noopener">View log</a>` : "";
+        if (stage === "compile") {
+          if (!run) showProgress(`Waiting for GitHub to start compiling… <span class="edu-note">(${tries * 10}s)</span>`);
+          else if (run.status !== "completed") showProgress(`Compiling <b>${esc(slug)}</b> with TeX Live…${link}`);
+          else if (run.conclusion === "success") {
+            stage = "deploy";
+            pdfEl.value = `gallery-media/${slug}.pdf`;
+            showProgress(`PDF compiled and attached. Deploying the site…${link}`);
+          } else {
+            showProgress(`<span class="admin-latex-warn">Compile failed (${esc(run.conclusion ?? "unknown")}).</span>${link} — the LaTeX log is attached to the run as an artifact.`);
+            compileBtn.disabled = false;
+            return;
+          }
+        } else if (run && run.status === "completed") {
+          showProgress(
+            run.conclusion === "success"
+              ? `Done — the PDF is live. <a href="/blog?slug=${encodeURIComponent(slug)}" target="_blank" rel="noopener">Open the post</a> · <a href="/gallery-media/${encodeURIComponent(slug)}.pdf" target="_blank" rel="noopener">Open the PDF</a>`
+              : `<span class="admin-latex-warn">PDF committed, but the deploy failed.</span>${link}`,
+          );
+          compileBtn.disabled = false;
+          return;
+        }
+      } catch {
+        // Network hiccup or API rate limit — keep polling.
+      }
+      if (tries > 60) {
+        showProgress(`Still running after 10 minutes — check <a href="https://github.com/PriyanshuIITGHY2006/priyanshuiitghy2006.github.io/actions" target="_blank" rel="noopener">GitHub Actions</a>.`);
+        compileBtn.disabled = false;
+        return;
+      }
+      pollTimer = window.setTimeout(tick, 10_000);
+    };
+    void tick();
+  }
+
+  compileBtn.addEventListener("click", async () => {
+    const slug = editingSlug;
+    if (!slug) {
+      setStatus("Publish the post first (or open it with Edit) — the PDF is attached to an existing post.", false);
+      return;
+    }
+    await generateLatex();
+    if (!latexOut.value) return;
+    if (!(await confirmDialog(`Compile "${slug}" on GitHub and attach the PDF to the live post? This also commits the post's pdf: line.`))) return;
+    compileBtn.disabled = true;
+    try {
+      const since = Date.now();
+      await publishLatexToGithub(slug, latexOut.value);
+      showProgress("LaTeX committed. Waiting for GitHub to start compiling…");
+      watchCompile(slug, since);
+    } catch (err) {
+      setStatus("Compile error: " + (err instanceof Error ? err.message : String(err)), false);
+      compileBtn.disabled = false;
+    }
+  });
+
+  // ── Open in Overleaf (their documented POST form; images fetched by URL) ──
+  el.querySelector<HTMLButtonElement>("#be-latex-overleaf")!.addEventListener("click", async () => {
+    await generateLatex();
+    if (!latexOut.value) return;
+    const form = document.createElement("form");
+    form.method = "POST";
+    form.action = "https://www.overleaf.com/docs";
+    form.target = "_blank";
+    const add = (name: string, value: string) => {
+      const input = document.createElement("input");
+      input.type = "hidden";
+      input.name = name;
+      input.value = value;
+      form.appendChild(input);
+    };
+    add("encoded_snip[]", encodeURIComponent(latexOut.value));
+    add("snip_name[]", "main.tex");
+    for (const img of latexImages) {
+      add("snip_uri[]", new URL(`/${img.src}`, location.origin).href);
+      add("snip_name[]", img.file);
+    }
+    add("engine", "pdflatex");
+    document.body.appendChild(form);
+    form.submit();
+    form.remove();
+  });
+
   latexCopyBtn.addEventListener("click", async () => {
     try {
       await navigator.clipboard.writeText(latexOut.value);
