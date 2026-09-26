@@ -4,6 +4,9 @@ name: Build & deploy to Pages
 on:
   push:
     branches: ["Website"]
+    # LaTeX sources don't affect the site; latex-pdf.yml compiles them and
+    # dispatches this workflow once the PDF is committed.
+    paths-ignore: ["latex/**"]
   workflow_dispatch:
 
 permissions:
