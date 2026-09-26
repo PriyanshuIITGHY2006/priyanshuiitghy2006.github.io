@@ -132,7 +132,7 @@ export async function renderBlogEditor(el: HTMLElement): Promise<void> {
       </div>
     </div>
 
-    <details class="admin-form-section admin-latex" id="be-latex">
+    <details class="admin-form-section admin-latex" id="be-latex" open>
       <summary><h3 style="display:inline;">LaTeX export</h3> <span class="edu-note">— for a typeset PDF of this post</span></summary>
       <ol class="admin-latex-steps">
         <li>Click <b>Generate LaTeX</b> (uses the fields and Markdown above), then <b>Copy</b>.</li>
@@ -165,6 +165,7 @@ export async function renderBlogEditor(el: HTMLElement): Promise<void> {
 
     <div class="admin-form-actions" style="margin-top:0.8rem;">
       <button type="button" class="admin-btn admin-btn-primary" id="be-publish">Publish to GitHub</button>
+      <button type="button" class="admin-btn" id="be-latex-gen-bar">Generate LaTeX</button>
       <button type="button" class="admin-btn" id="be-copy">Copy markdown file</button>
       <button type="button" class="admin-btn" id="be-cancel-edit" style="display:none;">New post (cancel edit)</button>
       <span id="be-copy-path" class="edu-note" style="margin:0;"></span>
@@ -279,7 +280,7 @@ export async function renderBlogEditor(el: HTMLElement): Promise<void> {
   const latexInfo = el.querySelector<HTMLElement>("#be-latex-info")!;
   const latexCopyBtn = el.querySelector<HTMLButtonElement>("#be-latex-copy")!;
   const latexDownloadBtn = el.querySelector<HTMLButtonElement>("#be-latex-download")!;
-  el.querySelector<HTMLButtonElement>("#be-latex-gen")!.addEventListener("click", async () => {
+  async function generateLatex(): Promise<void> {
     const f = currentFields();
     const slug = editingSlug ?? (slugEl.value.trim() || slugify(titleEl.value));
     if (!f.title || !f.body.trim() || !slug) {
@@ -308,7 +309,12 @@ export async function renderBlogEditor(el: HTMLElement): Promise<void> {
       ? `<p><b>Check before compiling:</b></p><ul class="admin-latex-warn">${result.warnings.map((w) => `<li>${esc(w)}</li>`).join("")}</ul>`
       : "";
     latexInfo.innerHTML = images + warnings;
-  });
+    const panel = el.querySelector<HTMLDetailsElement>("#be-latex")!;
+    panel.open = true;
+    panel.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+  el.querySelector<HTMLButtonElement>("#be-latex-gen")!.addEventListener("click", () => void generateLatex());
+  el.querySelector<HTMLButtonElement>("#be-latex-gen-bar")!.addEventListener("click", () => void generateLatex());
   latexCopyBtn.addEventListener("click", async () => {
     try {
       await navigator.clipboard.writeText(latexOut.value);
@@ -440,7 +446,7 @@ export async function renderBlogEditor(el: HTMLElement): Promise<void> {
     }
   });
 
-  async function startEditing(slug: string): Promise<void> {
+  async function startEditing(slug: string): Promise<boolean> {
     setStatus(`Loading "${slug}"…`, true);
     try {
       const { readBlogPostFromGithub } = await import("../lib/admin-publish");
@@ -448,7 +454,7 @@ export async function renderBlogEditor(el: HTMLElement): Promise<void> {
       if (!exists) {
         setStatus("That post no longer exists on GitHub.", false);
         void refreshPostList();
-        return;
+        return false;
       }
       const { parseFrontmatter } = await import("../lib/blog");
       const { data, body } = parseFrontmatter(content);
@@ -475,8 +481,10 @@ export async function renderBlogEditor(el: HTMLElement): Promise<void> {
       enterEditMode(slug);
       setStatus(`Loaded "${slug}" for editing.`, true);
       el.querySelector("#be-composer-heading")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      return true;
     } catch (err) {
       setStatus("Load error: " + (err instanceof Error ? err.message : String(err)), false);
+      return false;
     }
   }
 
@@ -512,6 +520,7 @@ export async function renderBlogEditor(el: HTMLElement): Promise<void> {
             <td style="white-space:nowrap">${esc(p.date)}</td>
             <td style="white-space:nowrap">
               <button class="admin-btn" data-be-edit="${esc(p.slug)}">Edit</button>
+              <button class="admin-btn" data-be-latex="${esc(p.slug)}" title="Load this post and generate its LaTeX">LaTeX</button>
               <button class="admin-btn admin-btn-danger" data-be-del="${esc(p.slug)}">Delete</button>
             </td>
           </tr>`).join("")
@@ -519,6 +528,11 @@ export async function renderBlogEditor(el: HTMLElement): Promise<void> {
 
       postListEl.querySelectorAll<HTMLButtonElement>("[data-be-edit]").forEach((btn) => {
         btn.addEventListener("click", () => void startEditing(btn.dataset.beEdit!));
+      });
+      postListEl.querySelectorAll<HTMLButtonElement>("[data-be-latex]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          if (await startEditing(btn.dataset.beLatex!)) await generateLatex();
+        });
       });
       postListEl.querySelectorAll<HTMLButtonElement>("[data-be-del]").forEach((btn) => {
         btn.addEventListener("click", () => void deletePost(btn.dataset.beDel!, btn));
