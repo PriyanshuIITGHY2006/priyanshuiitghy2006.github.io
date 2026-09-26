@@ -21,7 +21,15 @@ export function notFound(handler: Handler): void {
 }
 
 function parse(): { path: string; params: URLSearchParams } {
-  return { path: location.pathname || "/", params: new URLSearchParams(location.search) };
+  // GitHub Pages redirects /blog?slug=x to /blog/?slug=x (dist/blog/ is a
+  // real directory of preview pages; same for /project), so treat a
+  // trailing slash as the same route and tidy the URL back.
+  let path = location.pathname || "/";
+  if (path.length > 1 && path.endsWith("/")) {
+    path = path.replace(/\/+$/, "") || "/";
+    history.replaceState(history.state, "", path + location.search + location.hash);
+  }
+  return { path, params: new URLSearchParams(location.search) };
 }
 
 function dispatch(): void {

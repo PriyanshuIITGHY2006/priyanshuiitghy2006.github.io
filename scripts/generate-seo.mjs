@@ -213,11 +213,15 @@ function sitemapXml(posts, projects) {
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${entries}\n</urlset>\n`;
 }
 
-// Real, crawlable index of every post at a static path (unlike the SPA's
-// client-routed /blogs, which needs JS), so search engines have genuine
-// content + internal
-// links to follow into each post rather than only a sitemap entry.
-function blogIndexHtml(posts) {
+// dist/blog/index.html. GitHub Pages serves this for every hard load of a
+// post URL: /blog?slug=x hits the dist/blog/ directory (it holds the
+// per-post preview pages), so Pages redirects to /blog/?slug=x and serves
+// this file. It must therefore boot the SPA itself (it's built from the
+// SPA's own index.html) instead of redirecting — the old version sent
+// every post link and every refresh to /blogs. With no ?slug it still
+// forwards to /blogs. Crawlers without JS get a real, linked post list in
+// <noscript>, plus Blog JSON-LD.
+function blogIndexHtml(posts, spaHtml) {
   const url = `${SITE_ORIGIN}/blog/`;
   const sorted = [...posts].sort((a, b) => (a.date && b.date ? (a.date < b.date ? 1 : -1) : a.date ? -1 : 1));
   const description =
@@ -226,10 +230,10 @@ function blogIndexHtml(posts) {
   const items = sorted
     .map(
       (p) => `
-      <li>
-        <a href="/blog/${escAttr(p.slug)}/">${escAttr(p.title)}</a>
-        ${p.excerpt ? `<p>${escAttr(p.excerpt)}</p>` : ""}
-      </li>`,
+        <li>
+          <a href="/blog/${escAttr(p.slug)}/">${escAttr(p.title)}</a>
+          ${p.excerpt ? `<p>${escAttr(p.excerpt)}</p>` : ""}
+        </li>`,
     )
     .join("");
 
@@ -247,38 +251,23 @@ function blogIndexHtml(posts) {
     })),
   };
 
-  return `<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Blog — Priyanshu Debnath</title>
-    <meta name="description" content="${escAttr(description)}" />
-    <link rel="canonical" href="${escAttr(url)}" />
-    <link rel="alternate" type="application/rss+xml" title="Priyanshu Debnath — Blog" href="${SITE_ORIGIN}/feed.xml" />
+  const headExtras = `
+    <script>if (!new URLSearchParams(location.search).has("slug")) location.replace("/blogs");</script>
+    <script type="application/ld+json">${JSON.stringify(jsonLd)}</script>`;
+  const noscript = `
+    <noscript>
+      <h1>Blog</h1>
+      <p>${escAttr(description)}</p>
+      <ul>${items}</ul>
+    </noscript>`;
 
-    <meta property="og:type" content="website" />
-    <meta property="og:title" content="Blog — Priyanshu Debnath" />
-    <meta property="og:description" content="${escAttr(description)}" />
-    <meta property="og:url" content="${escAttr(url)}" />
-
-    <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" content="Blog — Priyanshu Debnath" />
-    <meta name="twitter:description" content="${escAttr(description)}" />
-
-    <script type="application/ld+json">${JSON.stringify(jsonLd)}</script>
-
-    <meta http-equiv="refresh" content="0; url=/blogs" />
-    <script>location.replace("/blogs");</script>
-  </head>
-  <body>
-    <h1>Blog</h1>
-    <p>${escAttr(description)}</p>
-    <ul>${items}</ul>
-    <p>Redirecting to <a href="/blogs">the blog</a>…</p>
-  </body>
-</html>
-`;
+  return spaHtml
+    .replace(/<title>[\s\S]*?<\/title>/, "<title>Blog — Priyanshu Debnath</title>")
+    .replace(/<link rel="canonical" href="[^"]*"\s*\/?>/, `<link rel="canonical" href="${escAttr(url)}" />`)
+    .replace(/<meta property="og:url" content="[^"]*"\s*\/?>/, `<meta property="og:url" content="${escAttr(url)}" />`)
+    .replace(/<meta property="og:title" content="[^"]*"\s*\/?>/, `<meta property="og:title" content="Blog — Priyanshu Debnath" />`)
+    .replace("<head>", `<head>${headExtras}`)
+    .replace(/<body([^>]*)>/, `<body$1>${noscript}`);
 }
 
 function robotsTxt() {
@@ -328,7 +317,7 @@ async function main() {
   const projects = await loadProjects();
 
   mkdirSync(join(DIST, "blog"), { recursive: true });
-  writeFileSync(join(DIST, "blog", "index.html"), blogIndexHtml(posts), "utf-8");
+  writeFileSync(join(DIST, "blog", "index.html"), blogIndexHtml(posts, readFileSync(join(DIST, "index.html"), "utf-8")), "utf-8");
 
   for (const post of posts) {
     const dir = join(DIST, "blog", post.slug);
