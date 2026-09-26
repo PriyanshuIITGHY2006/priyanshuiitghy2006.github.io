@@ -1,5 +1,6 @@
 import { resume } from "../data/resume";
 import { LINKS } from "../data/links";
+import { mountLandingWebgl } from "../lib/landing-webgl";
 
 const FORMSPREE_ENDPOINT = "https://formspree.io/f/xwvdajbr";
 
@@ -104,6 +105,7 @@ function pageHtml(): string {
 
 export function mountAbout(container: HTMLElement): void {
   container.innerHTML = pageHtml();
+  mountLandingWebgl(container.querySelector<HTMLElement>(".about-page")!);
 
   const form = container.querySelector<HTMLFormElement>("#contact-form");
   const status = container.querySelector<HTMLElement>("#contact-status");
