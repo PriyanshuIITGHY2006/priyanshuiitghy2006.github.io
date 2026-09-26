@@ -61,8 +61,20 @@ function commonSections(): string {
     <p>Immediately after a <code>runnable</code> code block, a <code>:::testcases</code> block adds a "Run all tests" panel. Body is a JSON array of <code>{ name?, input, expected }</code> — stdout is diffed against <code>expected</code> (trimmed) after feeding <code>input</code> to stdin.</p>
     ${example(':::testcases\n[\n  { "name": "basic", "input": "3\\n1 2 3", "expected": "6" }\n]\n:::')}
   </div>
-    <p>Each case expands to show its input and expected output, truncated with a download link when large; readers can also download every case as a .zip or load an input into stdin. For big cases, upload the files and reference them with <code>inputUrl</code> / <code>expectedUrl</code> instead of inlining them — they're fetched only when needed.</p>
+    <p>Each case expands to show its input and expected output, truncated with a download link when large; readers can also download every case as a .zip load an input into stdin, run a single case, or add their own tests. For big cases, upload the files and reference them with <code>inputUrl</code> / <code>expectedUrl</code> instead of inlining them — they're fetched only when needed.</p>
     ${example(':::testcases\n[\n  { "name": "max n", "inputUrl": "blog-media/my-post/big.in.txt", "expectedUrl": "blog-media/my-post/big.ans.txt" }\n]\n:::')}
+  </div>
+
+  <div class="admin-help-section">
+    <h4>Code tabs</h4>
+    <p>Wrap several fenced blocks in <code>:::tabs</code> to show them one at a time. Tabs are named after the language, or <code>label=Name</code> (underscores become spaces). A reader's choice, e.g. Python, sticks across every tab group.</p>
+    ${example(':::tabs\n```cpp\n// C++ version\n```\n```py label=Brute_force\n# Python version\n```\n:::')}
+  </div>
+
+  <div class="admin-help-section">
+    <h4>Problem card</h4>
+    <p>A header card for the problem a post is about. All fields are optional.</p>
+    ${example(':::problem\ntitle: E. Vlad, Misha and Two Arrays\nurl: https://codeforces.com/problemset/problem/...\nsource: Codeforces Round 1102 (Div. 2)\nrating: 2100\nlimits: 2 s · 256 MB\ntags: divide and conquer, combinatorics\n:::')}
   </div>
 
   <div class="admin-help-section">
@@ -96,7 +108,7 @@ function commonSections(): string {
 
   <div class="admin-help-section">
     <h4>Images</h4>
-    <p>Upload via the Images tab (or the inline "Upload new…" button where available) first, then reference the path it gives you, relative to the site root — e.g. <code>![Diagram](gallery-media/diagram.png)</code>.</p>
+    <p>Readers can click any image to view it full size. Upload via the Images tab (or the inline "Upload new…" button where available) first, then reference the path it gives you, relative to the site root — e.g. <code>![Diagram](gallery-media/diagram.png)</code>.</p>
   </div>`;
 }
 

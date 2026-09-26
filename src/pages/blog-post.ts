@@ -277,6 +277,8 @@ export function mountBlogPost(container: HTMLElement, slug: string | null): void
   wireCopyButtons(container);
   wireCodeDownloads(container);
   wireHeadingAnchors(container);
+  wireTabs(container);
+  wireLightbox(container);
   wireToc(container);
   wireProgressBar(container);
   wireShareButtons(container);
@@ -361,20 +363,35 @@ function previewBlockHtml(label: string, text: string, kind: string): string {
     </div>`;
 }
 
+function testcaseRowHtml(name: string, i: number, custom = false): string {
+  return `
+    <details class="blog-testcase-row" data-tc-index="${i}">
+      <summary class="blog-testcase-summary">
+        <span class="blog-testcase-name">${esc(name)}${custom ? ` <span class="blog-tc-badge">custom</span>` : ""}</span>
+        <span class="blog-testcase-status" data-tc-status>not run</span>
+        <button type="button" class="blog-tc-link blog-tc-run-one" data-tc-run-one disabled>Run</button>
+      </summary>
+      <div class="blog-testcase-body" data-tc-body></div>
+    </details>`;
+}
+
 function wireTestcases(container: HTMLElement): void {
   container.querySelectorAll<HTMLElement>(".blog-testcases-panel").forEach((panel) => {
     const runId = panel.dataset.testcasesFor;
     const runBtn = panel.querySelector<HTMLButtonElement>("[data-tc-run]");
-    if (!runId || !runBtn) return;
-    const cases = testcasesRegistry.get(runId);
-    if (!cases || !cases.length) return;
+    const list = panel.querySelector<HTMLElement>(".blog-testcases-list");
+    if (!runId || !runBtn || !list) return;
+    const cases = [...(testcasesRegistry.get(runId) ?? [])];
+    if (!cases.length) return;
 
     const runPanel = container.querySelector<HTMLElement>(`.blog-run-panel[data-run-id="${runId}"]`);
     const stdinInput = runPanel?.querySelector<HTMLTextAreaElement>(".blog-run-stdin-input");
-    const rows = panel.querySelectorAll<HTMLDetailsElement>(".blog-testcase-row");
-    const loaders = cases.map(makeCaseLoader);
-    const outputs: (string | null)[] = cases.map(() => null);
+    const title = panel.querySelector<HTMLElement>(".blog-testcases-title");
+    const rows: HTMLDetailsElement[] = [];
+    const loaders: (() => Promise<TestCaseData>)[] = [];
+    const outputs: (string | null)[] = [];
     const fileBase = (i: number) => `test${String(i + 1).padStart(2, "0")}`;
+    let busy = false;
 
     const renderBody = async (i: number) => {
       const body = rows[i]?.querySelector<HTMLElement>("[data-tc-body]");
@@ -394,12 +411,89 @@ function wireTestcases(container: HTMLElement): void {
       }
     };
 
-    rows.forEach((row, i) => {
+    const setRowRunDisabled = (disabled: boolean) =>
+      rows.forEach((r) => {
+        const b = r.querySelector<HTMLButtonElement>("[data-tc-run-one]");
+        if (b) b.disabled = disabled;
+      });
+    const setRunButtonsDisabled = (disabled: boolean) => {
+      if (runBtn.disabled !== disabled) runBtn.disabled = disabled;
+      rows.forEach((r) => {
+        const b = r.querySelector<HTMLButtonElement>("[data-tc-run-one]");
+        if (b) b.disabled = disabled;
+      });
+    };
+
+    /** Runs case i; returns false if the reader must re-verify (stop the batch). */
+    const runCase = async (i: number, sourceCode: string, compilerId: string): Promise<boolean> => {
+      const statusEl = rows[i]?.querySelector<HTMLElement>("[data-tc-status]");
+      if (statusEl) {
+        statusEl.textContent = "running…";
+        statusEl.className = "blog-testcase-status";
+      }
+      try {
+        const { input, expected } = await loaders[i]();
+        const result = await executeCode(runPanel, compilerId, sourceCode, input);
+        const actual = (result.output ?? "").trim();
+        outputs[i] = actual;
+        const pass = result.status !== "error" && firstDiff(expected.trim(), actual) === null;
+        if (statusEl) {
+          const time = result.time ? ` · ${result.time}s` : "";
+          statusEl.textContent = pass ? `passed${time}` : result.status === "error" ? `error${time}` : `failed${time}`;
+          statusEl.className = `blog-testcase-status ${pass ? "tc-pass" : "tc-fail"}`;
+        }
+        if (!pass) rows[i].open = true;
+        if (rows[i].open) void renderBody(i);
+        return true;
+      } catch (err) {
+        if (statusEl) {
+          statusEl.textContent = `error: ${err instanceof Error ? err.message : "unknown"}`;
+          statusEl.className = "blog-testcase-status tc-fail";
+        }
+        if (err instanceof VerificationRequiredError) {
+          runPanel?.dispatchEvent(
+            new CustomEvent("blog-run-verify", { detail: "Please verify you're human again to keep running test cases." }),
+          );
+          return false;
+        }
+        return true;
+      }
+    };
+
+    const runCases = async (indices: number[]) => {
+      const block = codeBlocksRegistry.get(runId);
+      if (!block || !block.compilerId || busy) return;
+      const editor = editorInstances.get(runId);
+      const sourceCode = editor ? editor.getValue() : block.code;
+      busy = true;
+      setRunButtonsDisabled(true);
+      const originalLabel = runBtn.textContent;
+      runBtn.textContent = "Running…";
+      for (const i of indices) {
+        if (!(await runCase(i, sourceCode, block.compilerId))) break;
+      }
+      const done = rows.filter((r) => r.querySelector(".tc-pass, .tc-fail"));
+      const passed = rows.filter((r) => r.querySelector(".tc-pass")).length;
+      if (title) title.textContent = `Test cases (${cases.length})${done.length ? ` · ${passed}/${done.length} passed` : ""}`;
+      runBtn.textContent = originalLabel;
+      busy = false;
+      setRunButtonsDisabled(false);
+    };
+
+    const attachRow = (row: HTMLDetailsElement, i: number) => {
+      rows[i] = row;
+      loaders[i] = makeCaseLoader(cases[i]);
+      outputs[i] = null;
       row.addEventListener("toggle", () => {
         if (row.open) void renderBody(i);
       });
       row.addEventListener("click", async (e) => {
         const target = e.target as HTMLElement;
+        if (target.hasAttribute("data-tc-run-one")) {
+          e.preventDefault(); // don't toggle the <details>
+          void runCases([i]);
+          return;
+        }
         const kind = target.dataset.tcDl;
         if (kind) {
           const { input, expected } = await loaders[i]();
@@ -411,6 +505,40 @@ function wireTestcases(container: HTMLElement): void {
           stdinInput.scrollIntoView({ behavior: "smooth", block: "center" });
         }
       });
+    };
+
+    list.querySelectorAll<HTMLDetailsElement>(".blog-testcase-row").forEach((row, i) => attachRow(row, i));
+
+    // Run buttons unlock together with the main Run button (after verification).
+    // Only touches the row buttons, never runBtn itself, so it can't re-trigger.
+    new MutationObserver(() => {
+      if (!busy) setRowRunDisabled(runBtn.disabled);
+    }).observe(runBtn, { attributes: true, attributeFilter: ["disabled"] });
+
+    // Reader-added test cases (kept for this page view only).
+    const adder = document.createElement("details");
+    adder.className = "blog-tc-adder";
+    adder.innerHTML = `
+      <summary>+ Add your own test</summary>
+      <div class="blog-tc-adder-body">
+        <label>Input<textarea rows="4" data-tc-new-input spellcheck="false"></textarea></label>
+        <label>Expected output<textarea rows="3" data-tc-new-expected spellcheck="false"></textarea></label>
+        <button type="button" class="blog-testcases-run-btn" data-tc-add>Add test</button>
+      </div>`;
+    panel.appendChild(adder);
+    adder.querySelector<HTMLButtonElement>("[data-tc-add]")?.addEventListener("click", () => {
+      const inputEl = adder.querySelector<HTMLTextAreaElement>("[data-tc-new-input]")!;
+      const expectedEl = adder.querySelector<HTMLTextAreaElement>("[data-tc-new-expected]")!;
+      if (!inputEl.value.trim() && !expectedEl.value.trim()) return;
+      const i = cases.length;
+      cases.push({ name: `Custom ${i + 1}`, input: inputEl.value, expected: expectedEl.value });
+      list.insertAdjacentHTML("beforeend", testcaseRowHtml(`Custom ${i + 1}`, i, true));
+      attachRow(list.lastElementChild as HTMLDetailsElement, i);
+      setRowRunDisabled(runBtn.disabled);
+      if (title) title.textContent = `Test cases (${cases.length})`;
+      inputEl.value = "";
+      expectedEl.value = "";
+      adder.open = false;
     });
 
     panel.querySelector<HTMLButtonElement>("[data-tc-download-all]")?.addEventListener("click", async (e) => {
@@ -430,54 +558,7 @@ function wireTestcases(container: HTMLElement): void {
       }
     });
 
-    runBtn.addEventListener("click", async () => {
-      const block = codeBlocksRegistry.get(runId);
-      if (!block || !block.compilerId) return;
-      const editor = editorInstances.get(runId);
-      const sourceCode = editor ? editor.getValue() : block.code;
-
-      runBtn.disabled = true;
-      const originalLabel = runBtn.textContent;
-      runBtn.textContent = "Running…";
-
-      for (let i = 0; i < cases.length; i++) {
-        const statusEl = rows[i]?.querySelector<HTMLElement>("[data-tc-status]");
-        if (statusEl) {
-          statusEl.textContent = "running…";
-          statusEl.className = "blog-testcase-status";
-        }
-        try {
-          const { input, expected } = await loaders[i]();
-          const result = await executeCode(runPanel, block.compilerId, sourceCode, input);
-          const actual = (result.output ?? "").trim();
-          outputs[i] = actual;
-          const pass = result.status !== "error" && firstDiff(expected.trim(), actual) === null;
-          if (statusEl) {
-            const time = result.time ? ` · ${result.time}s` : "";
-            statusEl.textContent = pass ? `passed${time}` : result.status === "error" ? `error${time}` : `failed${time}`;
-            statusEl.className = `blog-testcase-status ${pass ? "tc-pass" : "tc-fail"}`;
-          }
-          if (rows[i]?.open || !pass) {
-            if (!pass) rows[i].open = true;
-            void renderBody(i);
-          }
-        } catch (err) {
-          if (statusEl) {
-            statusEl.textContent = `error: ${err instanceof Error ? err.message : "unknown"}`;
-            statusEl.className = "blog-testcase-status tc-fail";
-          }
-          if (err instanceof VerificationRequiredError) {
-            runPanel?.dispatchEvent(
-              new CustomEvent("blog-run-verify", { detail: "Please verify you're human again to keep running test cases." }),
-            );
-            break;
-          }
-        }
-      }
-
-      runBtn.disabled = false;
-      runBtn.textContent = originalLabel;
-    });
+    runBtn.addEventListener("click", () => void runCases(cases.map((_, i) => i)));
   });
 }
 
@@ -500,6 +581,82 @@ function wireCodeDownloads(container: HTMLElement): void {
       const ext = CODE_EXTENSIONS[(block?.language ?? "").toLowerCase()] ?? "txt";
       downloadText(text, `${block?.language === "java" ? "Main" : "solution"}.${ext}`);
     });
+  });
+}
+
+// ─── Tabs (the chosen label, e.g. "Python", applies to every tab group) ────
+
+const TAB_PREF_KEY = "blog-tab-pref";
+
+function wireTabs(container: HTMLElement): void {
+  const groups = [...container.querySelectorAll<HTMLElement>(".blog-tabs")];
+  if (!groups.length) return;
+
+  const select = (group: HTMLElement, index: number) => {
+    group.querySelectorAll<HTMLButtonElement>(".blog-tab").forEach((b, i) => b.classList.toggle("active", i === index));
+    group.querySelectorAll<HTMLElement>(":scope > .blog-tab-panel").forEach((p, i) => (p.hidden = i !== index));
+  };
+  const applyLabel = (label: string) => {
+    groups.forEach((g) => {
+      const idx = [...g.querySelectorAll<HTMLButtonElement>(".blog-tab")].findIndex((b) => b.dataset.tabLabel === label);
+      if (idx !== -1) select(g, idx);
+    });
+  };
+
+  groups.forEach((g) => {
+    g.querySelectorAll<HTMLButtonElement>(".blog-tab").forEach((btn, i) => {
+      btn.addEventListener("click", () => {
+        const label = btn.dataset.tabLabel ?? "";
+        select(g, i);
+        applyLabel(label);
+        try {
+          localStorage.setItem(TAB_PREF_KEY, label);
+        } catch {
+          // Storage unavailable — the choice just won't persist.
+        }
+      });
+    });
+  });
+
+  try {
+    const saved = localStorage.getItem(TAB_PREF_KEY);
+    if (saved) applyLabel(saved);
+  } catch {
+    // ignore
+  }
+}
+
+// ─── Image lightbox ─────────────────────────────────────────────────────────
+
+function wireLightbox(container: HTMLElement): void {
+  const content = container.querySelector<HTMLElement>("#blog-content");
+  if (!content) return;
+  content.addEventListener("click", (e) => {
+    const img = (e.target as HTMLElement).closest<HTMLImageElement>("img");
+    if (!img || img.closest("a")) return;
+    const overlay = document.createElement("div");
+    overlay.className = "blog-lightbox";
+    overlay.setAttribute("role", "dialog");
+    overlay.setAttribute("aria-label", img.alt || "Image");
+    const big = document.createElement("img");
+    big.src = img.currentSrc || img.src;
+    big.alt = img.alt;
+    overlay.appendChild(big);
+    if (img.alt) {
+      const caption = document.createElement("p");
+      caption.textContent = img.alt;
+      overlay.appendChild(caption);
+    }
+    const close = () => {
+      overlay.remove();
+      document.removeEventListener("keydown", onKey);
+    };
+    const onKey = (ev: KeyboardEvent) => {
+      if (ev.key === "Escape") close();
+    };
+    overlay.addEventListener("click", close);
+    document.addEventListener("keydown", onKey);
+    document.body.appendChild(overlay);
   });
 }
 

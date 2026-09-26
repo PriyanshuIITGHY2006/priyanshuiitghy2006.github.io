@@ -280,8 +280,8 @@ renderer.code = ({ text, lang }: Tokens.Code): string => {
 
   return `
     <div class="blog-code-block" style="position: relative; margin-bottom: 1.5rem;">
-      ${langLabel}
       <div class="blog-code-actions">
+        ${langLabel}
         <button type="button" class="blog-code-copy-btn" data-download-code="${id}" aria-label="Download code">Download</button>
         <button type="button" class="blog-code-copy-btn" data-copy-target="${id}" aria-label="Copy code">Copy</button>
       </div>
@@ -365,6 +365,99 @@ const calloutExtension = {
   },
 };
 
+// ─── Tabs: several code blocks shown one at a time ──────────────────────────
+// :::tabs wrapping fenced blocks; each tab is labelled by `label=Name` in the
+// fence info string, else by the language (```py label=Brute force).
+const LANG_LABELS: Record<string, string> = {
+  cpp: "C++", "c++": "C++", c: "C", python: "Python", py: "Python", java: "Java",
+  javascript: "JavaScript", js: "JavaScript", typescript: "TypeScript", ts: "TypeScript",
+  rust: "Rust", go: "Go", bash: "Bash", sh: "Shell", sql: "SQL",
+};
+
+interface TabsToken extends Tokens.Generic {
+  type: "tabs";
+  tokens: Tokens.Generic[];
+}
+
+let tabsCounter = 0;
+
+const tabsExtension = {
+  name: "tabs",
+  level: "block" as const,
+  start(src: string): number | undefined {
+    const idx = src.indexOf(":::tabs");
+    return idx === -1 ? undefined : idx;
+  },
+  tokenizer(this: { lexer: { blockTokens: (s: string, t: Tokens.Generic[]) => void } }, src: string) {
+    const match = /^:::tabs[ \t]*\n([\s\S]*?)\n:::(?:\n|$)/.exec(src);
+    if (!match) return undefined;
+    const token: TabsToken = { type: "tabs", raw: match[0], tokens: [] };
+    this.lexer.blockTokens(match[1], token.tokens);
+    return token;
+  },
+  renderer(this: { parser: { parse: (t: Tokens.Generic[]) => string } }, token: Tokens.Generic): string {
+    const t = token as TabsToken;
+    const blocks = t.tokens.filter((tok) => tok.type === "code") as Tokens.Code[];
+    if (!blocks.length) return this.parser.parse(t.tokens);
+    const group = `tabs-${++tabsCounter}`;
+    const labels = blocks.map((b) => {
+      const parts = (b.lang || "").trim().split(/\s+/);
+      const custom = parts.find((x) => x.startsWith("label="));
+      return custom ? custom.slice(6).replace(/_/g, " ") : LANG_LABELS[parts[0]?.toLowerCase()] ?? (parts[0] || "Code");
+    });
+    const bar = labels
+      .map((l, i) => `<button type="button" class="blog-tab${i === 0 ? " active" : ""}" data-tab-group="${group}" data-tab-index="${i}" data-tab-label="${esc(l)}">${esc(l)}</button>`)
+      .join("");
+    const panels = blocks
+      .map((b, i) => `<div class="blog-tab-panel" data-tab-panel="${i}"${i === 0 ? "" : " hidden"}>${this.parser.parse([b as unknown as Tokens.Generic])}</div>`)
+      .join("");
+    return `<div class="blog-tabs" id="${group}"><div class="blog-tabs-bar">${bar}</div>${panels}</div>`;
+  },
+};
+
+// ─── Problem card ───────────────────────────────────────────────────────────
+// :::problem with `key: value` lines — title, url, source, rating, tags, limits.
+interface ProblemToken extends Tokens.Generic {
+  type: "problem";
+  fields: Record<string, string>;
+}
+
+const problemExtension = {
+  name: "problem",
+  level: "block" as const,
+  start(src: string): number | undefined {
+    const idx = src.indexOf(":::problem");
+    return idx === -1 ? undefined : idx;
+  },
+  tokenizer(src: string) {
+    const match = /^:::problem[ \t]*\n([\s\S]*?)\n:::(?:\n|$)/.exec(src);
+    if (!match) return undefined;
+    const fields: Record<string, string> = {};
+    for (const line of match[1].split("\n")) {
+      const idx = line.indexOf(":");
+      if (idx > 0) fields[line.slice(0, idx).trim().toLowerCase()] = line.slice(idx + 1).trim();
+    }
+    const token: ProblemToken = { type: "problem", raw: match[0], fields };
+    return token;
+  },
+  renderer(token: Tokens.Generic): string {
+    const f = (token as ProblemToken).fields;
+    const url = /^https?:\/\//.test(f.url ?? "") ? f.url : "";
+    const title = esc(f.title || "Problem");
+    const tags = (f.tags ?? "").split(",").map((x) => x.trim()).filter(Boolean);
+    const meta = [f.source, f.limits].filter(Boolean).map((m) => `<span>${esc(m!)}</span>`).join("");
+    return `
+      <div class="blog-problem">
+        <div class="blog-problem-head">
+          ${url ? `<a class="blog-problem-title" href="${esc(url)}" target="_blank" rel="noopener">${title}</a>` : `<span class="blog-problem-title">${title}</span>`}
+          ${f.rating ? `<span class="blog-problem-rating">${esc(f.rating)}</span>` : ""}
+        </div>
+        ${meta ? `<div class="blog-problem-meta">${meta}</div>` : ""}
+        ${tags.length ? `<div class="blog-problem-tags">${tags.map((t) => `<span>${esc(t)}</span>`).join("")}</div>` : ""}
+      </div>`;
+  },
+};
+
 // ─── Test-case panels ─────────────────────────────────────────────────────────
 // A `:::testcases` block must come right after a ```lang runnable``` block.
 // Its body is a JSON array of { name?, input, expected }. Rendered as a panel
@@ -412,6 +505,7 @@ const testcasesExtension = {
         <summary class="blog-testcase-summary">
           <span class="blog-testcase-name">${esc(c.name || `Test ${i + 1}`)}</span>
           <span class="blog-testcase-status" data-tc-status>not run</span>
+          <button type="button" class="blog-tc-link blog-tc-run-one" data-tc-run-one disabled>Run</button>
         </summary>
         <div class="blog-testcase-body" data-tc-body></div>
       </details>`,
@@ -552,11 +646,12 @@ const youtubeExtension = {
   },
 };
 
-marked.use({ renderer, breaks: false, gfm: true, extensions: [spoilerExtension, calloutExtension, youtubeExtension, testcasesExtension, binVizExtension] });
+marked.use({ renderer, breaks: false, gfm: true, extensions: [spoilerExtension, calloutExtension, tabsExtension, problemExtension, youtubeExtension, testcasesExtension, binVizExtension] });
 marked.use(markedKatex({ throwOnError: false, nonStandard: true }));
 
 export function renderMarkdown(md: string): string {
   lastRunnableBlockId = null;
+  tabsCounter = 0;
   headingSlugCounts.clear();
   currentToc = [];
   const html = marked.parse(md, { async: false }) as string;
@@ -569,7 +664,7 @@ export function renderMarkdown(md: string): string {
       "rows", "placeholder", "hidden", "type", "open",
       "data-run-id", "data-run-action", "data-sitekey", // Data attributes explicitly allowed
       "data-copy-target", "data-testcases-for", "data-tc-run", "data-tc-index", "data-tc-status", "disabled",
-      "data-download-code", "data-anchor", "data-tc-body", "data-tc-download-all", "href", "aria-label",
+      "data-download-code", "data-anchor", "data-tc-run-one", "data-tab-group", "data-tab-index", "data-tab-label", "data-tab-panel", "data-tc-body", "data-tc-download-all", "href", "aria-label",
       "data-binviz-canvas", "data-binviz-action", "data-binviz-status",
     ],
     USE_PROFILES: { html: true, svg: true, svgFilters: true, mathMl: true },
