@@ -150,6 +150,24 @@ Deno.serve(async (req) => {
       return json({ ok: true, path });
     }
 
+    // Blog post LaTeX source. The "Compile blog PDFs" workflow picks up any
+    // change under latex/, compiles it with TeX Live and commits the PDF.
+    if (body.action === "publish_latex") {
+      const slug: unknown = body.slug;
+      const content: unknown = body.content;
+      if (typeof slug !== "string" || typeof content !== "string" || !slug || !content) {
+        return json({ error: "slug and content are required" }, 400);
+      }
+      if (!/^[a-z0-9-]+$/.test(slug)) {
+        return json({ error: "slug must contain only lowercase letters, digits, and hyphens" }, 400);
+      }
+      if (content.length > 2_000_000) {
+        return json({ error: "LaTeX source is too large" }, 400);
+      }
+      const { path } = await putFile(`latex/${slug}.tex`, utf8ToBase64(content), `Compile PDF for blog post: ${slug}`);
+      return json({ ok: true, path });
+    }
+
     if (body.action === "publish_project_writeup") {
       const id: unknown = body.id;
       const content: unknown = body.content;

@@ -1,0 +1,119 @@
+# Compiles blog post PDFs. Admin's "Compile & publish PDF" commits
+# latex/<slug>.tex (generated from the post); this job typesets it with
+# TeX Live (pdfLaTeX, same engine as Overleaf), commits the PDF to
+# public/gallery-media/<slug>.pdf, sets `pdf:` in the post's frontmatter,
+# then triggers the Pages deploy (commits made with GITHUB_TOKEN don't
+# trigger other workflows on their own).
+name: Compile blog PDFs
+
+on:
+  push:
+    branches: ["Website"]
+    paths: ["latex/*.tex"]
+  workflow_dispatch:
+    inputs:
+      slug:
+        description: "Post slug to compile (leave blank for all)"
+        required: false
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: latex-pdf
+  cancel-in-progress: false
+
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Pick .tex files
+        id: pick
+        env:
+          EVENT: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+          SHA: ${{ github.sha }}
+          SLUG: ${{ inputs.slug }}
+        run: |
+          if [ "$EVENT" = "push" ] && git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            files=$(git diff --name-only --diff-filter=AM "$BEFORE" "$SHA" -- 'latex/*.tex')
+          elif [ -n "$SLUG" ]; then
+            files="latex/$SLUG.tex"
+          else
+            files=$(ls latex/*.tex 2>/dev/null || true)
+          fi
+          echo "files=$(echo $files)" >> "$GITHUB_OUTPUT"
+          echo "Compiling: ${files:-nothing}"
+
+      - name: Pull TeX Live
+        if: steps.pick.outputs.files != ''
+        run: docker pull texlive/texlive:latest
+
+      - name: Compile
+        if: steps.pick.outputs.files != ''
+        env:
+          FILES: ${{ steps.pick.outputs.files }}
+        run: |
+          set -euo pipefail
+          for f in $FILES; do
+            slug=$(basename "$f" .tex)
+            if ! [[ "$slug" =~ ^[a-z0-9-]+$ ]] || [ ! -f "$f" ]; then
+              echo "::warning::Skipping $f"
+              continue
+            fi
+            dir="build/$slug"
+            mkdir -p "$dir"
+            cp "$f" "$dir/main.tex"
+            # Images the post uses are listed as "%! image: <path under public/>".
+            grep -oP '^%! image: \K.+' "$f" | while IFS= read -r src; do
+              cp "public/$src" "$dir/" || echo "::warning::Missing image public/$src"
+            done
+            echo "::group::latexmk $slug"
+            docker run --rm -v "$PWD/$dir:/work" -w /work texlive/texlive:latest \
+              latexmk -pdf -interaction=nonstopmode -halt-on-error main.tex
+            echo "::endgroup::"
+            mkdir -p public/gallery-media
+            cp "$dir/main.pdf" "public/gallery-media/$slug.pdf"
+            node scripts/set-frontmatter.mjs "src/data/blogs/$slug.md" pdf "gallery-media/$slug.pdf"
+          done
+
+      - name: Upload LaTeX logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: latex-logs
+          path: build/**/main.log
+
+      - name: Commit PDFs
+        id: commit
+        if: steps.pick.outputs.files != ''
+        env:
+          FILES: ${{ steps.pick.outputs.files }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git add public/gallery-media/*.pdf src/data/blogs/*.md
+          if git diff --cached --quiet; then
+            echo "Nothing changed."
+            exit 0
+          fi
+          git commit -m "Compile blog PDF(s): $FILES"
+          for i in 1 2 3; do
+            git pull --rebase origin Website && git push origin HEAD:Website && echo "pushed=true" >> "$GITHUB_OUTPUT" && exit 0
+            sleep $((i * 5))
+          done
+          echo "::error::Could not push the compiled PDF"
+          exit 1
+
+      - name: Deploy site
+        if: steps.commit.outputs.pushed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run static.yml --ref Website

@@ -210,7 +210,7 @@ function imageLatex(href: string, alt: string, c: Ctx, inlineCtx: boolean): stri
     return alt ? `\\emph{[Image: ${c.text(alt)}]}` : "";
   }
   const src = href.replace(/^\//, "");
-  const file = decodeURIComponent(src.split("/").pop() || src);
+  const file = safeDecode(src.split("/").pop() || src);
   if (!/\.(png|jpe?g|pdf)$/i.test(file)) {
     c.warnings.add(`"${file}" is not PNG/JPG/PDF — convert it before uploading to Overleaf.`);
   }
@@ -401,6 +401,14 @@ function block(t: Token, c: Ctx): string {
   }
 }
 
+function safeDecode(s: string): string {
+  try {
+    return decodeURIComponent(s);
+  } catch {
+    return s;
+  }
+}
+
 // ─── Document ───────────────────────────────────────────────────────────────
 
 const PREAMBLE = String.raw`\documentclass[11pt,a4paper]{article}
@@ -508,9 +516,11 @@ export function blogToLatex(markdown: string, meta: LatexPostMeta): LatexExport 
     "\\noindent{\\color{rule}\\rule{\\linewidth}{0.5pt}}",
   ].filter(Boolean).join("\n");
 
+  // "%! image:" lines tell the compile workflow which repo files to copy in.
+  const imageLines = c.images.map((i) => `%! image: ${safeDecode(i.src)}`).join("\n");
   const tex = `% Generated from ${url}
 % Compile with pdfLaTeX (Overleaf default). Upload the images listed in the admin panel.
-${PREAMBLE}
+${imageLines ? `${imageLines}\n` : ""}${PREAMBLE}
 \\pagestyle{fancy}
 \\fancyhf{}
 \\fancyhead[L]{\\footnotesize\\color{muted} ${c.text(shortTitle)}}

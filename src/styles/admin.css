@@ -357,3 +357,13 @@
 .admin-latex-rules li { margin: 0.25rem 0; }
 #be-latex-info { font-size: 0.88em; margin-top: 0.6rem; }
 #be-latex-info ul { margin: 0.3rem 0 0.6rem; padding-left: 1.2rem; }
+.admin-latex-progress {
+  margin-top: 0.7rem;
+  padding: 0.55rem 0.8rem;
+  border: 0.6px solid var(--border);
+  border-left: 3px solid var(--ink);
+  border-radius: 4px;
+  font-size: 0.88em;
+  background: var(--bg-card, transparent);
+}
+#be-latex .admin-form-actions { flex-wrap: wrap; }
