@@ -135,13 +135,14 @@ export async function renderBlogEditor(el: HTMLElement): Promise<void> {
     <details class="admin-form-section admin-latex" id="be-latex" open>
       <summary><h3 style="display:inline;">LaTeX export</h3> <span class="edu-note">— for a typeset PDF of this post</span></summary>
       <ol class="admin-latex-steps">
-        <li>Click <b>Generate LaTeX</b> (uses the fields and Markdown above), then <b>Copy</b>.</li>
-        <li>In Overleaf: New Project → Blank Project, replace <code>main.tex</code> with the copied code. Keep the compiler on <b>pdfLaTeX</b> (the default).</li>
-        <li>Upload the images listed below into the Overleaf project (same file names, project root).</li>
-        <li>Recompile, download the PDF, then use <b>Upload PDF…</b> above and click <b>Update on GitHub</b>.</li>
+        <li>Click <b>Generate LaTeX</b>, then <b>Download Overleaf project (.zip)</b> — it holds <code>main.tex</code> and every image the post uses.</li>
+        <li>In Overleaf: <b>New Project → Upload Project</b>, pick the zip. It compiles as-is (pdfLaTeX, the default).</li>
+        <li>Download the PDF, then use <b>Upload PDF…</b> above and click <b>Update on GitHub</b>.</li>
       </ol>
+      <p class="edu-note" style="margin-top:-0.3rem;">Updating an existing Overleaf project instead? Use <b>Copy</b> to replace <code>main.tex</code> and upload any new images from the list below.</p>
       <div class="admin-form-actions">
         <button type="button" class="admin-btn admin-btn-primary" id="be-latex-gen">Generate LaTeX</button>
+        <button type="button" class="admin-btn" id="be-latex-zip" disabled>Download Overleaf project (.zip)</button>
         <button type="button" class="admin-btn" id="be-latex-copy" disabled>Copy</button>
         <button type="button" class="admin-btn" id="be-latex-download" disabled>Download .tex</button>
       </div>
@@ -280,6 +281,8 @@ export async function renderBlogEditor(el: HTMLElement): Promise<void> {
   const latexInfo = el.querySelector<HTMLElement>("#be-latex-info")!;
   const latexCopyBtn = el.querySelector<HTMLButtonElement>("#be-latex-copy")!;
   const latexDownloadBtn = el.querySelector<HTMLButtonElement>("#be-latex-download")!;
+  const latexZipBtn = el.querySelector<HTMLButtonElement>("#be-latex-zip")!;
+  let latexImages: { src: string; file: string }[] = [];
   async function generateLatex(): Promise<void> {
     const f = currentFields();
     const slug = editingSlug ?? (slugEl.value.trim() || slugify(titleEl.value));
@@ -300,6 +303,8 @@ export async function renderBlogEditor(el: HTMLElement): Promise<void> {
     latexOut.style.display = "";
     latexCopyBtn.disabled = false;
     latexDownloadBtn.disabled = false;
+    latexZipBtn.disabled = false;
+    latexImages = result.images;
     const images = result.images.length
       ? `<p><b>Upload these ${result.images.length} image(s) to Overleaf:</b></p><ul>${result.images
           .map((i) => `<li><a href="/${esc(i.src)}" download="${esc(i.file)}" target="_blank" rel="noopener">${esc(i.file)}</a></li>`)
@@ -315,6 +320,41 @@ export async function renderBlogEditor(el: HTMLElement): Promise<void> {
   }
   el.querySelector<HTMLButtonElement>("#be-latex-gen")!.addEventListener("click", () => void generateLatex());
   el.querySelector<HTMLButtonElement>("#be-latex-gen-bar")!.addEventListener("click", () => void generateLatex());
+  latexZipBtn.addEventListener("click", async () => {
+    const slug = editingSlug ?? (slugEl.value.trim() || "post");
+    latexZipBtn.disabled = true;
+    const label = latexZipBtn.textContent;
+    latexZipBtn.textContent = "Packing…";
+    try {
+      const missing: string[] = [];
+      const images = await Promise.all(
+        latexImages.map(async (img) => {
+          try {
+            const res = await fetch(`/${img.src}`);
+            if (!res.ok) throw new Error(String(res.status));
+            return { name: img.file, bytes: new Uint8Array(await res.arrayBuffer()) };
+          } catch {
+            missing.push(img.file);
+            return null;
+          }
+        }),
+      );
+      const { downloadZip } = await import("../lib/testcase-files");
+      downloadZip(
+        [{ name: "main.tex", text: latexOut.value }, ...images.filter((f): f is { name: string; bytes: Uint8Array<ArrayBuffer> } => f !== null)],
+        `${slug}-overleaf.zip`,
+      );
+      setStatus(
+        missing.length
+          ? `Zip downloaded, but couldn't fetch: ${missing.join(", ")} — add those to Overleaf by hand.`
+          : `Zip downloaded — in Overleaf use New Project → Upload Project.`,
+        missing.length === 0,
+      );
+    } finally {
+      latexZipBtn.disabled = false;
+      latexZipBtn.textContent = label;
+    }
+  });
   latexCopyBtn.addEventListener("click", async () => {
     try {
       await navigator.clipboard.writeText(latexOut.value);
@@ -398,6 +438,8 @@ export async function renderBlogEditor(el: HTMLElement): Promise<void> {
     latexInfo.innerHTML = "";
     latexCopyBtn.disabled = true;
     latexDownloadBtn.disabled = true;
+    latexZipBtn.disabled = true;
+    latexImages = [];
     coverEl.value = "";
     bodyEl.value = "";
     renderPreview();
