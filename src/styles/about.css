@@ -184,3 +184,18 @@
 @media (max-width: 560px) {
   .contact-row { grid-template-columns: 1fr; }
 }
+
+/* ─── WebGL dot-terrain backdrop (src/lib/landing-webgl.ts) ─────────── */
+.landing-webgl {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0;
+  transition: opacity 1.2s ease;
+}
+.landing-webgl.is-visible { opacity: 1; }
+.hero { position: relative; z-index: 1; }
+@media print { .landing-webgl { display: none; } }
