@@ -2,8 +2,11 @@
 // frame (three.js GPUComputationRenderer). They open by streaming out of
 // noise into a calligraphic "pd" monogram, then dissolve into four strange attractors
 // (Lorenz, Aizawa, Thomas, Halvorsen, integrated with RK4) and come back to
-// the monogram. It sits full-screen behind the hero text, deliberately faint.
-// Click an empty area to skip ahead; drag to rotate.
+// the monogram, continuously: at each change every particle flies straight
+// from the old shape onto its own point of the new one (attractors are then
+// released into their flow), so the screen is never empty. It sits full-screen
+// behind the hero text, deliberately faint. Moving the cursor over the
+// particles pushes them aside; they flow back once it moves on (no clicks).
 //
 // Monochrome by design: the page's --ink on --bg. Light mode draws with
 // normal blending; dark mode adds light (additive) plus a soft bloom.
@@ -31,19 +34,24 @@ interface Attractor {
 
 // Centres/scales measured by integrating each system (RK4) and taking the
 // bounding box of the settled trajectory (rounder shapes scaled down to fit
-// the same space); speed = ~p90 of |dx/dt|. Kinds 0-3 in the shader.
-const ATTRACTORS: Attractor[] = [
-  { center: [0, 0, 24.6], scale: 0.0615, swap: true, dt: 0.0035, speed: 180 }, // Lorenz
-  { center: [0, 0, 0.74], scale: 0.8, swap: true, dt: 0.009, speed: 5 }, // Aizawa
-  { center: [0, 0, 0], scale: 0.34, swap: false, dt: 0.06, speed: 1.2 }, // Thomas
-  { center: [-2.9, -2.9, -2.9], scale: 0.12, swap: false, dt: 0.0035, speed: 80 }, // Halvorsen
+// the same space); speed = ~p90 of |dx/dt|; start = a point in the
+// attractor's basin. Kinds 0-3 in the shader.
+const ATTRACTORS: (Attractor & { start: [number, number, number] })[] = [
+  { center: [0, 0, 24.6], scale: 0.0615, swap: true, dt: 0.0035, speed: 180, start: [1, 1, 20] }, // Lorenz
+  { center: [0, 0, 0.74], scale: 0.8, swap: true, dt: 0.009, speed: 5, start: [0.1, 0, 0] }, // Aizawa
+  { center: [0, 0, 0], scale: 0.34, swap: false, dt: 0.06, speed: 1.2, start: [0.1, 0.2, 0.3] }, // Thomas
+  { center: [-2.9, -2.9, -2.9], scale: 0.12, swap: false, dt: 0.0035, speed: 80, start: [-1.48, -1.51, 2.04] }, // Halvorsen
 ];
 const MONOGRAM = 4; // shader kind for the "P.D." stage
 const STAGES = [MONOGRAM, 0, 1, 2, 3]; // cycle order
-// Every stage: particles gather (fading in), hold, then scatter and fade out.
-const GATHER_MS = 2200;
-const HOLD_MS = { monogram: 7000, attractor: 12000 };
-const VANISH_MS = 2200;
+// Stage lengths, including the morph in. At each change the pull toward the
+// new shape ramps up over PULL_MS; an attractor then hands its particles
+// from the spring over to its own flow between GUIDE_MS[0] and GUIDE_MS[1].
+const HOLD_MS = { monogram: 8000, attractor: 11000 };
+const PULL_MS = 900;
+const GUIDE_MS = [1500, 2600];
+const INTRO_FADE_MS = 1800;
+const SEED_SIZE = 256; // attractor morph targets: SEED_SIZE² points each
 
 const SIM_SHADER = /* glsl */ `
 uniform float uTime;
@@ -56,7 +64,13 @@ uniform float uSpeedNorm;
 uniform float uRespawn;
 uniform sampler2D uTargets;
 uniform float uTargetScale;
-uniform float uScatter;
+uniform float uPull;
+uniform float uGuide;
+uniform float uJitter;
+uniform vec3 uRayOrigin;
+uniform vec3 uRayDir;
+uniform float uMouse;
+uniform float uMouseRadius;
 
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 
@@ -78,6 +92,18 @@ vec3 field(vec3 p) {
               -a * p.z - 4.0 * p.x - 4.0 * p.y - p.x * p.x);
 }
 
+// Cursor: push the particle away from the ray under the pointer, strongest
+// at the ray and fading to nothing at uMouseRadius.
+vec3 repel(vec3 p) {
+  if (uMouse <= 0.0) return p;
+  vec3 rel = p - uRayOrigin;
+  vec3 closest = uRayOrigin + uRayDir * dot(rel, uRayDir);
+  vec3 away = p - closest;
+  float dist = length(away);
+  float f = uMouse * (1.0 - smoothstep(0.0, uMouseRadius, dist));
+  return p + (away / max(dist, 1e-4)) * f * 0.07;
+}
+
 vec3 swapYZ(vec3 v) { return uSwap > 0.5 ? v.xzy : v; }
 vec3 toAttractor(vec3 d) { return swapYZ(d) / uScale + uCenter; }
 vec3 toDisplay(vec3 a) { return swapYZ((a - uCenter) * uScale); }
@@ -94,25 +120,28 @@ void main() {
   vec2 uv = gl_FragCoord.xy / resolution.xy;
   vec4 cur = texture2D(texturePosition, uv);
 
-  // Vanishing: every particle drifts outward along its own direction with a
-  // slow swirl, accelerating as the stage ends (the renderer fades them out).
-  if (uScatter > 0.0) {
-    vec3 dir = normalize(cur.xyz + (vec3(hash(uv), hash(uv + 0.5), hash(uv + 0.9)) - 0.5) * 0.6 + 1e-4);
-    vec3 swirl = vec3(sin(cur.y * 2.3 + uTime), sin(cur.z * 2.1 + uTime * 1.3), sin(cur.x * 1.9 + uTime * 0.7));
-    vec3 next = cur.xyz + (dir * (0.006 + 0.03 * uScatter) + swirl * 0.008) * (0.4 + hash(uv + 0.2));
-    gl_FragColor = vec4(next, cur.w * 0.97);
-    return;
-  }
+  // Morph: each particle springs toward its own point on the current shape
+  // (a glyph point, or a point sampled from the attractor), curving on a
+  // swirl that dies out as it arrives. The pull ramps up at every stage
+  // change, so one shape flows straight into the next.
+  vec3 target = texture2D(uTargets, uv).xyz * uTargetScale
+              + (vec3(hash(uv + 0.11), hash(uv + 0.23), hash(uv + 0.37)) - 0.5) * uJitter;
+  vec3 delta = target - cur.xyz;
+  float dist = length(delta);
+  vec3 swirl = vec3(sin(cur.y * 2.3 + uTime), sin(cur.z * 2.1 + uTime * 1.3), sin(cur.x * 1.9 + uTime * 0.7));
+  vec3 guided = cur.xyz + delta * (0.045 * (0.1 + 0.9 * uPull)) + swirl * min(dist, 0.5) * 0.02;
+  float guidedW = 0.3 + clamp(dist * 1.5, 0.0, 0.7);
 
-  // Monogram: each particle springs toward its own point on the glyphs,
-  // with a faint shimmer so the letters stay alive.
+  // Monogram: stay on the glyphs, with a faint shimmer so they stay alive.
   if (uKind == ${MONOGRAM}) {
-    vec3 target = texture2D(uTargets, uv).xyz * uTargetScale;
-    vec3 delta = target - cur.xyz;
     vec3 shimmer = vec3(sin(target.y * 6.0 + uTime * 1.7),
                         sin(target.x * 5.0 + uTime * 1.3 + 1.7),
                         sin(target.x * 4.0 + target.y * 3.0 + uTime * 1.1)) * 0.0009;
-    gl_FragColor = vec4(cur.xyz + delta * 0.045 + shimmer, 0.3 + clamp(length(delta) * 1.5, 0.0, 0.7));
+    gl_FragColor = vec4(repel(guided + shimmer), guidedW);
+    return;
+  }
+  if (uGuide >= 1.0) {
+    gl_FragColor = vec4(repel(guided), guidedW);
     return;
   }
 
@@ -121,20 +150,29 @@ void main() {
   a = rk4(a, uDt);
   vec3 d = toDisplay(a);
   float speed = clamp(length(field(a)) / uSpeedNorm, 0.0, 1.0);
+  bool bad = !(length(d) < 4.0);
 
-  // Escaped / NaN, or picked at random this frame: respawn on top of
+  // Handing over from the spring to the flow (nothing respawns yet).
+  if (uGuide > 0.0) {
+    d = bad ? guided : mix(d, guided, uGuide);
+    speed = bad ? guidedW : mix(speed, guidedW, uGuide);
+    gl_FragColor = vec4(repel(d), speed);
+    return;
+  }
+
+  // Escaped / NaN, stalled on a fixed point (e.g. pushed out of the basin
+  // by the cursor), or picked at random this frame: respawn on top of
   // another (random) particle plus a tiny offset. Re-seeding from particles
   // already on the attractor keeps the shape crisp (no stray haze) while the
   // copies drift apart along the flow and keep the density even.
-  bool bad = !(length(d) < 4.0);
-  if (bad || hash(uv + fract(uTime * 0.137)) < uRespawn) {
+  if (bad || speed < 0.004 || hash(uv + fract(uTime * 0.137)) < uRespawn) {
     vec2 other = vec2(hash(uv * 1.3 + uTime), hash(uv * 2.7 - uTime));
     vec3 src = texture2D(texturePosition, other).xyz;
     vec3 jitter = (vec3(hash(uv + 0.31), hash(uv + 0.57), hash(uv + 0.83)) - 0.5) * 0.02;
     d = (length(src) < 4.0 ? src : vec3(0.0)) + jitter;
     speed = 0.0;
   }
-  gl_FragColor = vec4(d, speed);
+  gl_FragColor = vec4(repel(d), speed);
 }
 `;
 
@@ -252,6 +290,65 @@ function sampleMonogram(family: string, count: number, out: Float32Array): void 
   }
 }
 
+const smooth = (x: number) => {
+  const t = Math.min(1, Math.max(0, x));
+  return t * t * (3 - 2 * t);
+};
+
+/** The attractor vector fields — the same systems and constants as field() in the shader. */
+function attractorField(kind: number, x: number, y: number, z: number, out: number[]): void {
+  if (kind === 0) {
+    out[0] = 10 * (y - x);
+    out[1] = x * (28 - z) - y;
+    out[2] = x * y - (8 / 3) * z;
+  } else if (kind === 1) {
+    const a = 0.95, b = 0.7, c = 0.6, d = 3.5, e = 0.25, f = 0.1;
+    out[0] = (z - b) * x - d * y;
+    out[1] = d * x + (z - b) * y;
+    out[2] = c + a * z - (z * z * z) / 3 - (x * x + y * y) * (1 + e * z) + f * z * x * x * x;
+  } else if (kind === 2) {
+    const b = 0.208186;
+    out[0] = Math.sin(y) - b * x;
+    out[1] = Math.sin(z) - b * y;
+    out[2] = Math.sin(x) - b * z;
+  } else {
+    const a = 1.89;
+    out[0] = -a * x - 4 * y - 4 * z - y * y;
+    out[1] = -a * y - 4 * z - 4 * x - z * z;
+    out[2] = -a * z - 4 * x - 4 * y - x * x;
+  }
+}
+
+/**
+ * Morph targets for an attractor, in display space: one long RK4 trajectory
+ * (after a transient) sampled every few steps, so the points follow the
+ * attractor's own density. Particles fly onto these and are then released
+ * into the flow, which also means they always start inside its basin.
+ */
+function sampleAttractor(kind: number, count: number): Float32Array {
+  const { center, scale, swap, dt, start } = ATTRACTORS[kind];
+  const out = new Float32Array(count * 4);
+  const p = [...start];
+  const k1 = [0, 0, 0], k2 = [0, 0, 0], k3 = [0, 0, 0], k4 = [0, 0, 0];
+  const step = () => {
+    attractorField(kind, p[0], p[1], p[2], k1);
+    attractorField(kind, p[0] + 0.5 * dt * k1[0], p[1] + 0.5 * dt * k1[1], p[2] + 0.5 * dt * k1[2], k2);
+    attractorField(kind, p[0] + 0.5 * dt * k2[0], p[1] + 0.5 * dt * k2[1], p[2] + 0.5 * dt * k2[2], k3);
+    attractorField(kind, p[0] + dt * k3[0], p[1] + dt * k3[1], p[2] + dt * k3[2], k4);
+    for (let j = 0; j < 3; j++) p[j] += (dt / 6) * (k1[j] + 2 * k2[j] + 2 * k3[j] + k4[j]);
+  };
+  for (let i = 0; i < 4000; i++) step();
+  for (let i = 0; i < count; i++) {
+    for (let s = 0; s < 4; s++) step();
+    const x = (p[0] - center[0]) * scale, y = (p[1] - center[1]) * scale, z = (p[2] - center[2]) * scale;
+    out[i * 4] = x;
+    out[i * 4 + 1] = swap ? z : y;
+    out[i * 4 + 2] = swap ? y : z;
+    out[i * 4 + 3] = 1;
+  }
+  return out;
+}
+
 /** Mounts the particle background. Returns false if the GPU can't run it. */
 export function mountLandingAttractor(host: HTMLElement): boolean {
   const canvas = document.createElement("canvas");
@@ -315,7 +412,13 @@ export function mountLandingAttractor(host: HTMLElement): boolean {
   simU.uRespawn = { value: 0.002 };
   simU.uTargets = { value: targets };
   simU.uTargetScale = { value: 4 };
-  simU.uScatter = { value: 0 };
+  simU.uPull = { value: 0 };
+  simU.uGuide = { value: 1 };
+  simU.uJitter = { value: 0 };
+  simU.uRayOrigin = { value: new THREE.Vector3() };
+  simU.uRayDir = { value: new THREE.Vector3(0, 0, -1) };
+  simU.uMouse = { value: 0 };
+  simU.uMouseRadius = { value: 0.45 };
   if (gpu.init() !== null) {
     renderer.dispose();
     targets.dispose();
@@ -373,6 +476,9 @@ export function mountLandingAttractor(host: HTMLElement): boolean {
     bloom.enabled = dark && !small;
   };
 
+  let stage = 0;
+  let monogramScale = 1;
+  let disposed = false;
   const layout = () => {
     const w = window.innerWidth;
     const h = window.innerHeight;
@@ -388,16 +494,42 @@ export function mountLandingAttractor(host: HTMLElement): boolean {
     // height so it never overflows, measured at the camera's distance.
     const visibleHeight = 2 * CAM_DIST * HALF_FOV_TAN;
     const visibleWidth = visibleHeight * camera.aspect;
-    simU.uTargetScale.value = Math.min(visibleWidth * 0.6, visibleHeight * 1.05);
+    monogramScale = Math.min(visibleWidth * 0.6, visibleHeight * 1.05);
+    if (STAGES[stage] === MONOGRAM) simU.uTargetScale.value = monogramScale;
     applyTheme();
   };
 
-  let stage = 0;
+  // Attractor morph targets, built on first use and cached; the next
+  // stage's set is prepared while the browser is idle, ahead of time.
+  const seeds: THREE.DataTexture[] = [];
+  const seedsFor = (kind: number) => {
+    if (!seeds[kind]) {
+      const n = Math.min(SEED_SIZE, SIZE);
+      seeds[kind] = new THREE.DataTexture(sampleAttractor(kind, n * n), n, n, THREE.RGBAFormat, THREE.FloatType);
+      seeds[kind].needsUpdate = true;
+    }
+    return seeds[kind];
+  };
+  const whenIdle = (fn: () => void) => {
+    if (typeof requestIdleCallback === "function") requestIdleCallback(fn, { timeout: 4000 });
+    else setTimeout(fn, 1500);
+  };
+
   const select = (i: number) => {
     stage = (i + STAGES.length) % STAGES.length;
     const kind = STAGES[stage];
     simU.uKind.value = kind;
-    if (kind === MONOGRAM) return;
+    const nextKind = STAGES[(stage + 1) % STAGES.length];
+    if (nextKind !== MONOGRAM) whenIdle(() => void (disposed || seedsFor(nextKind)));
+    if (kind === MONOGRAM) {
+      simU.uTargets.value = targets;
+      simU.uTargetScale.value = monogramScale;
+      simU.uJitter.value = 0;
+      return;
+    }
+    simU.uTargets.value = seedsFor(kind);
+    simU.uTargetScale.value = 1;
+    simU.uJitter.value = SIZE > SEED_SIZE ? 0.012 : 0;
     const a = ATTRACTORS[kind];
     simU.uDt.value = a.dt;
     simU.uCenter.value.set(...a.center);
@@ -411,74 +543,66 @@ export function mountLandingAttractor(host: HTMLElement): boolean {
   themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
   window.addEventListener("resize", layout);
 
-  // Interaction on the empty background: drag rotates (with inertia), a
-  // click skips to the next stage; the view also leans toward the pointer.
-  let yaw = 0, pitch = 0, yawVel = 0, pitchVel = 0;
+  // Cursor: its ray through the scene pushes particles aside (see repel()
+  // in the shader). The view also leans slightly toward the pointer.
+  // Hover only — no click or drag handlers, and the canvas ignores pointer
+  // events so the page underneath works as normal.
+  let yaw = 0, pitch = 0;
   let px = 0, py = 0, smx = 0, smy = 0;
-  let dragging = false, moved = 0, lastX = 0, lastY = 0;
+  let mouseTarget = 0;
+  const pointerNdc = new THREE.Vector2(10, 10);
+  const raycaster = new THREE.Raycaster();
   let stageStart = performance.now();
-  let skipRequested = false;
-  const onDown = (e: PointerEvent) => {
-    dragging = true;
-    moved = 0;
-    lastX = e.clientX;
-    lastY = e.clientY;
-    canvas.setPointerCapture(e.pointerId);
-    canvas.classList.add("is-dragging");
-  };
   const onMove = (e: PointerEvent) => {
     px = e.clientX / window.innerWidth - 0.5;
     py = e.clientY / window.innerHeight - 0.5;
-    if (!dragging) return;
-    const dx = e.clientX - lastX, dy = e.clientY - lastY;
-    moved += Math.abs(dx) + Math.abs(dy);
-    yawVel = dx * 0.005;
-    pitchVel = dy * 0.004;
-    yaw += yawVel;
-    pitch = Math.max(-1.2, Math.min(1.2, pitch + pitchVel));
-    lastX = e.clientX;
-    lastY = e.clientY;
+    pointerNdc.set((e.clientX / window.innerWidth) * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1);
+    mouseTarget = e.pointerType === "touch" ? 0.7 : 1;
   };
-  const onUp = (e: PointerEvent) => {
-    if (!dragging) return;
-    dragging = false;
-    canvas.classList.remove("is-dragging");
-    if (canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
-    if (moved < 6) skipRequested = true;
+  const onLeave = () => {
+    mouseTarget = 0;
   };
-  canvas.addEventListener("pointerdown", onDown);
   window.addEventListener("pointermove", onMove, { passive: true });
-  window.addEventListener("pointerup", onUp);
+  document.documentElement.addEventListener("pointerleave", onLeave);
+  window.addEventListener("blur", onLeave);
 
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const step = (time: number) => {
     simU.uTime.value = time;
     gpu.compute();
   };
-  const render = () => {
+  const updateCamera = () => {
     smx += (px - smx) * 0.03;
     smy += (py - smy) * 0.03;
-    const y = yaw + smx * 0.3;
-    const p = pitch + smy * 0.18;
+    const y = yaw + smx * 0.22;
+    const p = pitch + smy * 0.14;
     camera.position.set(CAM_DIST * Math.cos(p) * Math.sin(y), CAM_DIST * Math.sin(p), CAM_DIST * Math.cos(p) * Math.cos(y));
     camera.lookAt(0, 0, 0);
+    camera.updateMatrixWorld();
+    raycaster.setFromCamera(pointerNdc, camera);
+    simU.uRayOrigin.value.copy(raycaster.ray.origin);
+    simU.uRayDir.value.copy(raycaster.ray.direction);
+    simU.uMouse.value += (mouseTarget - simU.uMouse.value) * 0.08;
+  };
+  const render = () => {
     material.uniforms.uPositions.value = gpu.getCurrentRenderTarget(posVar).texture;
     if (bloom.enabled) composer.render();
     else renderer.render(scene, camera);
   };
 
   let frame = 0;
-  let disposed = false;
   const teardown = () => {
     if (disposed) return;
     disposed = true;
     cancelAnimationFrame(frame);
     window.removeEventListener("resize", layout);
     window.removeEventListener("pointermove", onMove);
-    window.removeEventListener("pointerup", onUp);
+    document.documentElement.removeEventListener("pointerleave", onLeave);
+    window.removeEventListener("blur", onLeave);
     themeObserver.disconnect();
     gpu.dispose();
     targets.dispose();
+    for (const t of seeds) t?.dispose();
     geometry.dispose();
     material.dispose();
     composer.dispose();
@@ -487,19 +611,17 @@ export function mountLandingAttractor(host: HTMLElement): boolean {
   };
 
   if (reduceMotion) {
-    // One settled still frame of the monogram; a click re-settles the next stage.
+    // One settled still frame of the monogram; no motion, no cursor effect.
     material.uniforms.uFade.value = 1;
+    simU.uPull.value = 1;
     const settle = () => {
       if (!canvas.isConnected) return teardown();
       for (let i = 0; i < 300; i++) step(i * 0.016);
+      updateCamera();
       render();
     };
     settle();
     void fontReady.then(settle, () => undefined);
-    canvas.addEventListener("pointerup", () => {
-      select(stage + 1);
-      settle();
-    });
     window.addEventListener("resize", () => (canvas.isConnected ? render() : teardown()));
     new MutationObserver(() => (canvas.isConnected ? render() : teardown())).observe(document.documentElement, {
       attributes: true,
@@ -511,40 +633,27 @@ export function mountLandingAttractor(host: HTMLElement): boolean {
       if (!canvas.isConnected) return teardown();
       const t = (now - start) / 1000;
       const onMonogram = STAGES[stage] === MONOGRAM;
-      if (!dragging) {
-        if (onMonogram) {
-          // Face the letters: ease back to the front view with a slow sway.
-          const turns = Math.round(yaw / (2 * Math.PI)) * 2 * Math.PI;
-          yaw += (turns + Math.sin(t * 0.4) * 0.18 - yaw) * 0.04;
-          pitch += (Math.sin(t * 0.3) * 0.06 - pitch) * 0.04;
-        } else {
-          yaw += 0.0012 + yawVel;
-        }
-        yawVel *= 0.95;
-        pitchVel *= 0.9;
+      if (onMonogram) {
+        // Face the letters: ease back to the front view with a slow sway.
+        const turns = Math.round(yaw / (2 * Math.PI)) * 2 * Math.PI;
+        yaw += (turns + Math.sin(t * 0.4) * 0.16 - yaw) * 0.04;
+        pitch += (Math.sin(t * 0.3) * 0.05 - pitch) * 0.04;
+      } else {
+        yaw += 0.0012;
+        pitch += (0.12 - pitch) * 0.01;
       }
-      // gather (fade in) → hold → vanish (scatter + fade out) → next stage
-      const hold = onMonogram ? HOLD_MS.monogram : HOLD_MS.attractor;
-      if (skipRequested) {
-        skipRequested = false;
-        const e = now - stageStart;
-        if (e < GATHER_MS + hold) stageStart = now - (GATHER_MS + hold);
-      }
-      const e = now - stageStart;
-      if (e >= GATHER_MS + hold + VANISH_MS) {
+      // Hold, then switch: the new shape starts pulling the particles in
+      // right away (no gap); attractors then take over with their flow.
+      let e = now - stageStart;
+      if (e >= (onMonogram ? HOLD_MS.monogram : HOLD_MS.attractor)) {
         select(stage + 1);
         stageStart = now;
-        simU.uScatter.value = 0;
-        material.uniforms.uFade.value = 0;
-      } else if (e >= GATHER_MS + hold) {
-        const v = (e - GATHER_MS - hold) / VANISH_MS;
-        simU.uScatter.value = v;
-        material.uniforms.uFade.value = 1 - v * v;
-      } else {
-        simU.uScatter.value = 0;
-        const g = Math.min(1, e / GATHER_MS);
-        material.uniforms.uFade.value = g * g * (3 - 2 * g);
+        e = 0;
       }
+      simU.uPull.value = smooth(e / PULL_MS);
+      simU.uGuide.value = STAGES[stage] === MONOGRAM ? 1 : 1 - smooth((e - GUIDE_MS[0]) / (GUIDE_MS[1] - GUIDE_MS[0]));
+      material.uniforms.uFade.value = smooth((now - start) / INTRO_FADE_MS);
+      updateCamera();
       step(t);
       render();
       frame = requestAnimationFrame(loop);
