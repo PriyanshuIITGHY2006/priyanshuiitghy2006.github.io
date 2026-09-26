@@ -132,16 +132,17 @@ export async function renderBlogEditor(el: HTMLElement): Promise<void> {
       </div>
     </div>
 
-    <details class="admin-form-section admin-latex" id="be-latex">
+    <details class="admin-form-section admin-latex" id="be-latex" open>
       <summary><h3 style="display:inline;">LaTeX export</h3> <span class="edu-note">— for a typeset PDF of this post</span></summary>
       <ol class="admin-latex-steps">
-        <li>Click <b>Generate LaTeX</b> (uses the fields and Markdown above), then <b>Copy</b>.</li>
-        <li>In Overleaf: New Project → Blank Project, replace <code>main.tex</code> with the copied code. Keep the compiler on <b>pdfLaTeX</b> (the default).</li>
-        <li>Upload the images listed below into the Overleaf project (same file names, project root).</li>
-        <li>Recompile, download the PDF, then use <b>Upload PDF…</b> above and click <b>Update on GitHub</b>.</li>
+        <li>Click <b>Generate LaTeX</b>, then <b>Download Overleaf project (.zip)</b> — it holds <code>main.tex</code> and every image the post uses.</li>
+        <li>In Overleaf: <b>New Project → Upload Project</b>, pick the zip. It compiles as-is (pdfLaTeX, the default).</li>
+        <li>Download the PDF, then use <b>Upload PDF…</b> above and click <b>Update on GitHub</b>.</li>
       </ol>
+      <p class="edu-note" style="margin-top:-0.3rem;">Updating an existing Overleaf project instead? Use <b>Copy</b> to replace <code>main.tex</code> and upload any new images from the list below.</p>
       <div class="admin-form-actions">
         <button type="button" class="admin-btn admin-btn-primary" id="be-latex-gen">Generate LaTeX</button>
+        <button type="button" class="admin-btn" id="be-latex-zip" disabled>Download Overleaf project (.zip)</button>
         <button type="button" class="admin-btn" id="be-latex-copy" disabled>Copy</button>
         <button type="button" class="admin-btn" id="be-latex-download" disabled>Download .tex</button>
       </div>
@@ -165,6 +166,7 @@ export async function renderBlogEditor(el: HTMLElement): Promise<void> {
 
     <div class="admin-form-actions" style="margin-top:0.8rem;">
       <button type="button" class="admin-btn admin-btn-primary" id="be-publish">Publish to GitHub</button>
+      <button type="button" class="admin-btn" id="be-latex-gen-bar">Generate LaTeX</button>
       <button type="button" class="admin-btn" id="be-copy">Copy markdown file</button>
       <button type="button" class="admin-btn" id="be-cancel-edit" style="display:none;">New post (cancel edit)</button>
       <span id="be-copy-path" class="edu-note" style="margin:0;"></span>
@@ -279,7 +281,9 @@ export async function renderBlogEditor(el: HTMLElement): Promise<void> {
   const latexInfo = el.querySelector<HTMLElement>("#be-latex-info")!;
   const latexCopyBtn = el.querySelector<HTMLButtonElement>("#be-latex-copy")!;
   const latexDownloadBtn = el.querySelector<HTMLButtonElement>("#be-latex-download")!;
-  el.querySelector<HTMLButtonElement>("#be-latex-gen")!.addEventListener("click", async () => {
+  const latexZipBtn = el.querySelector<HTMLButtonElement>("#be-latex-zip")!;
+  let latexImages: { src: string; file: string }[] = [];
+  async function generateLatex(): Promise<void> {
     const f = currentFields();
     const slug = editingSlug ?? (slugEl.value.trim() || slugify(titleEl.value));
     if (!f.title || !f.body.trim() || !slug) {
@@ -299,6 +303,8 @@ export async function renderBlogEditor(el: HTMLElement): Promise<void> {
     latexOut.style.display = "";
     latexCopyBtn.disabled = false;
     latexDownloadBtn.disabled = false;
+    latexZipBtn.disabled = false;
+    latexImages = result.images;
     const images = result.images.length
       ? `<p><b>Upload these ${result.images.length} image(s) to Overleaf:</b></p><ul>${result.images
           .map((i) => `<li><a href="/${esc(i.src)}" download="${esc(i.file)}" target="_blank" rel="noopener">${esc(i.file)}</a></li>`)
@@ -308,6 +314,46 @@ export async function renderBlogEditor(el: HTMLElement): Promise<void> {
       ? `<p><b>Check before compiling:</b></p><ul class="admin-latex-warn">${result.warnings.map((w) => `<li>${esc(w)}</li>`).join("")}</ul>`
       : "";
     latexInfo.innerHTML = images + warnings;
+    const panel = el.querySelector<HTMLDetailsElement>("#be-latex")!;
+    panel.open = true;
+    panel.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+  el.querySelector<HTMLButtonElement>("#be-latex-gen")!.addEventListener("click", () => void generateLatex());
+  el.querySelector<HTMLButtonElement>("#be-latex-gen-bar")!.addEventListener("click", () => void generateLatex());
+  latexZipBtn.addEventListener("click", async () => {
+    const slug = editingSlug ?? (slugEl.value.trim() || "post");
+    latexZipBtn.disabled = true;
+    const label = latexZipBtn.textContent;
+    latexZipBtn.textContent = "Packing…";
+    try {
+      const missing: string[] = [];
+      const images = await Promise.all(
+        latexImages.map(async (img) => {
+          try {
+            const res = await fetch(`/${img.src}`);
+            if (!res.ok) throw new Error(String(res.status));
+            return { name: img.file, bytes: new Uint8Array(await res.arrayBuffer()) };
+          } catch {
+            missing.push(img.file);
+            return null;
+          }
+        }),
+      );
+      const { downloadZip } = await import("../lib/testcase-files");
+      downloadZip(
+        [{ name: "main.tex", text: latexOut.value }, ...images.filter((f): f is { name: string; bytes: Uint8Array<ArrayBuffer> } => f !== null)],
+        `${slug}-overleaf.zip`,
+      );
+      setStatus(
+        missing.length
+          ? `Zip downloaded, but couldn't fetch: ${missing.join(", ")} — add those to Overleaf by hand.`
+          : `Zip downloaded — in Overleaf use New Project → Upload Project.`,
+        missing.length === 0,
+      );
+    } finally {
+      latexZipBtn.disabled = false;
+      latexZipBtn.textContent = label;
+    }
   });
   latexCopyBtn.addEventListener("click", async () => {
     try {
@@ -392,6 +438,8 @@ export async function renderBlogEditor(el: HTMLElement): Promise<void> {
     latexInfo.innerHTML = "";
     latexCopyBtn.disabled = true;
     latexDownloadBtn.disabled = true;
+    latexZipBtn.disabled = true;
+    latexImages = [];
     coverEl.value = "";
     bodyEl.value = "";
     renderPreview();
@@ -440,7 +488,7 @@ export async function renderBlogEditor(el: HTMLElement): Promise<void> {
     }
   });
 
-  async function startEditing(slug: string): Promise<void> {
+  async function startEditing(slug: string): Promise<boolean> {
     setStatus(`Loading "${slug}"…`, true);
     try {
       const { readBlogPostFromGithub } = await import("../lib/admin-publish");
@@ -448,7 +496,7 @@ export async function renderBlogEditor(el: HTMLElement): Promise<void> {
       if (!exists) {
         setStatus("That post no longer exists on GitHub.", false);
         void refreshPostList();
-        return;
+        return false;
       }
       const { parseFrontmatter } = await import("../lib/blog");
       const { data, body } = parseFrontmatter(content);
@@ -475,8 +523,10 @@ export async function renderBlogEditor(el: HTMLElement): Promise<void> {
       enterEditMode(slug);
       setStatus(`Loaded "${slug}" for editing.`, true);
       el.querySelector("#be-composer-heading")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      return true;
     } catch (err) {
       setStatus("Load error: " + (err instanceof Error ? err.message : String(err)), false);
+      return false;
     }
   }
 
@@ -512,6 +562,7 @@ export async function renderBlogEditor(el: HTMLElement): Promise<void> {
             <td style="white-space:nowrap">${esc(p.date)}</td>
             <td style="white-space:nowrap">
               <button class="admin-btn" data-be-edit="${esc(p.slug)}">Edit</button>
+              <button class="admin-btn" data-be-latex="${esc(p.slug)}" title="Load this post and generate its LaTeX">LaTeX</button>
               <button class="admin-btn admin-btn-danger" data-be-del="${esc(p.slug)}">Delete</button>
             </td>
           </tr>`).join("")
@@ -519,6 +570,11 @@ export async function renderBlogEditor(el: HTMLElement): Promise<void> {
 
       postListEl.querySelectorAll<HTMLButtonElement>("[data-be-edit]").forEach((btn) => {
         btn.addEventListener("click", () => void startEditing(btn.dataset.beEdit!));
+      });
+      postListEl.querySelectorAll<HTMLButtonElement>("[data-be-latex]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          if (await startEditing(btn.dataset.beLatex!)) await generateLatex();
+        });
       });
       postListEl.querySelectorAll<HTMLButtonElement>("[data-be-del]").forEach((btn) => {
         btn.addEventListener("click", () => void deletePost(btn.dataset.beDel!, btn));
