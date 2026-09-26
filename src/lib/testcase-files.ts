@@ -69,8 +69,8 @@ function crc32(data: Uint8Array): number {
   return (c ^ 0xffffffff) >>> 0;
 }
 
-/** Builds an uncompressed .zip of text files and downloads it. */
-export function downloadZip(files: { name: string; text: string }[], filename: string): void {
+/** Builds an uncompressed .zip of text and/or binary files and downloads it. */
+export function downloadZip(files: { name: string; text?: string; bytes?: Uint8Array<ArrayBuffer> }[], filename: string): void {
   const enc = new TextEncoder();
   const parts: BlobPart[] = [];
   const central: Uint8Array<ArrayBuffer>[] = [];
@@ -78,7 +78,7 @@ export function downloadZip(files: { name: string; text: string }[], filename: s
 
   for (const f of files) {
     const name = enc.encode(f.name);
-    const data = enc.encode(f.text);
+    const data = f.bytes ?? enc.encode(f.text ?? "");
     const crc = crc32(data);
 
     const local = new DataView(new ArrayBuffer(30));
