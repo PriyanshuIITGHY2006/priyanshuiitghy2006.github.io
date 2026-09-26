@@ -264,6 +264,7 @@ function pageHtml(slug: string | null): string {
             ${post.date ? `<span class="blog-post-date">${esc(formatBlogDate(post.date))}</span>` : ""}
             ${post.updated ? `<span class="blog-post-date">Updated ${esc(formatBlogDate(post.updated))}</span>` : ""}
             <span class="blog-post-read-time">${estimateReadingMinutes(post.rawBody)} min read</span>
+            ${post.pdf ? `<a class="blog-pdf-btn" href="/${esc(post.pdf.replace(/^\//, ""))}" download="${esc(post.slug)}.pdf" title="Download PDF" aria-label="Download PDF"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg></a>` : ""}
             <span class="blog-textsize" role="group" aria-label="Text size">
               <button type="button" data-fs="-1" aria-label="Smaller text">A−</button>
               <button type="button" data-fs="1" aria-label="Larger text">A+</button>
