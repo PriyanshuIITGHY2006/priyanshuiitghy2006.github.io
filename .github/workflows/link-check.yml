@@ -26,6 +26,7 @@ jobs:
           args: >-
             --no-progress
             --scheme https
+            --root-dir "${{ github.workspace }}/public"
             --exclude "^https://(www\.)?linkedin\.com"
             --exclude "^https://codeforces\.com"
             --exclude "^https://x\.com"
