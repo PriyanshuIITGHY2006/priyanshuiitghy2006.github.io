@@ -199,3 +199,55 @@
 .landing-webgl.is-visible { opacity: 1; }
 .hero { position: relative; z-index: 1; }
 @media print { .landing-webgl { display: none; } }
+
+/* ─── GPU strange-attractor hero (src/lib/landing-attractor.ts) ─────── */
+.landing-attractor {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 0;
+  cursor: grab;
+  opacity: 0;
+  transition: opacity 1.6s ease;
+  touch-action: none;
+}
+.landing-attractor.is-visible { opacity: 1; }
+.landing-attractor.is-dragging { cursor: grabbing; }
+
+/* Wide screens: text moves left, the attractor takes the right side. */
+@media (min-width: 1100px) {
+  .about-page { max-width: none; }
+  .about-page .hero { margin: 0 0 0 max(3.5rem, 7vw); max-width: 32rem; }
+}
+
+.attractor-caption {
+  position: fixed;
+  right: max(2rem, 4vw);
+  bottom: 2.2rem;
+  z-index: 1;
+  max-width: 24rem;
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 0.72em;
+  color: var(--muted);
+  text-align: right;
+  pointer-events: auto;
+}
+.attractor-name { margin: 0; color: var(--ink-soft); letter-spacing: 0.04em; }
+.attractor-name span { color: var(--muted-2); margin-left: 0.5em; }
+.attractor-eq { margin: 0.4rem 0 0.5rem; color: var(--muted); }
+.attractor-eq .katex-display { margin: 0; text-align: right; }
+.attractor-eq .katex-display > .katex { text-align: right; font-size: 1.05em; }
+.attractor-actions { margin: 0; display: flex; justify-content: flex-end; align-items: baseline; gap: 1rem; }
+.attractor-next {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+  border-bottom: 1px dotted var(--border-strong);
+}
+.attractor-next:hover { border-bottom-color: var(--ink); }
+.attractor-hint { color: var(--muted-2); }
+@media print { .landing-attractor, .attractor-caption { display: none; } }
