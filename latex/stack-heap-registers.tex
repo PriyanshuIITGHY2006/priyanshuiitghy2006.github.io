@@ -1,0 +1,359 @@
+% Generated from https://priyanshudebnath.me/blog/stack-heap-registers/
+% Compile with pdfLaTeX (Overleaf default). Upload the images listed in the admin panel.
+%! image: blog-media/stack-heap-registers/Screenshot 2026-07-04 210149.png
+\documentclass[11pt,a4paper]{article}
+
+% ── Fonts & encoding (compile with pdfLaTeX) ───────────────────────────────
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage[scaled=0.95]{inconsolata}
+\usepackage{microtype}
+
+% ── Layout ────────────────────────────────────────────────────────────────
+\usepackage[a4paper,margin=2.4cm,headheight=22pt]{geometry}
+\usepackage{parskip}
+\usepackage{enumitem}
+\setlist{itemsep=0.25em,topsep=0.4em}
+
+% ── Math, tables, figures ─────────────────────────────────────────────────
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{booktabs,tabularx,array}
+
+% ── Colour, boxes, code ───────────────────────────────────────────────────
+\usepackage[dvipsnames]{xcolor}
+\definecolor{ink}{HTML}{18181B}
+\definecolor{muted}{HTML}{71717A}
+\definecolor{rule}{HTML}{D4D4D8}
+\definecolor{codebg}{HTML}{F7F7F8}
+\definecolor{accent}{HTML}{0B57D0}
+\definecolor{okgreen}{HTML}{15803D}
+\definecolor{warnred}{HTML}{B91C1C}
+\usepackage[most]{tcolorbox}
+\usepackage{listings}
+
+\lstset{
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{accent}\bfseries,
+  commentstyle=\color{muted},
+  stringstyle=\color{okgreen},
+  numberstyle=\tiny\color{muted},
+  numbers=left, numbersep=8pt, xleftmargin=18pt,
+  backgroundcolor=\color{codebg},
+  frame=single, rulecolor=\color{rule}, framesep=5pt,
+  breaklines=true, breakatwhitespace=false, postbreak=\mbox{\textcolor{muted}{$\hookrightarrow$}\space},
+  columns=fullflexible, keepspaces=true, showstringspaces=false, tabsize=4,
+  upquote=true, aboveskip=0.8em, belowskip=0.8em,
+  captionpos=t,
+}
+\lstdefinestyle{plain}{numbers=none, xleftmargin=0pt, keywordstyle=, commentstyle=, stringstyle=, basicstyle=\ttfamily\footnotesize}
+
+\newtcolorbox{notebox}[1]{enhanced, breakable, colback=white, colframe=rule, boxrule=0.5pt,
+  borderline west={2pt}{0pt}{ink}, arc=2pt, left=10pt, right=10pt, top=6pt, bottom=6pt,
+  fonttitle=\ttfamily\small\bfseries, coltitle=ink, colbacktitle=white, title={#1},
+  attach title to upper, after title={\par\smallskip}}
+\newtcolorbox{tipbox}[1]{enhanced, breakable, colback=white, colframe=rule, boxrule=0.5pt,
+  borderline west={2pt}{0pt}{okgreen}, arc=2pt, left=10pt, right=10pt, top=6pt, bottom=6pt,
+  fonttitle=\ttfamily\small\bfseries, coltitle=okgreen, title={#1},
+  attach title to upper, after title={\par\smallskip}}
+\newtcolorbox{warnbox}[1]{enhanced, breakable, colback=warnred!4, colframe=warnred!35, boxrule=0.5pt,
+  borderline west={2pt}{0pt}{warnred}, arc=2pt, left=10pt, right=10pt, top=6pt, bottom=6pt,
+  fonttitle=\ttfamily\small\bfseries, coltitle=warnred, title={#1},
+  attach title to upper, after title={\par\smallskip}}
+\newtcolorbox{quotebox}{enhanced, breakable, frame hidden, colback=white, boxrule=0pt,
+  borderline west={1.5pt}{0pt}{rule}, left=12pt, right=0pt, top=2pt, bottom=2pt, fontupper=\itshape\color{ink!85}}
+\newtcolorbox{problembox}{enhanced, colback=codebg, colframe=rule, boxrule=0.5pt, arc=3pt,
+  left=12pt, right=12pt, top=8pt, bottom=8pt}
+
+% ── Headings, header/footer, links ────────────────────────────────────────
+\usepackage{titlesec}
+\titleformat{\section}{\large\bfseries\color{ink}}{\thesection}{0.8em}{}
+\titleformat{\subsection}{\normalsize\bfseries\color{ink}}{\thesubsection}{0.8em}{}
+\titlespacing*{\section}{0pt}{1.6em}{0.5em}
+\titlespacing*{\subsection}{0pt}{1.2em}{0.4em}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true, linkcolor=ink, urlcolor=accent, citecolor=ink}
+\urlstyle{tt}
+\usepackage{xurl}
+\setlength{\emergencystretch}{3em}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\footnotesize\color{muted} Stack, Heap, and the Registers That Finally Made Sense}
+\fancyhead[R]{\footnotesize\color{muted} Priyanshu Debnath}
+\fancyfoot[L]{\footnotesize\color{muted}\texttt{priyanshudebnath.me}}
+\fancyfoot[R]{\footnotesize\color{muted} \thepage\,/\,\pageref*{LastPage}}
+\fancypagestyle{plain}{\fancyhf{}\fancyfoot[L]{\footnotesize\color{muted}\texttt{priyanshudebnath.me}}\fancyfoot[R]{\footnotesize\color{muted} \thepage\,/\,\pageref*{LastPage}}\renewcommand{\headrulewidth}{0pt}}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\headrule}{\hbox to\headwidth{\color{rule}\leaders\hrule height \headrulewidth\hfill}}
+\hypersetup{pdftitle={Stack, Heap, and the Registers That Finally Made Sense}, pdfauthor={Priyanshu Debnath}}
+
+\begin{document}
+\thispagestyle{plain}
+\begin{flushleft}
+{\footnotesize\ttfamily\color{muted} C++ \textperiodcentered{} Systems \textperiodcentered{} Memory \textperiodcentered{} Beginner}\par\smallskip
+{\LARGE\bfseries\color{ink} Stack, Heap, and the Registers That Finally Made Sense\par}
+\medskip
+{\small Priyanshu Debnath\quad\textperiodcentered\quad \href{https://priyanshudebnath.me/blog/stack-heap-registers/}{\texttt{priyanshudebnath.me/blog/stack-heap-registers/}}}\par
+{\small\color{muted} Published 2026-07-04}\par
+\end{flushleft}
+\begin{quotebox}
+Hi, it's my first blog. I went looking for proof that the stack and heap actually exist, and found it.
+\end{quotebox}
+\noindent{\color{rule}\rule{\linewidth}{0.5pt}}
+
+Hi, it's my first blog. Please clap.
+
+I've been playing around with memory in C++ lately, which is a fun way of saying I crashed my program a lot and got mad at a variable that doesn't have feelings.
+
+Not just using \texttt{new} and \texttt{delete} like a normal person. I wanted to know what they actually do underneath. Turns out, quite a lot. Turns out also, my computer has been quietly lying to me this whole time. More on that in a bit.
+
+\section{Where it started}
+
+I read some of the usual stuff first. Blog posts. Docs. A couple of CppCon talks:
+
+\begin{itemize}
+\item \href{https://www.youtube.com/watch?v=kSWfushlvB8}{How to Write a Custom Allocator --- Bob Steagall, CppCon 2017}
+
+\noindent\textit{Video:} \url{https://youtu.be/kSWfushlvB8}
+\item \href{https://www.youtube.com/watch?v=IejdKidUwIg}{An Allocator is a Handle to a Heap --- Arthur O'Dwyer, CppCon 2018}
+\item \href{https://www.youtube.com/watch?v=YB0QoWI-g8E}{How to Write a Heap Memory Profiler --- Milian Wolff, CppCon 2019}
+\end{itemize}
+
+All of it made sense on paper. Stack good, fast, small. Heap flexible, slower, manual cleanup. Cool story.
+
+But I wanted proof. Not analogies. Actual proof that these two things exist as separate places in memory, right now.
+
+So I wrote something :
+
+\begin{lstlisting}[language=C++]
+#include <iostream>
+using namespace std;
+
+int main() {
+    // 1. Put some stuff on the Heap so we can see it
+    int* massiveArray = new int[50000];
+
+    // 2. Put some stuff on the Stack
+    int localNumber = 99;
+    // 3. The Trap: The program will freeze here waiting for you to type
+    int freeze;
+    cin >> freeze;
+
+    // Clean up
+    delete[] massiveArray;
+    return 0;
+}
+\end{lstlisting}
+
+The trick is that \texttt{cin \textgreater{}\textgreater{} freeze} line. It freezes the program mid-run, on purpose. That gives me a window to go poke at the process while it's still alive, instead of it finishing in a blink. (gemini told me)
+
+I ran it, and while it sat there waiting, I opened \textbf{VMMap} (a free tool from Sysinternals) and attached it to the running process.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.9\linewidth,height=0.45\textheight,keepaspectratio]{Screenshot 2026-07-04 210149.png}
+\caption*{VMMap showing the stack, heap, and free memory regions}
+\end{figure}
+
+\section{What VMMap actually showed me}
+
+This is the exact physical layout of the address space Windows built for this one program. Here's what stood out.
+
+\textbf{The free space is enormous.}
+There's a row labeled \texttt{Free}, sitting at roughly 128 terabytes. My machine does not have 128 TB of RAM. Nowhere close. This is virtual memory, laid bare. The OS hands every program a huge, clean, fake blueprint (or atleast that's what I think)..
+
+\textbf{The heap is small, on purpose.}
+I asked for \texttt{new int[50000]}. That's 50,000 integers. The heap section in VMMap was only around 3.7 MB. The OS didn't round up to something huge. It gave me close to exactly what I asked for, no more.
+
+\textbf{The stack has a hard ceiling.}
+The stack section showed 2,048 KB. Exactly 2 MB. Fixed. That's the whole budget for local variables and every nested function call on that thread. Blow through it, and the program dies with a stack overflow.
+
+\textbf{Reserved and used are two different things.}
+The stack's \texttt{Size} column said 2,048 KB. The \texttt{Committed} column right next to it said 32 KB. Windows reserved 2 MB but only actually wired up 32 KB of real RAM behind it. My program only used one small local variable, so that's all it got. The rest of that 2 MB is not a fact, until something actually needs it.
+
+\textbf{Every address is right there.}
+Scroll to the bottom table and there's a line for \texttt{Thread Stack}, with a real hex address next to it, something like \texttt{00000005C2C00...}. That's the literal top of the stack for that thread. It's a real number, on a real running process, on my machine.
+
+\section{Okay, but what's actually going on}
+
+VMMap shows the result. So here's the mechanism, as I understand it now.
+
+\subsection{Registers, quickly}
+
+A register is a storage slot on the CPU chip itself. Not RAM. On the chip. There are very few of them, and each holds one number, usually 64 bits.
+
+They're fast because there's no travel time. No bus, no memory controller, nothing external. Reading a register is about as close to instant as computing gets.
+
+x86-64 has 16 general-purpose registers. A few have jobs by convention:
+
+\begin{itemize}
+\item \textbf{\texttt{rax}} --- holds return values.
+\item \textbf{\texttt{rbx}} --- general-purpose, often kept safe across calls.
+\item \textbf{\texttt{rcx}, \texttt{rdx}} --- general-purpose, also used for arguments.
+\item \textbf{\texttt{rsi}, \texttt{rdi}} --- also used for arguments. Old names, from string-copy instructions decades ago.
+\item \textbf{\texttt{rsp}} --- the stack pointer. Always points at the top of the stack.
+\item \textbf{\texttt{rbp}} --- the base pointer. A fixed anchor inside the current function.
+\item \textbf{\texttt{r8}--\texttt{r15}} --- added when x86 went 64-bit. General-purpose, plus two more argument slots.
+\item \textbf{\texttt{rip}} --- instruction pointer. The address of what runs next.
+\item \textbf{\texttt{rflags}} --- status bits, set after comparisons and math. This is what \texttt{if} and loops read to decide where to jump.
+\end{itemize}
+
+On Linux and macOS, function arguments go into \texttt{rdi}, \texttt{rsi}, \texttt{rdx}, \texttt{rcx}, \texttt{r8}, \texttt{r9}, in that order, for the first six. Anything past six spills onto the stack. The return value comes back in \texttt{rax}. That's why your function with more than six arguements is slow, jokes on you!
+
+There's also a split between registers a function can freely trash (\texttt{rax}, \texttt{rcx}, \texttt{rdx}, \texttt{rsi}, \texttt{rdi}, \texttt{r8}--\texttt{r11}) and ones it has to save and restore if it touches them (\texttt{rbx}, \texttt{rbp}, \texttt{r12}--\texttt{r15}, \texttt{rsp}). That split is the only reason two functions, written by two different people, can call each other without stepping on each other's data.
+
+\subsection{The stack, precisely}
+
+The stack is a region of memory managed by one register: \texttt{rsp}.
+
+It only grows and shrinks from one end. (LIFO) Last thing added, first thing removed. Because of that rule, nothing needs bookkeeping. \texttt{rsp} always knows exactly where the top is.
+
+Growing it means subtracting from \texttt{rsp}. Shrinking it means adding back. One instruction. \texttt{sub rsp, 32}. That's the entire cost.
+
+\begin{lstlisting}[language=C++]
+int square(int x) {
+    int result = x * x;   // lives on the stack
+    return result;
+}
+
+int main() {
+    int value = square(6);
+    return 0;
+}
+\end{lstlisting}
+
+Here's what actually happens when \texttt{square(6)} runs:
+
+\begin{enumerate}
+\item \texttt{6} goes into \texttt{rdi}.
+\item \texttt{call square} pushes the return address, then jumps.
+\item Prologue: \texttt{push rbp}, \texttt{mov rbp, rsp}, \texttt{sub rsp, 16}.
+\item \texttt{result} lands at \texttt{[rbp - 4]}.
+\item The answer moves into \texttt{rax}.
+\item Epilogue: \texttt{mov rsp, rbp}, \texttt{pop rbp}, \texttt{ret}.
+\end{enumerate}
+
+(you can see this yourself deassembling your code)
+
+The second \texttt{square} returns, that slot is done. The bits might still physically sit there for a while, but \texttt{rsp} has already moved past them. The program won't touch that memory as valid again. This is exactly why returning a pointer to a local variable breaks --- the address is real, the lease on it just expired.
+
+On Linux, the default per-thread stack is usually 8 MB. My VMMap screenshot showed 2 MB, since that's the Windows default. Either way, past that limit sits a guard page --- memory deliberately left unmapped, so overflowing the stack crashes cleanly instead of quietly corrupting whatever's next door.
+
+\subsection{\texttt{rbp}, precisely}
+
+\texttt{rsp} keeps moving during a function. \texttt{rbp} doesn't. It gets set once, at the top of the function, and stays put. Every local variable is then just "so many bytes from \texttt{rbp}," a number that never has to change mid-function.
+
+When a function calls another, the callee saves the caller's \texttt{rbp}, sets up its own, and restores the old one before returning. That creates a chain --- each saved \texttt{rbp} points back to the one before it, with a return address sitting right above it. Follow that chain, and you've rebuilt the entire call history. That's exactly how debuggers print stack traces.
+
+One catch: optimized builds often skip this (\texttt{-fomit-frame-pointer}, default at higher optimization levels) and track everything from \texttt{rsp} directly at compile time. \texttt{rbp} becomes just another free register. That's why release-build stack traces sometimes look broken --- the chain simply isn't there anymore.
+
+\subsection{The heap, precisely}
+
+No register owns the heap. No dedicated instruction. It's entirely software --- \texttt{malloc} in C, called internally by \texttt{new} in C++ --- sitting on top of the OS.
+
+The library gets memory from the kernel through two paths:
+
+\begin{itemize}
+\item \textbf{\texttt{brk}/\texttt{sbrk}} --- moves a single break pointer to extend one region. Older, used for smaller requests.
+\item \textbf{\texttt{mmap}} --- asks for a fresh separate region. Used for bigger requests, past roughly 128 KB by default in glibc.
+\end{itemize}
+
+Neither of those hands you physical RAM right away. They reserve address space and mark it valid in the page tables. Actual RAM only gets attached the first time you touch that memory --- a page fault fires, the kernel finds a free physical page, zeroes it, and wires it in. This is exactly why \texttt{Committed} was so much lower than \texttt{Size} in my VMMap screenshot. Reserved isn't the same as real.
+
+On top of that, the allocator keeps its own records. Every chunk it hands out carries a small hidden header just before your pointer, noting its size. Free chunks get sorted into size buckets so searching is fast. When something is freed, neighboring free chunks get merged, to fight fragmentation.
+
+All that searching, merging, and bookkeeping is why heap allocation costs more than stack allocation. If you want to know how it works, there is something called Bit Scan Forward. I don't know in details tho. In multi-threaded programs it costs even more, since the heap is usually shared across threads and needs locking. The stack needs none of that --- each thread already owns its own.
+
+\begin{lstlisting}[language=C++]
+#include <iostream>
+
+struct Player {
+    int hp;
+    char name[32];
+};
+
+int main() {
+    Player* p = new Player{100, "test"};
+    std::cout << p->name << " has " << p->hp << " hp\n";
+    delete p;
+}
+\end{lstlisting}
+
+\texttt{new} does two things: calls \texttt{operator new} (which calls \texttt{malloc}, and throws instead of returning null on failure), then runs the constructor. \texttt{delete} reverses it --- destructor first, deallocation second. Forget \texttt{delete}, and that memory never comes back. The stack cleans itself up automatically. The heap just sits there, unfreed, holding a grudge.
+
+\subsection{Fragmentation}
+
+Only a heap problem, since the stack's strict order makes it impossible there.
+
+\begin{itemize}
+\item \textbf{External} --- enough free memory total, just not in one big enough piece.
+\item \textbf{Internal} --- the allocator hands back more than you asked for, due to minimum sizes or alignment, and the extra is wasted.
+\end{itemize}
+
+\section{Why any of this matters}
+
+\begin{itemize}
+\item Deep recursion or a giant local array overflows the stack. A big \texttt{std::vector} usually doesn't, because its actual data lives on the heap. Only the small vector object sits on the stack.
+\item Returning a pointer to a local variable is broken, even when it compiles and even when it seems to work once.
+\item Custom allocators beat general-purpose ones for narrow use cases, because they skip all the bookkeeping a general allocator has to carry for every possible case.
+\end{itemize}
+
+\section{The toolkit}
+
+Here's what I actually used, split by platform.
+
+\textbf{Linux, macOS, or WSL:}
+
+\begin{lstlisting}[language=bash]
+# Disassemble the binary -- look for push rbp / mov rbp, rsp / sub rsp, N
+objdump -d your_program
+
+# Live memory map of a running process
+cat /proc/self/maps
+cat /proc/<pid>/maps
+
+# Watch the program ask the OS for memory, live
+strace -e trace=mmap,brk ./your_program
+
+# Step through and watch registers move
+gdb ./your_program
+(gdb) break square
+(gdb) run
+(gdb) print $rsp
+(gdb) print $rbp
+(gdb) info registers
+\end{lstlisting}
+
+\textbf{Windows, no WSL:}
+
+\begin{lstlisting}
+# VMMap (Sysinternals) -- the tool behind this whole post
+# Run VMMap.exe, attach to your process, read the middle and bottom tables
+
+# Process Explorer (Sysinternals) -- live view of a running process
+# Same suite, run procexp.exe
+
+# x64dbg -- free debugger, step through assembly, watch every register live
+# Open your .exe, set a breakpoint, F9 to run, F8 to step
+
+# Already on Visual Studio? Nothing extra to install:
+# Debug -> Windows -> Disassembly
+# Debug -> Windows -> Registers
+\end{lstlisting}
+
+None of this is required to understand the theory. But I had to write a blog, so you better read it (Implicit threat).
+
+\section{Closing}
+
+If I got something wrong here, tell me.
+
+\par\medskip\noindent\rule{\linewidth}{0.4pt}\par\medskip
+
+\vfill
+\noindent{\footnotesize\color{muted} Read online, with runnable code: \url{https://priyanshudebnath.me/blog/stack-heap-registers/}}
+\end{document}
