@@ -12,7 +12,13 @@ Nothing else changed. Same recursion, same math, same checks. Just the order. Th
 
 ## The problem
 
-Codeforces Round 1102 (Div. 2), problem E: **Vlad, Misha and Two Arrays** (rated 2100).
+:::problem
+title: E. Vlad, Misha and Two Arrays
+source: Codeforces Round 1102 (Div. 2)
+rating: 2100
+limits: 2 s · 256 MB
+tags: divide and conquer, combinatorics, math, dfs and similar
+:::
 
 Vlad has a permutation $p$ of length $n$. For every $i$ he counts the subarrays $[l, r]$ whose minimum is $p_i$, and writes that count into $a_i$. You get $a$ and have to count how many permutations produce it, modulo $10^9 + 7$. Here $n \le 5 \cdot 10^5$ and $a_i \le 10^{12}$.
 
@@ -62,12 +68,19 @@ With $n = 5 \cdot 10^5$ that's around $1.25 \cdot 10^{11}$ steps. Test 14 was al
 
 Check the candidates from both ends, alternating: $l, r, l+1, r-1, l+2, \dots$
 
-```cpp
+:::tabs
+```cpp label=Both_ends_(AC)
 for (int step = 0; step < len; step++) {
     int i = (step % 2 == 0) ? l + step / 2 : r - step / 2;
     // same check as before
 }
 ```
+```cpp label=Left_to_right_(TLE)
+for (int i = l; i <= r; i++) {
+    // same check as before
+}
+```
+:::
 
 That's it. The whole change.
 
