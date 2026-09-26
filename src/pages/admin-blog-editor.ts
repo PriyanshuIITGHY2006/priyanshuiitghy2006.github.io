@@ -38,13 +38,18 @@ function todayISO(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
+/** Frontmatter keys this form edits; anything else in a loaded post is kept as-is. */
+const FORM_KEYS = ["title", "date", "updated", "tags", "cover", "excerpt", "series", "pdf"] as const;
+
 function buildMarkdownFile(fields: {
-  title: string; date: string; tags: string; cover: string; excerpt: string; body: string;
+  title: string; date: string; updated: string; tags: string; cover: string; excerpt: string;
+  series: string; pdf: string; body: string; extra: Record<string, string>;
 }): string {
   const lines = ["---", `title: ${fields.title}`, `date: ${fields.date}`];
-  if (fields.tags.trim()) lines.push(`tags: ${fields.tags.trim()}`);
-  if (fields.cover.trim()) lines.push(`cover: ${fields.cover.trim()}`);
-  if (fields.excerpt.trim()) lines.push(`excerpt: ${fields.excerpt.trim()}`);
+  for (const key of ["updated", "tags", "cover", "excerpt", "series", "pdf"] as const) {
+    if (fields[key].trim()) lines.push(`${key}: ${fields[key].trim()}`);
+  }
+  for (const [key, value] of Object.entries(fields.extra)) lines.push(`${key}: ${value}`);
   lines.push("---", "", fields.body.trim(), "");
   return lines.join("\n");
 }
@@ -97,6 +102,18 @@ export async function renderBlogEditor(el: HTMLElement): Promise<void> {
         </div>
         <div><label>Tags (comma-separated)</label><input type="text" id="be-tags" placeholder="C++, Performance, Data Structures"/></div>
         <div><label>Excerpt</label><input type="text" id="be-excerpt" placeholder="One or two sentences shown on the blog list card"/></div>
+        <div class="admin-form-row">
+          <div><label>Updated (optional)</label><input type="text" id="be-updated" placeholder="YYYY-MM-DD"/></div>
+          <div><label>Series (optional)</label><input type="text" id="be-series" placeholder="Posts with the same name are linked"/></div>
+        </div>
+        <div>
+          <label>PDF (optional — shows a download icon on the post)</label>
+          <div style="display:flex;gap:0.4rem;align-items:center;">
+            <input type="text" id="be-pdf" placeholder="Upload the PDF compiled in Overleaf" style="flex:1;"/>
+            <input type="file" id="be-pdf-upload" accept="application/pdf,.pdf" style="display:none;"/>
+            <button type="button" class="admin-btn" id="be-pdf-upload-btn">Upload PDF…</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -114,6 +131,37 @@ export async function renderBlogEditor(el: HTMLElement): Promise<void> {
         </div>
       </div>
     </div>
+
+    <details class="admin-form-section admin-latex" id="be-latex">
+      <summary><h3 style="display:inline;">LaTeX export</h3> <span class="edu-note">— for a typeset PDF of this post</span></summary>
+      <ol class="admin-latex-steps">
+        <li>Click <b>Generate LaTeX</b> (uses the fields and Markdown above), then <b>Copy</b>.</li>
+        <li>In Overleaf: New Project → Blank Project, replace <code>main.tex</code> with the copied code. Keep the compiler on <b>pdfLaTeX</b> (the default).</li>
+        <li>Upload the images listed below into the Overleaf project (same file names, project root).</li>
+        <li>Recompile, download the PDF, then use <b>Upload PDF…</b> above and click <b>Update on GitHub</b>.</li>
+      </ol>
+      <div class="admin-form-actions">
+        <button type="button" class="admin-btn admin-btn-primary" id="be-latex-gen">Generate LaTeX</button>
+        <button type="button" class="admin-btn" id="be-latex-copy" disabled>Copy</button>
+        <button type="button" class="admin-btn" id="be-latex-download" disabled>Download .tex</button>
+      </div>
+      <div id="be-latex-info"></div>
+      <textarea id="be-latex-out" class="admin-editor-textarea admin-latex-out" readonly spellcheck="false" placeholder="Generated LaTeX appears here." style="display:none;"></textarea>
+      <details class="admin-latex-rules">
+        <summary>Conversion rules</summary>
+        <ul>
+          <li><code>##</code> → <code>\section</code>, <code>###</code> → <code>\subsection</code>, deeper → <code>\paragraph</code>. The post title, author, link, dates, tags and excerpt form the title block.</li>
+          <li>Bold/italic/inline code → <code>\textbf</code>/<code>\emph</code>/<code>\texttt</code>. Links → <code>\href</code> (site links made absolute).</li>
+          <li>Math <code>$…$</code> / <code>$$…$$</code> is copied verbatim — stick to standard LaTeX commands.</li>
+          <li>Code blocks → <code>listings</code> (C++, C, Python, Java, SQL, Bash highlighted). Non-ASCII in code becomes ASCII (<code>→</code> → <code>-&gt;</code>).</li>
+          <li>Images → centred figures; alt text becomes the caption. PNG/JPG/PDF only.</li>
+          <li>Tables → booktabs; quotes → a ruled box; <code>---</code> → a rule.</li>
+          <li><code>:::note/tip/warning/important</code> and <code>:::spoiler</code> → titled boxes (spoilers printed open). <code>:::tabs</code> → each block captioned with its tab label. <code>:::problem</code> → problem card.</li>
+          <li><code>:::testcases</code> → input/expected listings, truncated to 8 lines; file-backed cases become links. <code>:::youtube</code>/<code>:::binviz</code> → link to the online post.</li>
+          <li>Raw HTML is dropped; characters pdfLaTeX can't typeset (emoji) are removed and listed as warnings.</li>
+        </ul>
+      </details>
+    </details>
 
     <div class="admin-form-actions" style="margin-top:0.8rem;">
       <button type="button" class="admin-btn admin-btn-primary" id="be-publish">Publish to GitHub</button>
@@ -133,6 +181,11 @@ export async function renderBlogEditor(el: HTMLElement): Promise<void> {
   const coverUploadBtn = el.querySelector<HTMLButtonElement>("#be-cover-upload-btn")!;
   const tagsEl = el.querySelector<HTMLInputElement>("#be-tags")!;
   const excerptEl = el.querySelector<HTMLInputElement>("#be-excerpt")!;
+  const updatedEl = el.querySelector<HTMLInputElement>("#be-updated")!;
+  const seriesEl = el.querySelector<HTMLInputElement>("#be-series")!;
+  const pdfEl = el.querySelector<HTMLInputElement>("#be-pdf")!;
+  const pdfUploadInput = el.querySelector<HTMLInputElement>("#be-pdf-upload")!;
+  const pdfUploadBtn = el.querySelector<HTMLButtonElement>("#be-pdf-upload-btn")!;
   const bodyEl = el.querySelector<HTMLTextAreaElement>("#be-body")!;
   const previewEl = el.querySelector<HTMLElement>("#be-preview")!;
   const publishBtn = el.querySelector<HTMLButtonElement>("#be-publish")!;
@@ -142,6 +195,8 @@ export async function renderBlogEditor(el: HTMLElement): Promise<void> {
   const copyStatusEl = el.querySelector<HTMLElement>("#be-copy-status")!;
 
   let editingSlug: string | null = null;
+  /** Frontmatter keys from a loaded post that the form doesn't edit (kept on save). */
+  let extraFrontmatter: Record<string, string> = {};
   let slugTouched = false;
 
   slugEl.addEventListener("input", () => { slugTouched = true; });
@@ -188,6 +243,91 @@ export async function renderBlogEditor(el: HTMLElement): Promise<void> {
     }
   });
 
+  pdfUploadBtn.addEventListener("click", () => pdfUploadInput.click());
+  pdfUploadInput.addEventListener("change", async () => {
+    const file = pdfUploadInput.files?.[0];
+    if (!file) return;
+    const slug = editingSlug ?? (slugEl.value.trim() || slugify(titleEl.value));
+    if (!slug) {
+      setStatus("Set a title or slug before uploading the PDF.", false);
+      pdfUploadInput.value = "";
+      return;
+    }
+    const head = new Uint8Array(await file.slice(0, 5).arrayBuffer());
+    if (String.fromCharCode(...head) !== "%PDF-") {
+      setStatus("That file isn't a PDF.", false);
+      pdfUploadInput.value = "";
+      return;
+    }
+    pdfUploadBtn.disabled = true;
+    pdfUploadBtn.textContent = "Uploading…";
+    try {
+      // Fixed name per post, so re-uploading a revised PDF replaces the old one.
+      const { src } = await uploadImageToGithub(new File([file], `${slug}.pdf`, { type: "application/pdf" }));
+      pdfEl.value = src;
+      setStatus(`PDF uploaded. Click "${editingSlug ? "Update on GitHub" : "Publish to GitHub"}" to show the download icon on the post.`, true);
+    } catch (err) {
+      setStatus("PDF upload error: " + (err instanceof Error ? err.message : String(err)), false);
+    } finally {
+      pdfUploadBtn.disabled = false;
+      pdfUploadBtn.textContent = "Upload PDF…";
+      pdfUploadInput.value = "";
+    }
+  });
+
+  const latexOut = el.querySelector<HTMLTextAreaElement>("#be-latex-out")!;
+  const latexInfo = el.querySelector<HTMLElement>("#be-latex-info")!;
+  const latexCopyBtn = el.querySelector<HTMLButtonElement>("#be-latex-copy")!;
+  const latexDownloadBtn = el.querySelector<HTMLButtonElement>("#be-latex-download")!;
+  el.querySelector<HTMLButtonElement>("#be-latex-gen")!.addEventListener("click", async () => {
+    const f = currentFields();
+    const slug = editingSlug ?? (slugEl.value.trim() || slugify(titleEl.value));
+    if (!f.title || !f.body.trim() || !slug) {
+      setStatus("Title, slug, and body are required before generating LaTeX.", false);
+      return;
+    }
+    const { blogToLatex } = await import("../lib/blog-latex");
+    const result = blogToLatex(f.body, {
+      slug,
+      title: f.title,
+      date: f.date,
+      updated: f.updated.trim() || undefined,
+      tags: f.tags.split(",").map((t) => t.trim()).filter(Boolean),
+      excerpt: f.excerpt.trim() || undefined,
+    });
+    latexOut.value = result.tex;
+    latexOut.style.display = "";
+    latexCopyBtn.disabled = false;
+    latexDownloadBtn.disabled = false;
+    const images = result.images.length
+      ? `<p><b>Upload these ${result.images.length} image(s) to Overleaf:</b></p><ul>${result.images
+          .map((i) => `<li><a href="/${esc(i.src)}" download="${esc(i.file)}" target="_blank" rel="noopener">${esc(i.file)}</a></li>`)
+          .join("")}</ul>`
+      : `<p class="edu-note">No images to upload.</p>`;
+    const warnings = result.warnings.length
+      ? `<p><b>Check before compiling:</b></p><ul class="admin-latex-warn">${result.warnings.map((w) => `<li>${esc(w)}</li>`).join("")}</ul>`
+      : "";
+    latexInfo.innerHTML = images + warnings;
+  });
+  latexCopyBtn.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(latexOut.value);
+      setStatus("LaTeX copied — paste it into main.tex in Overleaf.", true);
+    } catch {
+      latexOut.select();
+      setStatus("Clipboard unavailable — the code is selected, press Ctrl/Cmd+C.", false);
+    }
+  });
+  latexDownloadBtn.addEventListener("click", () => {
+    const slug = editingSlug ?? (slugEl.value.trim() || "post");
+    const url = URL.createObjectURL(new Blob([latexOut.value], { type: "text/x-tex" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${slug}.tex`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  });
+
   const { renderMarkdown } = await import("../lib/blog");
 
   let debounceId: number | undefined;
@@ -216,7 +356,11 @@ export async function renderBlogEditor(el: HTMLElement): Promise<void> {
       tags: tagsEl.value,
       cover: coverEl.value,
       excerpt: excerptEl.value,
+      updated: updatedEl.value,
+      series: seriesEl.value,
+      pdf: pdfEl.value,
       body: bodyEl.value,
+      extra: extraFrontmatter,
     };
   }
 
@@ -239,6 +383,15 @@ export async function renderBlogEditor(el: HTMLElement): Promise<void> {
     dateEl.value = todayISO();
     tagsEl.value = "";
     excerptEl.value = "";
+    updatedEl.value = "";
+    seriesEl.value = "";
+    pdfEl.value = "";
+    extraFrontmatter = {};
+    latexOut.value = "";
+    latexOut.style.display = "none";
+    latexInfo.innerHTML = "";
+    latexCopyBtn.disabled = true;
+    latexDownloadBtn.disabled = true;
     coverEl.value = "";
     bodyEl.value = "";
     renderPreview();
@@ -303,6 +456,12 @@ export async function renderBlogEditor(el: HTMLElement): Promise<void> {
       dateEl.value = data.date ?? todayISO();
       tagsEl.value = data.tags ?? "";
       excerptEl.value = data.excerpt ?? "";
+      updatedEl.value = data.updated ?? "";
+      seriesEl.value = data.series ?? "";
+      pdfEl.value = data.pdf ?? "";
+      extraFrontmatter = Object.fromEntries(
+        Object.entries(data).filter(([k]) => !(FORM_KEYS as readonly string[]).includes(k)),
+      );
       const coverSrc = data.cover ?? "";
       if (coverSrc && !Array.from(coverEl.options).some((o) => o.value === coverSrc)) {
         const opt = document.createElement("option");
