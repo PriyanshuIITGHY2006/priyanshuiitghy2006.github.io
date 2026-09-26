@@ -4,6 +4,7 @@ date: 2026-09-26
 tags: Competitive Programming, C++, Divide and Conquer, Complexity
 cover: gallery-media/1000505797.png
 excerpt: My solution to Vlad, Misha and Two Arrays was correct and still got TLE on test 14. The fix was to check the split candidates in the order l, r, l+1, r-1, ... instead of left to right. Here is why that one change turns O(n²) into O(n log n).
+pdf: gallery-media/scan-from-both-ends.pdf
 ---
 
 I got TLE on test 14 with a solution that was completely correct. Then I changed one loop, the order in which I check indices, and it passed comfortably.
