@@ -21,11 +21,11 @@ Deno.serve(async (req) => {
     const bodyHtml = `
       <p>Hi ${escapeHtml(name) || "there"},</p>
       <p>You're subscribed — you'll get a short note here whenever a new post goes up.</p>
-      <blockquote style="margin: 22px 0; padding: 2px 0 2px 16px; border-left: 2px solid #000000; font-style: italic; color:#333333;">
+      <blockquote style="margin: 22px 0; padding: 2px 0 2px 16px; border-left: 2px solid #18181b; color:#3f3f46;">
         &ldquo;Premature optimization is the root of all evil.&rdquo;
-        <div style="margin-top: 6px; font-style: normal; font-size: 13px; color:#666666;">&mdash; Donald Knuth</div>
+        <div style="margin-top: 6px; font-family:'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace; font-size: 12px; color:#71717a;">&mdash; Donald Knuth</div>
       </blockquote>
-      <p>Read the latest posts any time at <a href="https://priyanshudebnath.me/blogs" style="color:#000000;">the blog</a>.</p>
+      <p>Read the latest posts any time at <a href="https://priyanshudebnath.me/blogs" style="color:#0b57d0; text-decoration:none;">the blog</a>.</p>
       <p>&mdash; Priyanshu</p>
     `;
 
