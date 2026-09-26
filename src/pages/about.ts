@@ -106,12 +106,11 @@ function pageHtml(): string {
 export function mountAbout(container: HTMLElement): void {
   container.innerHTML = pageHtml();
   const page = container.querySelector<HTMLElement>(".about-page")!;
-  const hero = container.querySelector<HTMLElement>(".hero")!;
   // three.js is only loaded here. Devices that can't run the GPU simulation
   // (no WebGL2 / float render targets) get the lightweight dot terrain.
   void import("../lib/landing-attractor")
     .then(({ mountLandingAttractor }) => {
-      if (page.isConnected && !mountLandingAttractor(page, hero)) mountLandingWebgl(page);
+      if (page.isConnected && !mountLandingAttractor(page)) mountLandingWebgl(page);
     })
     .catch(() => {
       if (page.isConnected) mountLandingWebgl(page);
