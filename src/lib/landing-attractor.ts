@@ -1,7 +1,9 @@
-// Landing-page hero: a strange attractor made of up to ~262k particles,
-// integrated on the GPU every frame (three.js GPUComputationRenderer, RK4).
-// Particles start as noise and fall into the attractor; clicking switches
-// to the next system and they flow into the new shape. Drag rotates.
+// Landing-page background: up to ~262k particles simulated on the GPU every
+// frame (three.js GPUComputationRenderer). They open by streaming out of
+// noise into a calligraphic "pd" monogram, then dissolve into four strange attractors
+// (Lorenz, Aizawa, Thomas, Halvorsen, integrated with RK4) and come back to
+// the monogram. It sits full-screen behind the hero text, deliberately faint.
+// Click an empty area to skip ahead; drag to rotate.
 //
 // Monochrome by design: the page's --ink on --bg. Light mode draws with
 // normal blending; dark mode adds light (additive) plus a soft bloom.
@@ -16,12 +18,9 @@ import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
-import katex from "katex";
-import "katex/dist/katex.min.css";
+import monogramFontUrl from "@fontsource/great-vibes/files/great-vibes-latin-400-normal.woff2?url";
 
 interface Attractor {
-  name: string;
-  tex: string;
   /** Attractor-space centre, scale into display space, y/z swap, step, speed normaliser. */
   center: [number, number, number];
   scale: number;
@@ -32,45 +31,19 @@ interface Attractor {
 
 // Centres/scales measured by integrating each system (RK4) and taking the
 // bounding box of the settled trajectory (rounder shapes scaled down to fit
-// the same space); speed = ~p90 of |dx/dt|.
+// the same space); speed = ~p90 of |dx/dt|. Kinds 0-3 in the shader.
 const ATTRACTORS: Attractor[] = [
-  {
-    name: "Lorenz",
-    tex: String.raw`\begin{aligned}\dot x&=\sigma(y-x)\\ \dot y&=x(\rho-z)-y\\ \dot z&=xy-\beta z\end{aligned}`,
-    center: [0, 0, 24.6],
-    scale: 0.0615,
-    swap: true,
-    dt: 0.0035,
-    speed: 180,
-  },
-  {
-    name: "Aizawa",
-    tex: String.raw`\begin{aligned}\dot x&=(z-b)x-dy\\ \dot y&=dx+(z-b)y\\ \dot z&=c+az-\tfrac{z^3}{3}-(x^2+y^2)(1+ez)+fzx^3\end{aligned}`,
-    center: [0, 0, 0.74],
-    scale: 0.8,
-    swap: true,
-    dt: 0.009,
-    speed: 5,
-  },
-  {
-    name: "Thomas",
-    tex: String.raw`\begin{aligned}\dot x&=\sin y-bx\\ \dot y&=\sin z-by\\ \dot z&=\sin x-bz\end{aligned}`,
-    center: [0, 0, 0],
-    scale: 0.34,
-    swap: false,
-    dt: 0.06,
-    speed: 1.2,
-  },
-  {
-    name: "Halvorsen",
-    tex: String.raw`\begin{aligned}\dot x&=-ax-4y-4z-y^2\\ \dot y&=-ay-4z-4x-z^2\\ \dot z&=-az-4x-4y-x^2\end{aligned}`,
-    center: [-2.9, -2.9, -2.9],
-    scale: 0.12,
-    swap: false,
-    dt: 0.0035,
-    speed: 80,
-  },
+  { center: [0, 0, 24.6], scale: 0.0615, swap: true, dt: 0.0035, speed: 180 }, // Lorenz
+  { center: [0, 0, 0.74], scale: 0.8, swap: true, dt: 0.009, speed: 5 }, // Aizawa
+  { center: [0, 0, 0], scale: 0.34, swap: false, dt: 0.06, speed: 1.2 }, // Thomas
+  { center: [-2.9, -2.9, -2.9], scale: 0.12, swap: false, dt: 0.0035, speed: 80 }, // Halvorsen
 ];
+const MONOGRAM = 4; // shader kind for the "P.D." stage
+const STAGES = [MONOGRAM, 0, 1, 2, 3]; // cycle order
+// Every stage: particles gather (fading in), hold, then scatter and fade out.
+const GATHER_MS = 2200;
+const HOLD_MS = { monogram: 7000, attractor: 12000 };
+const VANISH_MS = 2200;
 
 const SIM_SHADER = /* glsl */ `
 uniform float uTime;
@@ -81,6 +54,9 @@ uniform float uScale;
 uniform float uSwap;
 uniform float uSpeedNorm;
 uniform float uRespawn;
+uniform sampler2D uTargets;
+uniform float uTargetScale;
+uniform float uScatter;
 
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 
@@ -117,6 +93,29 @@ vec3 rk4(vec3 p, float h) {
 void main() {
   vec2 uv = gl_FragCoord.xy / resolution.xy;
   vec4 cur = texture2D(texturePosition, uv);
+
+  // Vanishing: every particle drifts outward along its own direction with a
+  // slow swirl, accelerating as the stage ends (the renderer fades them out).
+  if (uScatter > 0.0) {
+    vec3 dir = normalize(cur.xyz + (vec3(hash(uv), hash(uv + 0.5), hash(uv + 0.9)) - 0.5) * 0.6 + 1e-4);
+    vec3 swirl = vec3(sin(cur.y * 2.3 + uTime), sin(cur.z * 2.1 + uTime * 1.3), sin(cur.x * 1.9 + uTime * 0.7));
+    vec3 next = cur.xyz + (dir * (0.006 + 0.03 * uScatter) + swirl * 0.008) * (0.4 + hash(uv + 0.2));
+    gl_FragColor = vec4(next, cur.w * 0.97);
+    return;
+  }
+
+  // Monogram: each particle springs toward its own point on the glyphs,
+  // with a faint shimmer so the letters stay alive.
+  if (uKind == ${MONOGRAM}) {
+    vec3 target = texture2D(uTargets, uv).xyz * uTargetScale;
+    vec3 delta = target - cur.xyz;
+    vec3 shimmer = vec3(sin(target.y * 6.0 + uTime * 1.7),
+                        sin(target.x * 5.0 + uTime * 1.3 + 1.7),
+                        sin(target.x * 4.0 + target.y * 3.0 + uTime * 1.1)) * 0.0009;
+    gl_FragColor = vec4(cur.xyz + delta * 0.045 + shimmer, 0.3 + clamp(length(delta) * 1.5, 0.0, 0.7));
+    return;
+  }
+
   vec3 a = toAttractor(cur.xyz);
   a = rk4(a, uDt);
   a = rk4(a, uDt);
@@ -156,12 +155,13 @@ void main() {
 const POINT_FRAG = /* glsl */ `
 uniform vec3 uColor;
 uniform float uAlpha;
+uniform float uFade;
 varying float vSpeed;
 void main() {
   float d = length(gl_PointCoord - 0.5);
   if (d > 0.5) discard;
   float soft = 1.0 - smoothstep(0.1, 0.5, d);
-  float a = uAlpha * soft * (0.35 + 0.65 * vSpeed);
+  float a = uAlpha * uFade * soft * (0.35 + 0.65 * vSpeed);
   gl_FragColor = vec4(uColor, a);
 }
 `;
@@ -175,19 +175,85 @@ function cssColor(name: string, fallback: string): THREE.Color {
   }
 }
 
-function captionHtml(a: Attractor, index: number): string {
-  const eq = katex.renderToString(a.tex, { displayMode: true, throwOnError: false });
-  return `
-    <p class="attractor-name">${a.name} attractor <span>${index + 1}/${ATTRACTORS.length}</span></p>
-    <div class="attractor-eq">${eq}</div>
-    <p class="attractor-actions">
-      <button type="button" class="attractor-next">next attractor →</button>
-      <span class="attractor-hint">drag to rotate</span>
-    </p>`;
+/** A cubic Bézier stroked in short segments whose width tapers w0 → w1. */
+function taperedCurve(
+  ctx: CanvasRenderingContext2D,
+  p0: [number, number], p1: [number, number], p2: [number, number], p3: [number, number],
+  w0: number, w1: number,
+): void {
+  const N = 90;
+  let prev = p0;
+  for (let i = 1; i <= N; i++) {
+    const t = i / N, u = 1 - t;
+    const x = u * u * u * p0[0] + 3 * u * u * t * p1[0] + 3 * u * t * t * p2[0] + t * t * t * p3[0];
+    const y = u * u * u * p0[1] + 3 * u * u * t * p1[1] + 3 * u * t * t * p2[1] + t * t * t * p3[1];
+    ctx.lineWidth = w0 + (w1 - w0) * t;
+    ctx.beginPath();
+    ctx.moveTo(prev[0], prev[1]);
+    ctx.lineTo(x, y);
+    ctx.stroke();
+    prev = [x, y];
+  }
 }
 
-/** Mounts the attractor hero. Returns false if the GPU can't run it. */
-export function mountLandingAttractor(host: HTMLElement, hero: HTMLElement): boolean {
+/**
+ * Draws the "pd" monogram: lowercase "pd" in Great Vibes (SIL OFL) with two
+ * swashes of our own — a hairline wave leading into the p from the left and
+ * a long sweep out of the d's foot that curls up at the tip. 1400×520 canvas.
+ */
+function drawMonogram(ctx: CanvasRenderingContext2D, family: string): void {
+  ctx.fillStyle = "#000";
+  ctx.strokeStyle = "#000";
+  ctx.lineCap = "round";
+  ctx.font = `400 360px ${family}`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "alphabetic";
+  ctx.fillText("pd", 700, 330);
+  taperedCurve(ctx, [250, 262], [340, 200], [430, 300], [598, 232], 2, 9);
+  taperedCurve(ctx, [812, 318], [900, 300], [1000, 250], [1080, 262], 9, 6);
+  taperedCurve(ctx, [1080, 262], [1140, 270], [1180, 250], [1170, 222], 6, 2);
+}
+
+/**
+ * Samples the monogram into one target point per particle, in units where
+ * the mark is 1 wide and centred on the origin (z = a thin slab for depth).
+ */
+function sampleMonogram(family: string, count: number, out: Float32Array): void {
+  const W = 1400, H = 520;
+  const c = document.createElement("canvas");
+  c.width = W;
+  c.height = H;
+  const ctx = c.getContext("2d")!;
+  drawMonogram(ctx, family);
+  const px = ctx.getImageData(0, 0, W, H).data;
+
+  const filled: number[] = [];
+  let minX = W, maxX = 0, minY = H, maxY = 0;
+  for (let y = 0; y < H; y++)
+    for (let x = 0; x < W; x++)
+      if (px[(y * W + x) * 4 + 3] > 128) {
+        filled.push(x, y);
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+      }
+  const n = filled.length / 2;
+  const width = Math.max(1, maxX - minX);
+  const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+  for (let i = 0; i < count; i++) {
+    const k = n ? Math.floor(Math.random() * n) : 0;
+    const x = n ? filled[k * 2] + Math.random() : cx;
+    const y = n ? filled[k * 2 + 1] + Math.random() : cy;
+    out[i * 4] = (x - cx) / width;
+    out[i * 4 + 1] = -(y - cy) / width;
+    out[i * 4 + 2] = (Math.random() - 0.5) * 0.015;
+    out[i * 4 + 3] = 1;
+  }
+}
+
+/** Mounts the particle background. Returns false if the GPU can't run it. */
+export function mountLandingAttractor(host: HTMLElement): boolean {
   const canvas = document.createElement("canvas");
   canvas.className = "landing-attractor";
   canvas.setAttribute("aria-hidden", "true");
@@ -205,47 +271,68 @@ export function mountLandingAttractor(host: HTMLElement, hero: HTMLElement): boo
 
   const small = Math.min(window.innerWidth, window.innerHeight) < 700;
   const SIZE = small ? 256 : 512; // particles = SIZE²
+  const COUNT = SIZE * SIZE;
   const gpu = new GPUComputationRenderer(SIZE, SIZE, renderer);
   if (/iP(hone|ad|od)/.test(navigator.userAgent)) gpu.setDataType(THREE.HalfFloatType);
 
   const initial = gpu.createTexture();
   const data = initial.image.data as Float32Array;
   for (let i = 0; i < data.length; i += 4) {
-    data[i] = (Math.random() - 0.5) * 3.2;
-    data[i + 1] = (Math.random() - 0.5) * 3.2;
-    data[i + 2] = (Math.random() - 0.5) * 3.2;
+    data[i] = (Math.random() - 0.5) * 7;
+    data[i + 1] = (Math.random() - 0.5) * 4.4;
+    data[i + 2] = (Math.random() - 0.5) * 3.5;
     data[i + 3] = 0;
   }
   const posVar: Variable = gpu.addVariable("texturePosition", SIM_SHADER, initial);
   gpu.setVariableDependencies(posVar, [posVar]);
+
+  // Monogram targets: one point on the drawn strokes per particle. Sampled
+  // with a fallback script face first, then again once the bundled Great
+  // Vibes has loaded (it's same-origin and small, so normally near-instant;
+  // the particles just re-flow).
+  const targetData = new Float32Array(COUNT * 4);
+  const targets = new THREE.DataTexture(targetData, SIZE, SIZE, THREE.RGBAFormat, THREE.FloatType);
+  sampleMonogram(`"Brush Script MT", cursive`, COUNT, targetData);
+  targets.needsUpdate = true;
+  const face = new FontFace("PD Monogram", `url(${monogramFontUrl})`);
+  const fontReady = face.load().then((loaded) => {
+    document.fonts.add(loaded);
+    sampleMonogram(`"PD Monogram"`, COUNT, targetData);
+    targets.needsUpdate = true;
+  });
+  fontReady.catch(() => {
+    // Keep the fallback face.
+  });
+
   const simU = posVar.material.uniforms;
   simU.uTime = { value: 0 };
-  simU.uKind = { value: 0 };
+  simU.uKind = { value: MONOGRAM };
   simU.uDt = { value: 0 };
   simU.uCenter = { value: new THREE.Vector3() };
   simU.uScale = { value: 1 };
   simU.uSwap = { value: 0 };
   simU.uSpeedNorm = { value: 1 };
   simU.uRespawn = { value: 0.002 };
+  simU.uTargets = { value: targets };
+  simU.uTargetScale = { value: 4 };
+  simU.uScatter = { value: 0 };
   if (gpu.init() !== null) {
     renderer.dispose();
+    targets.dispose();
     return false;
   }
 
   host.prepend(canvas);
-  const caption = document.createElement("div");
-  caption.className = "attractor-caption";
-  host.appendChild(caption);
 
   // Scene: one Points object whose vertices look up their position texel.
-  const refs = new Float32Array(SIZE * SIZE * 2);
+  const refs = new Float32Array(COUNT * 2);
   for (let y = 0, i = 0; y < SIZE; y++)
     for (let x = 0; x < SIZE; x++) {
       refs[i++] = (x + 0.5) / SIZE;
       refs[i++] = (y + 0.5) / SIZE;
     }
   const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute("position", new THREE.BufferAttribute(new Float32Array(SIZE * SIZE * 3), 3));
+  geometry.setAttribute("position", new THREE.BufferAttribute(new Float32Array(COUNT * 3), 3));
   geometry.setAttribute("ref", new THREE.BufferAttribute(refs, 2));
   const material = new THREE.ShaderMaterial({
     vertexShader: POINT_VERT,
@@ -254,7 +341,8 @@ export function mountLandingAttractor(host: HTMLElement, hero: HTMLElement): boo
       uPositions: { value: null },
       uSize: { value: 1 },
       uColor: { value: new THREE.Color() },
-      uAlpha: { value: 0.2 },
+      uAlpha: { value: 0.1 },
+      uFade: { value: 0 },
     },
     transparent: true,
     depthWrite: false,
@@ -264,33 +352,27 @@ export function mountLandingAttractor(host: HTMLElement, hero: HTMLElement): boo
   const scene = new THREE.Scene();
   scene.add(points);
 
+  const CAM_DIST = 8.4;
+  const HALF_FOV_TAN = Math.tan((32 / 2) * (Math.PI / 180));
   const camera = new THREE.PerspectiveCamera(32, 1, 0.1, 100);
   const composer = new EffectComposer(renderer);
   composer.addPass(new RenderPass(scene, camera));
-  const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.45, 0.4, 0.08);
+  const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.4, 0.4, 0.1);
   composer.addPass(bloom);
   composer.addPass(new OutputPass());
 
-  let dark = false;
-  let sizeFactor = 1;
+  // Faint on purpose: this sits behind the hero text.
   const applyTheme = () => {
-    dark = document.documentElement.dataset.theme === "dark";
-    scene.background = cssColor("--bg", dark ? "#0e0e10" : "#ffffff");
+    const dark = document.documentElement.dataset.theme === "dark";
+    scene.background = cssColor("--bg", dark ? "#0c0c0e" : "#ffffff");
     material.uniforms.uColor.value = cssColor("--ink", dark ? "#eeeeee" : "#111111");
     material.blending = dark ? THREE.AdditiveBlending : THREE.NormalBlending;
     material.needsUpdate = true;
     const perPoint = SIZE === 512 ? 1 : 1.6; // fewer particles → each a bit stronger
-    material.uniforms.uAlpha.value = (dark ? 0.1 : 0.16) * perPoint * sizeFactor;
+    material.uniforms.uAlpha.value = (dark ? 0.055 : 0.1) * perPoint;
     bloom.enabled = dark && !small;
   };
 
-  // Where the attractor sits: the free space right of the text on wide
-  // screens; on narrow ones, as an emblem in the empty space above the text
-  // (scrolling with the page); failing that, faintly behind the text.
-  let wide = false;
-  let camDist = 8.4;
-  let centerX = 0, centerY = 0;
-  const HALF_FOV_TAN = Math.tan((32 / 2) * (Math.PI / 180));
   const layout = () => {
     const w = window.innerWidth;
     const h = window.innerHeight;
@@ -300,47 +382,28 @@ export function mountLandingAttractor(host: HTMLElement, hero: HTMLElement): boo
     composer.setPixelRatio(dpr);
     composer.setSize(w, h);
     camera.aspect = w / h;
-    const rect = hero.getBoundingClientRect();
-    // The hero box fills the viewport and centres its content, so the free
-    // space is above its first line of text, not above the box.
-    const firstLine = (hero.firstElementChild as HTMLElement | null)?.getBoundingClientRect().top ?? rect.top;
-    const spaceAbove = firstLine + window.scrollY;
-    wide = w - rect.right > Math.min(560, w * 0.36);
-    if (wide) {
-      centerX = (rect.right + w) / 2;
-      centerY = h / 2;
-      camDist = 8.4;
-      sizeFactor = 1;
-    } else if (spaceAbove > 140) {
-      // Fit a ~1.6-unit shape into ~40% of the space above the text.
-      centerX = w / 2;
-      centerY = spaceAbove / 2;
-      camDist = Math.min(40, Math.max(8.4, (1.6 * (h / 2)) / (0.4 * spaceAbove * HALF_FOV_TAN)));
-      sizeFactor = 1;
-    } else {
-      centerX = w / 2;
-      centerY = h / 2;
-      camDist = 9.6;
-      sizeFactor = 0.45;
-    }
-    material.uniforms.uSize.value = (small ? 9 : 7) * dpr * (camDist / 8.4);
-    canvas.dataset.layout = wide ? "wide" : sizeFactor === 1 ? "emblem" : "behind";
-    caption.hidden = !wide;
-    canvas.style.pointerEvents = wide ? "auto" : "none";
+    camera.updateProjectionMatrix();
+    material.uniforms.uSize.value = (small ? 9 : 7) * dpr;
+    // Monogram spans ~60% of the visible width, capped by the visible
+    // height so it never overflows, measured at the camera's distance.
+    const visibleHeight = 2 * CAM_DIST * HALF_FOV_TAN;
+    const visibleWidth = visibleHeight * camera.aspect;
+    simU.uTargetScale.value = Math.min(visibleWidth * 0.6, visibleHeight * 1.05);
     applyTheme();
   };
 
-  let current = 0;
+  let stage = 0;
   const select = (i: number) => {
-    current = (i + ATTRACTORS.length) % ATTRACTORS.length;
-    const a = ATTRACTORS[current];
-    simU.uKind.value = current;
+    stage = (i + STAGES.length) % STAGES.length;
+    const kind = STAGES[stage];
+    simU.uKind.value = kind;
+    if (kind === MONOGRAM) return;
+    const a = ATTRACTORS[kind];
     simU.uDt.value = a.dt;
     simU.uCenter.value.set(...a.center);
     simU.uScale.value = a.scale;
     simU.uSwap.value = a.swap ? 1 : 0;
     simU.uSpeedNorm.value = a.speed;
-    caption.innerHTML = captionHtml(a, current);
   };
   select(0);
   layout();
@@ -348,11 +411,13 @@ export function mountLandingAttractor(host: HTMLElement, hero: HTMLElement): boo
   themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
   window.addEventListener("resize", layout);
 
-  // Interaction: drag to rotate (with inertia), click/tap to switch, pointer parallax.
-  let yaw = 0.6, pitch = 0.28, yawVel = 0, pitchVel = 0;
+  // Interaction on the empty background: drag rotates (with inertia), a
+  // click skips to the next stage; the view also leans toward the pointer.
+  let yaw = 0, pitch = 0, yawVel = 0, pitchVel = 0;
   let px = 0, py = 0, smx = 0, smy = 0;
   let dragging = false, moved = 0, lastX = 0, lastY = 0;
-  let lastInteraction = performance.now();
+  let stageStart = performance.now();
+  let skipRequested = false;
   const onDown = (e: PointerEvent) => {
     dragging = true;
     moved = 0;
@@ -379,18 +444,11 @@ export function mountLandingAttractor(host: HTMLElement, hero: HTMLElement): boo
     dragging = false;
     canvas.classList.remove("is-dragging");
     if (canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
-    if (moved < 6) select(current + 1);
-    lastInteraction = performance.now();
+    if (moved < 6) skipRequested = true;
   };
   canvas.addEventListener("pointerdown", onDown);
   window.addEventListener("pointermove", onMove, { passive: true });
   window.addEventListener("pointerup", onUp);
-  caption.addEventListener("click", (e) => {
-    if ((e.target as HTMLElement).closest(".attractor-next")) {
-      select(current + 1);
-      lastInteraction = performance.now();
-    }
-  });
 
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const step = (time: number) => {
@@ -400,15 +458,9 @@ export function mountLandingAttractor(host: HTMLElement, hero: HTMLElement): boo
   const render = () => {
     smx += (px - smx) * 0.03;
     smy += (py - smy) * 0.03;
-    const w = window.innerWidth, h = window.innerHeight;
-    const emblem = !wide && sizeFactor === 1;
-    const cy = emblem ? centerY - window.scrollY : centerY;
-    camera.setViewOffset(w, h, w / 2 - centerX, h / 2 - cy, w, h);
-    camera.updateProjectionMatrix();
-    const r = camDist;
-    const y = yaw + smx * 0.35;
-    const p = pitch + smy * 0.2;
-    camera.position.set(r * Math.cos(p) * Math.sin(y), r * Math.sin(p), r * Math.cos(p) * Math.cos(y));
+    const y = yaw + smx * 0.3;
+    const p = pitch + smy * 0.18;
+    camera.position.set(CAM_DIST * Math.cos(p) * Math.sin(y), CAM_DIST * Math.sin(p), CAM_DIST * Math.cos(p) * Math.cos(y));
     camera.lookAt(0, 0, 0);
     material.uniforms.uPositions.value = gpu.getCurrentRenderTarget(posVar).texture;
     if (bloom.enabled) composer.render();
@@ -426,6 +478,7 @@ export function mountLandingAttractor(host: HTMLElement, hero: HTMLElement): boo
     window.removeEventListener("pointerup", onUp);
     themeObserver.disconnect();
     gpu.dispose();
+    targets.dispose();
     geometry.dispose();
     material.dispose();
     composer.dispose();
@@ -434,14 +487,19 @@ export function mountLandingAttractor(host: HTMLElement, hero: HTMLElement): boo
   };
 
   if (reduceMotion) {
-    // One settled still frame; switching re-settles and redraws.
+    // One settled still frame of the monogram; a click re-settles the next stage.
+    material.uniforms.uFade.value = 1;
     const settle = () => {
-      for (let i = 0; i < 400; i++) step(i * 0.016);
+      if (!canvas.isConnected) return teardown();
+      for (let i = 0; i < 300; i++) step(i * 0.016);
       render();
     };
     settle();
-    caption.addEventListener("click", () => settle());
-    canvas.addEventListener("pointerup", () => settle());
+    void fontReady.then(settle, () => undefined);
+    canvas.addEventListener("pointerup", () => {
+      select(stage + 1);
+      settle();
+    });
     window.addEventListener("resize", () => (canvas.isConnected ? render() : teardown()));
     new MutationObserver(() => (canvas.isConnected ? render() : teardown())).observe(document.documentElement, {
       attributes: true,
@@ -452,15 +510,40 @@ export function mountLandingAttractor(host: HTMLElement, hero: HTMLElement): boo
     const loop = (now: number) => {
       if (!canvas.isConnected) return teardown();
       const t = (now - start) / 1000;
+      const onMonogram = STAGES[stage] === MONOGRAM;
       if (!dragging) {
-        yaw += 0.0012 + yawVel;
+        if (onMonogram) {
+          // Face the letters: ease back to the front view with a slow sway.
+          const turns = Math.round(yaw / (2 * Math.PI)) * 2 * Math.PI;
+          yaw += (turns + Math.sin(t * 0.4) * 0.18 - yaw) * 0.04;
+          pitch += (Math.sin(t * 0.3) * 0.06 - pitch) * 0.04;
+        } else {
+          yaw += 0.0012 + yawVel;
+        }
         yawVel *= 0.95;
         pitchVel *= 0.9;
       }
-      // Idle visitors see the next system every 25 s.
-      if (now - lastInteraction > 25000) {
-        select(current + 1);
-        lastInteraction = now;
+      // gather (fade in) → hold → vanish (scatter + fade out) → next stage
+      const hold = onMonogram ? HOLD_MS.monogram : HOLD_MS.attractor;
+      if (skipRequested) {
+        skipRequested = false;
+        const e = now - stageStart;
+        if (e < GATHER_MS + hold) stageStart = now - (GATHER_MS + hold);
+      }
+      const e = now - stageStart;
+      if (e >= GATHER_MS + hold + VANISH_MS) {
+        select(stage + 1);
+        stageStart = now;
+        simU.uScatter.value = 0;
+        material.uniforms.uFade.value = 0;
+      } else if (e >= GATHER_MS + hold) {
+        const v = (e - GATHER_MS - hold) / VANISH_MS;
+        simU.uScatter.value = v;
+        material.uniforms.uFade.value = 1 - v * v;
+      } else {
+        simU.uScatter.value = 0;
+        const g = Math.min(1, e / GATHER_MS);
+        material.uniforms.uFade.value = g * g * (3 - 2 * g);
       }
       step(t);
       render();
