@@ -220,7 +220,7 @@ Deno.serve(async (req) => {
         bodyHtml,
         signatureHtml,
         ...(recipientMode === "subscribers"
-          ? { brandHref: "https://priyanshudebnath.me/blogs", brandSubtitle: "— Blog", unsubscribeUrl: "https://priyanshudebnath.me/unsubscribe?token=test-preview" }
+          ? { brandHref: "https://priyanshudebnath.me/blogs", brandSubtitle: "/blog", unsubscribeUrl: "https://priyanshudebnath.me/unsubscribe?token=test-preview" }
           : {}),
       });
       const result = await sendBrevoEmail({
@@ -290,7 +290,7 @@ Deno.serve(async (req) => {
             ? {}
             : {
                 brandHref: "https://priyanshudebnath.me/blogs",
-                brandSubtitle: "— Blog",
+                brandSubtitle: "/blog",
                 unsubscribeUrl: `https://priyanshudebnath.me/unsubscribe?token=${encodeURIComponent(recipient.unsubscribeToken!)}`,
               }),
         });

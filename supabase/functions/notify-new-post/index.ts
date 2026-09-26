@@ -33,12 +33,12 @@ Deno.serve(async (req) => {
 
     const postUrl = `https://priyanshudebnath.me/blog?slug=${encodeURIComponent(slug)}`;
 
+    const mono = "font-family:'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;";
     const bodyHtml = `
-      <p style="margin:0 0 4px; font-size:12px; letter-spacing:0.5px; color:#666666; text-transform:uppercase;">New post</p>
-      <h2 style="font-size:20px; margin: 0 0 8px; line-height:1.3;">${escapeHtml(title)}</h2>
-      ${date ? `<p style="color:#888888; font-size:13px; margin: 0 0 14px;">${escapeHtml(date)}</p>` : ""}
-      ${excerpt ? `<p style="margin: 0 0 18px;">${escapeHtml(excerpt)}</p>` : ""}
-      <p><a href="${postUrl}" style="color:#000000; border-bottom:1px solid #000000; text-decoration:none;">Read it &rarr;</a></p>
+      <p style="margin:0 0 10px; ${mono} font-size:12px; color:#71717a;">New post${date ? ` &middot; ${escapeHtml(date)}` : ""}</p>
+      <h2 style="font-size:22px; margin:0 0 12px; line-height:1.3; letter-spacing:-0.3px;">${escapeHtml(title)}</h2>
+      ${excerpt ? `<p style="margin:0 0 24px; color:#3f3f46;">${escapeHtml(excerpt)}</p>` : ""}
+      <a href="${postUrl}" style="display:inline-block; padding:10px 18px; background:#18181b; color:#ffffff; text-decoration:none; border-bottom:none; ${mono} font-size:13px;">Read the post &rarr;</a>
     `;
 
     const html = renderEmailLayout({
