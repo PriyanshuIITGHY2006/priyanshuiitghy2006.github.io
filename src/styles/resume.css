@@ -353,8 +353,13 @@ h1, h2, h3, h4, h5, h6, .name {
 }
 .pj-link:hover { background: var(--bg-hover); border-color: var(--border-strong); color: var(--link-hover); }
 .pj-links { display: flex; flex-wrap: wrap; gap: 0.5rem; }
-.pj-verify { border-color: var(--success-ink); color: var(--success-ink); }
-.pj-verify:hover { background: var(--success-bg); border-color: var(--success-ink); }
+.pj-verify {
+  align-self: center; font-size: 0.85em; font-weight: 600; color: var(--ink);
+  text-decoration: underline; text-decoration-color: transparent;
+  text-underline-offset: 3px; text-decoration-thickness: 1px;
+  transition: text-decoration-color 0.15s ease;
+}
+.pj-verify:hover { text-decoration-color: currentColor; }
 
 @media (max-width: 640px) {
   .pj { grid-template-columns: 1.8rem 1fr; gap: 0.4rem; }

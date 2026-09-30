@@ -24,9 +24,9 @@ function linkBtn(p: DetailedProject): string {
     parts.push(`<a class="pj-link" href="${l.href}" target="_blank" rel="noopener">${esc(l.label)} ↗</a>`);
   }
   if (p.verifyImg) {
-    parts.push(`<a class="pj-link pj-verify" href="/gallery?img=${encodeURIComponent(p.verifyImg)}">Verify ✓</a>`);
+    parts.push(`<a class="pj-verify" href="/gallery?img=${encodeURIComponent(p.verifyImg)}">Show credential</a>`);
   } else if (p.verify) {
-    parts.push(`<a class="pj-link pj-verify" href="/gallery?img=${encodeURIComponent(p.verify)}">View work</a>`);
+    parts.push(`<a class="pj-verify" href="/gallery?img=${encodeURIComponent(p.verify)}">View work</a>`);
   }
   return parts.length ? `<div class="pj-links">${parts.join("")}</div>` : "";
 }
