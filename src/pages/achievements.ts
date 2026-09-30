@@ -13,7 +13,7 @@ function chips(tags: string[]): string {
 function links(a: DetailedAchievement): string {
   const parts: string[] = [];
   if (a.verify) {
-    parts.push(`<a class="pj-link pj-verify" href="/gallery?img=${encodeURIComponent(a.verify)}">Verify ✓</a>`);
+    parts.push(`<a class="pj-verify" href="/gallery?img=${encodeURIComponent(a.verify)}">Show credential</a>`);
   }
   if (a.link) {
     const ext = a.link.href.startsWith("#") ? "" : ' target="_blank" rel="noopener"';
@@ -49,7 +49,7 @@ function pageHtml(achievements: DetailedAchievement[]): string {
       <div class="section-body">
         <h2 class="section">Achievements</h2>
         <p class="edu-note">
-          Honours and competitive results — tap <b>Verify</b> to open the certificate.
+          Honours and competitive results — tap <b>Show credential</b> to open the certificate.
         </p>
         <ol class="ach-list pj-list">${blocks}</ol>
         <p class="section-more">
