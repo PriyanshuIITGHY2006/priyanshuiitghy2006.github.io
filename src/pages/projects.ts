@@ -1,50 +1,70 @@
 import { resume } from "../data/resume";
 import { PROJECTS, type DetailedProject } from "../data/projects";
 import { loadDetailedProjectsFromDB } from "../lib/supabase";
-import type { ProjectDeck } from "../lib/projects-webgl";
+import type { ProjectStack } from "../lib/projects-webgl";
 
-// Projects as a sliding deck of cards. With WebGL2 the deck is real 3D
-// cards (lib/projects-webgl.ts); otherwise, or with reduced motion, it is a
-// horizontal row of HTML cards where the card in focus is full size and the
-// others recede. Either way the focused project's full write-up opens in
-// the panel underneath, so nothing from the data is lost.
+// Projects as a stack of portrait cards. Scrolling (or swiping) down deals
+// the next card up from below onto the pile; the top card's short write-up
+// sits beside the stack, and "Full write-up" opens everything in a dialog.
+// With WebGL2 the cards are real 3D cards (lib/projects-webgl.ts); without
+// it the same stack is drawn with DOM cards and CSS transforms.
 
 function esc(s: string): string {
   return s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c] as string));
 }
 
-function links(p: DetailedProject): string {
+const pad = (n: number) => String(n).padStart(2, "0");
+
+function extLinks(p: DetailedProject): string {
   const parts: string[] = [];
   const ext = (href: string, label: string) =>
-    `<a class="pd-link" href="${href}" target="_blank" rel="noopener">${esc(label)}</a>`;
-  if (p.body) parts.push(`<a class="pd-link" href="/project?id=${encodeURIComponent(p.id)}">Full write-up</a>`);
+    `<a class="ps-link" href="${href}" target="_blank" rel="noopener">${esc(label)}</a>`;
   if (p.github) parts.push(ext(p.github, "GitHub"));
   else if (p.link) parts.push(ext(p.link.href, p.link.label));
   for (const l of p.extraLinks ?? []) parts.push(ext(l.href, l.label));
-  if (p.verifyImg) parts.push(`<a class="pd-link" href="/gallery?img=${encodeURIComponent(p.verifyImg)}">Show credential</a>`);
-  else if (p.verify) parts.push(`<a class="pd-link" href="/gallery?img=${encodeURIComponent(p.verify)}">View work</a>`);
-  return parts.length ? `<div class="pd-links">${parts.join("")}</div>` : "";
+  if (p.verifyImg) parts.push(`<a class="ps-link" href="/gallery?img=${encodeURIComponent(p.verifyImg)}">Show credential</a>`);
+  else if (p.verify) parts.push(`<a class="ps-link" href="/gallery?img=${encodeURIComponent(p.verify)}">View work</a>`);
+  return parts.join("");
 }
 
-function card(p: DetailedProject, i: number, total: number): string {
+/** The short write-up beside the stack. */
+function summary(p: DetailedProject, i: number, total: number): string {
   return `
-    <li class="pd-card" data-i="${i}" id="${p.id}" aria-roledescription="slide" aria-label="${i + 1} of ${total}">
-      <p class="pd-meta">${esc(p.date)}</p>
-      <h3 class="pd-title">${esc(p.title)}</h3>
-      <p class="pd-tagline">${esc(p.tagline)}</p>
-      <p class="pd-stack">${p.stack.map(esc).join(" · ")}</p>
-      <ul class="pd-hl">${p.highlights.map((h) => `<li>${esc(h)}</li>`).join("")}</ul>
-      <button class="pd-open" type="button" data-i="${i}">Read more</button>
-    </li>`;
+    <p class="ps-meta">${pad(i + 1)} / ${pad(total)} · ${esc(p.date)}</p>
+    <h3 class="ps-title">${esc(p.title)}</h3>
+    <p class="ps-tagline">${esc(p.tagline)}</p>
+    <p class="ps-stack-line">${p.stack.map(esc).join(" · ")}</p>
+    <ul class="ps-hl">${p.highlights.map((h) => `<li>${esc(h)}</li>`).join("")}</ul>
+    <div class="ps-links">
+      <button class="ps-open" type="button" data-i="${i}">Full write-up</button>
+      ${extLinks(p)}
+    </div>`;
 }
 
-function detail(p: DetailedProject): string {
-  // Detail paragraphs intentionally allow trusted inline <b>/<i> markup.
+/** Everything, for the dialog. Detail paragraphs allow trusted inline <b>/<i>. */
+function fullWriteUp(p: DetailedProject): string {
   return `
-    <h3 class="pd-detail-title">${esc(p.title)}</h3>
-    <p class="pd-detail-meta">${esc(p.date)} · ${p.stack.map(esc).join(" · ")}</p>
-    <div class="pd-detail-body">${p.detail.map((d) => `<p>${d}</p>`).join("")}</div>
-    ${links(p)}`;
+    <p class="ps-meta">${esc(p.date)}</p>
+    <h3 class="ps-dialog-title">${esc(p.title)}</h3>
+    <p class="ps-tagline">${esc(p.tagline)}</p>
+    <p class="ps-stack-line">${p.stack.map(esc).join(" · ")}</p>
+    <div class="ps-body">${p.detail.map((d) => `<p>${d}</p>`).join("")}</div>
+    <p class="ps-hl-label">Highlights</p>
+    <ul class="ps-hl">${p.highlights.map((h) => `<li>${esc(h)}</li>`).join("")}</ul>
+    <div class="ps-links">
+      ${p.body ? `<a class="ps-link" href="/project?id=${encodeURIComponent(p.id)}">Read the deep-dive</a>` : ""}
+      ${extLinks(p)}
+    </div>`;
+}
+
+function domCard(p: DetailedProject, i: number, total: number): string {
+  return `
+    <div class="ps-card" data-i="${i}" aria-hidden="true">
+      <p class="ps-card-num">${pad(i + 1)} / ${pad(total)}</p>
+      <p class="ps-card-date">${esc(p.date)}</p>
+      <h4 class="ps-card-title">${esc(p.title)}</h4>
+      <p class="ps-card-stack">${p.stack.map(esc).join(" · ")}</p>
+    </div>`;
 }
 
 function pageHtml(projects: DetailedProject[]): string {
@@ -56,128 +76,132 @@ function pageHtml(projects: DetailedProject[]): string {
         <span class="section-crumb">${esc(resume.name)} · Projects</span>
       </nav>
       <div class="section-body">
-        <div class="pd-head">
-          <h2 class="section">Projects</h2>
-          <div class="pd-controls">
-            <span class="pd-count" aria-live="polite"></span>
-            <button class="pd-nav" type="button" data-step="-1" aria-label="Previous project">‹</button>
-            <button class="pd-nav" type="button" data-step="1" aria-label="Next project">›</button>
+        <h2 class="section">Projects</h2>
+        <p class="ps-hint">Scroll to deal the next card onto the stack.</p>
+      </div>
+      <section class="ps-scroller" style="--n:${total}">
+        <div class="ps-sticky">
+          <div class="ps-stage">${projects.map((p, i) => domCard(p, i, total)).join("")}</div>
+          <div class="ps-side">
+            <div class="ps-summary" aria-live="polite"></div>
+            <div class="ps-index">${projects
+              .map((p, i) => `<button type="button" data-i="${i}" aria-label="${esc(p.title)}"></button>`)
+              .join("")}</div>
           </div>
         </div>
-        <div class="pd-stage"></div>
-        <ol class="pd-track" tabindex="0" aria-roledescription="carousel" aria-label="Projects">
-          ${projects.map((p, i) => card(p, i, total)).join("")}
-        </ol>
-        <div class="pd-index">${projects
-          .map((p, i) => `<button type="button" data-i="${i}">${esc(p.title.split(" — ")[0])}</button>`)
-          .join("")}</div>
-        <section class="pd-detail" aria-live="polite"></section>
-      </div>
+      </section>
+      <dialog class="ps-dialog" aria-label="Project write-up">
+        <button class="ps-close" type="button" aria-label="Close">Close</button>
+        <div class="ps-dialog-body"></div>
+      </dialog>
     </article>`;
 }
 
-/** Wires one rendered deck: focus tracking, controls, keyboard, detail panel. */
-function initDeck(root: HTMLElement, projects: DetailedProject[], startId: string): () => string {
-  const track = root.querySelector<HTMLElement>(".pd-track");
-  const panel = root.querySelector<HTMLElement>(".pd-detail");
-  const count = root.querySelector<HTMLElement>(".pd-count");
-  if (!track || !panel || !count || !projects.length) return () => startId;
-  const cards = [...track.querySelectorAll<HTMLElement>(".pd-card")];
-  const indexBtns = [...root.querySelectorAll<HTMLButtonElement>(".pd-index button")];
+/** Wires one rendered page; returns a getter for the project in focus. */
+function initStack(root: HTMLElement, projects: DetailedProject[], startId: string): () => string {
+  const scroller = root.querySelector<HTMLElement>(".ps-scroller");
+  const stage = root.querySelector<HTMLElement>(".ps-stage");
+  const side = root.querySelector<HTMLElement>(".ps-summary");
+  const dialog = root.querySelector<HTMLDialogElement>(".ps-dialog");
+  if (!scroller || !stage || !side || !dialog || !projects.length) return () => startId;
+  const domCards = [...stage.querySelectorAll<HTMLElement>(".ps-card")];
+  const dots = [...root.querySelectorAll<HTMLButtonElement>(".ps-index button")];
   const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const last = projects.length - 1;
+  let gl: ProjectStack | null = null;
   let active = -1;
-  let deck3d: ProjectDeck | null = null;
+
+  // Scroll position → continuous stack progress 0 … last.
+  const progress = () => {
+    const span = scroller.offsetHeight - window.innerHeight;
+    const y = -scroller.getBoundingClientRect().top;
+    return span > 0 ? Math.max(0, Math.min(1, y / span)) * last : 0;
+  };
+  const scrollToCard = (i: number) => {
+    const span = scroller.offsetHeight - window.innerHeight;
+    const top = scroller.getBoundingClientRect().top + window.scrollY;
+    window.scrollTo({ top: top + (span * Math.max(0, Math.min(last, i))) / Math.max(1, last), behavior: reduce ? "auto" : "smooth" });
+  };
 
   const setActive = (i: number) => {
     if (i === active) return;
     active = i;
-    cards.forEach((c, j) => c.classList.toggle("is-active", j === active));
-    indexBtns.forEach((b, j) => b.classList.toggle("is-active", j === active));
-    count.textContent = `${String(active + 1).padStart(2, "0")} / ${String(cards.length).padStart(2, "0")}`;
-    showDetail(active);
-  };
-  const openDetail = () => panel.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
-
-  const showDetail = (i: number) => {
-    panel.innerHTML = detail(projects[i]);
-    panel.classList.remove("is-in");
-    void panel.offsetWidth; // restart the fade
-    panel.classList.add("is-in");
+    side.innerHTML = summary(projects[i], i, projects.length);
+    side.classList.remove("is-in");
+    void side.offsetWidth; // restart the fade
+    side.classList.add("is-in");
+    dots.forEach((d, j) => d.classList.toggle("is-active", j === i));
   };
 
-  // Each card's scale/opacity follows its distance from the track centre,
-  // so focus slides continuously rather than snapping between states.
-  const update = () => {
-    const box = track.getBoundingClientRect();
-    const mid = box.left + box.width / 2;
-    let best = 0, bestD = Infinity;
-    cards.forEach((c, i) => {
-      const r = c.getBoundingClientRect();
-      const d = Math.abs(r.left + r.width / 2 - mid);
-      const t = Math.min(1, d / r.width);
-      c.style.setProperty("--focus", (1 - t).toFixed(3));
-      if (d < bestD) (bestD = d), (best = i);
+  // DOM fallback: the same deal-from-below stack with CSS transforms.
+  const layoutDom = (p: number) => {
+    domCards.forEach((c, i) => {
+      const s = i - p;
+      const tilt = ((i * 37) % 9) - 4;
+      if (s <= 0) {
+        c.style.transform = `translate(${tilt * 1.5}px, ${s * 6}px) rotate(${tilt * 0.7}deg)`;
+        c.style.opacity = String(Math.max(0, 1 + s * 0.25));
+      } else if (s < 1) {
+        const e = s * s;
+        c.style.transform = `translate(${tilt * 1.5 + e * 60}px, ${e * 110}vh) rotate(${tilt * 0.7 + e * 14}deg)`;
+        c.style.opacity = "1";
+      } else {
+        c.style.transform = "translate(0, 110vh)";
+        c.style.opacity = "0";
+      }
+      c.style.zIndex = String(i);
     });
-    if (!deck3d) setActive(best);
   };
 
-  const go = (i: number) => {
-    if (deck3d) return deck3d.go(i);
-    const c = cards[Math.max(0, Math.min(cards.length - 1, i))];
-    track.scrollTo({ left: c.offsetLeft - (track.clientWidth - c.offsetWidth) / 2, behavior: reduce ? "auto" : "smooth" });
+  const onScroll = () => {
+    if (!scroller.isConnected) return window.removeEventListener("scroll", onScroll);
+    const p = progress();
+    setActive(Math.round(p));
+    if (gl) gl.setProgress(p);
+    else layoutDom(p);
   };
+  window.addEventListener("scroll", onScroll, { passive: true });
+  window.addEventListener("resize", onScroll, { passive: true });
 
-  let raf = 0;
-  track.addEventListener("scroll", () => {
-    cancelAnimationFrame(raf);
-    raf = requestAnimationFrame(update);
-  }, { passive: true });
-  root.querySelectorAll<HTMLButtonElement>(".pd-nav").forEach((b) =>
-    b.addEventListener("click", () => go(active + Number(b.dataset.step))));
-  indexBtns.forEach((b) => b.addEventListener("click", () => go(Number(b.dataset.i))));
-  track.addEventListener("keydown", (e) => {
-    if (e.key === "ArrowRight") (e.preventDefault(), go(active + 1));
-    if (e.key === "ArrowLeft") (e.preventDefault(), go(active - 1));
+  // Full write-up dialog.
+  const body = dialog.querySelector<HTMLElement>(".ps-dialog-body")!;
+  const open = (i: number) => {
+    body.innerHTML = fullWriteUp(projects[i]);
+    dialog.showModal();
+    dialog.scrollTop = 0;
+    document.documentElement.classList.add("ps-locked");
+  };
+  dialog.addEventListener("close", () => document.documentElement.classList.remove("ps-locked"));
+  dialog.querySelector(".ps-close")!.addEventListener("click", () => dialog.close());
+  dialog.addEventListener("click", (e) => {
+    if (e.target === dialog) dialog.close(); // backdrop
   });
-  // Clicking a receding card brings it into focus; "Read more" jumps to the panel.
-  track.addEventListener("click", (e) => {
-    const el = e.target as HTMLElement;
-    const open = el.closest<HTMLElement>(".pd-open");
-    if (open) {
-      const i = Number(open.dataset.i);
-      if (i !== active) go(i);
-      openDetail();
-      return;
-    }
-    const c = el.closest<HTMLElement>(".pd-card");
-    if (c && Number(c.dataset.i) !== active && !el.closest("a")) go(Number(c.dataset.i));
+  side.addEventListener("click", (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLElement>(".ps-open");
+    if (b) open(Number(b.dataset.i));
   });
-  const onResize = () => (track.isConnected ? update() : window.removeEventListener("resize", onResize));
-  window.addEventListener("resize", onResize, { passive: true });
+  dots.forEach((d) => d.addEventListener("click", () => scrollToCard(Number(d.dataset.i))));
 
-  update();
   const start = projects.findIndex((p) => p.id === startId);
-  if (start > 0) go(start);
-  const current = () => projects[Math.max(0, active)]?.id ?? startId;
+  onScroll();
+  if (start > 0) scrollToCard(start);
 
-  // Upgrade to the 3D deck when the GPU allows (code-split: three.js only
-  // loads here). The HTML deck stays in the DOM as the fallback.
-  const stage = root.querySelector<HTMLElement>(".pd-stage");
-  if (!stage || reduce) return current;
-  void import("../lib/projects-webgl")
-    .then(({ mountProjectDeck }) => {
-      if (!stage.isConnected) return;
-      const page = root.querySelector(".projects-page");
-      page?.classList.add("pd--3d"); // show the stage first so it has a size
-      const deck = mountProjectDeck(stage, projects, { onFocus: setActive, onOpen: openDetail });
-      if (!deck) return void page?.classList.remove("pd--3d");
-      deck3d = deck;
-      deck.go(Math.max(0, active));
-    })
-    .catch(() => {
-      // Keep the HTML deck.
-    });
-  return current;
+  // Upgrade to real 3D cards when the GPU allows (three.js loads only here).
+  if (!reduce) {
+    void import("../lib/projects-webgl")
+      .then(({ mountProjectStack }) => {
+        if (!stage.isConnected) return;
+        const s = mountProjectStack(stage, projects, { onOpen: () => open(active) });
+        if (!s) return;
+        gl = s;
+        stage.classList.add("is-3d");
+        gl.setProgress(progress(), true);
+      })
+      .catch(() => {
+        // Keep the DOM stack.
+      });
+  }
+  return () => projects[Math.max(0, active)]?.id ?? startId;
 }
 
 export function mountProjects(container: HTMLElement): void {
@@ -189,7 +213,7 @@ export function mountProjects(container: HTMLElement): void {
     shown = key;
     const keep = current();
     container.innerHTML = pageHtml(projects);
-    current = initDeck(container, projects, keep);
+    current = initStack(container, projects, keep);
   };
   // Render static content immediately — no blank flash while the DB loads.
   render(PROJECTS);

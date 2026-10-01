@@ -317,94 +317,101 @@ h1, h2, h3, h4, h5, h6, .name {
 }
 
 /* ─── Detailed Projects page ────────────────────────────────────────── */
-.projects-page { max-width: 46rem; margin: 0 auto; }
+.projects-page { max-width: 62rem; margin: 0 auto; }
 
-/* ─── Projects deck: sliding cards, the focused one full size ─────────── */
-.pd-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; }
-.pd-controls { display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.35rem; }
-.pd-count { font-size: 0.8em; color: var(--muted-2); font-variant-numeric: tabular-nums; margin-right: 0.5rem; }
-.pd-nav {
-  width: 2rem; height: 2rem; border: 0.6px solid var(--border); border-radius: 50%;
-  background: none; color: var(--ink); font: inherit; font-size: 1.1em; line-height: 1; cursor: pointer;
-  transition: border-color 0.15s ease, background 0.15s ease;
+/* ─── Projects stack: scroll deals portrait cards onto a pile ────────── */
+.ps-hint { margin: 0.3rem 0 0; font-size: 0.85em; color: var(--muted-2); }
+/* Tall section; its sticky child stays in view while the scroll drives the stack. */
+.ps-scroller { position: relative; height: calc(100vh + (var(--n) - 1) * 75vh); margin-top: 0.5rem; }
+.ps-sticky {
+  position: sticky; top: 0; height: 100vh; height: 100svh;
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: 2.5rem;
 }
-.pd-nav:hover { border-color: var(--border-strong); background: var(--bg-hover); }
-.pd-track {
-  list-style: none; margin: 1rem 0 0; padding: 0.6rem 0 1rem;
-  display: flex; gap: 1rem; overflow-x: auto; scroll-snap-type: x mandatory;
-  scrollbar-width: none; outline: none;
-  /* full-bleed: the deck spans the viewport; side padding lets the first
-     and last cards reach the centre */
-  margin-inline: calc(50% - 50vw);
-  padding-inline: calc(50vw - min(17rem, 42vw));
-}
-html:has(.projects-page), body:has(.projects-page) { overflow-x: clip; }
-.pd-track::-webkit-scrollbar { display: none; }
-.pd-card {
-  --focus: 1;
-  flex: 0 0 min(34rem, 84vw); scroll-snap-align: center;
+.ps-stage { position: relative; height: 100%; }
+.ps-canvas { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; transition: opacity 0.6s ease; }
+.ps-canvas.is-visible { opacity: 1; }
+.ps-canvas.is-over { cursor: pointer; }
+.ps-stage.is-3d .ps-card { display: none; }
+
+/* DOM fallback cards (no WebGL / reduced motion). */
+.ps-card {
+  position: absolute; left: 50%; top: 50%; width: min(17rem, 70vw); aspect-ratio: 22 / 31;
+  margin: calc(min(17rem, 70vw) * -31 / 44) 0 0 calc(min(17rem, 70vw) / -2);
+  padding: 1.4rem 1.3rem; border: 0.6px solid var(--border-strong); border-radius: 14px;
+  background: var(--bg-card); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
   display: flex; flex-direction: column;
-  padding: 1.4rem 1.5rem 1.2rem; border: 0.6px solid var(--border); border-radius: 6px;
-  background: var(--bg-card);
-  transform: scale(calc(0.9 + 0.1 * var(--focus)));
-  opacity: calc(0.4 + 0.6 * var(--focus));
-  transition: border-color 0.2s ease;
-  cursor: pointer;
 }
-.pd-card.is-active { border-color: var(--border-strong); cursor: default; }
-.pd-meta { margin: 0 0 0.5rem; font-size: 0.75em; letter-spacing: 0.6px; text-transform: uppercase; color: var(--muted-2); }
-.pd-title { margin: 0; font-size: 1.15em; font-weight: 700; line-height: 1.3; }
-.pd-tagline { margin: 0.5rem 0 0.6rem; font-size: 0.93em; font-style: italic; line-height: 1.5; color: var(--ink-soft); }
-.pd-stack { margin: 0 0 0.8rem; font-size: 0.8em; color: var(--muted-2); line-height: 1.5; }
-.pd-hl { margin: 0 0 1rem; padding: 0.6rem 0 0 1.05em; border-top: 0.6px solid var(--border); }
-.pd-hl li { font-size: 0.86em; line-height: 1.45; margin: 0.2em 0; }
-.pd-open {
-  margin-top: auto; align-self: flex-start; padding: 0; border: none; background: none; cursor: pointer;
-  font: inherit; font-size: 0.85em; font-weight: 600; color: var(--ink);
-  text-decoration: underline; text-decoration-color: transparent; text-underline-offset: 3px;
-  transition: text-decoration-color 0.15s ease;
+.ps-card-num, .ps-card-date { margin: 0; font-size: 0.72em; color: var(--muted-2); letter-spacing: 0.5px; text-transform: uppercase; }
+.ps-card-title { margin: 1.4rem 0 0; font-size: 1.35em; line-height: 1.2; }
+.ps-card-stack { margin: auto 0 0; padding-top: 0.6rem; border-top: 0.6px solid var(--border); font-size: 0.75em; color: var(--muted-2); }
+
+/* The top card's short write-up. */
+.ps-side { align-self: center; }
+.ps-summary.is-in { animation: ps-in 0.4s ease both; }
+@keyframes ps-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.ps-meta { margin: 0 0 0.6rem; font-size: 0.75em; letter-spacing: 0.6px; text-transform: uppercase; color: var(--muted-2); }
+.ps-title { margin: 0; font-size: 1.35em; font-weight: 700; line-height: 1.25; }
+.ps-tagline { margin: 0.6rem 0 0.6rem; font-size: 0.95em; font-style: italic; line-height: 1.5; color: var(--ink-soft); }
+.ps-stack-line { margin: 0 0 0.9rem; font-size: 0.8em; color: var(--muted-2); line-height: 1.5; }
+.ps-hl { margin: 0 0 1.1rem; padding: 0.7rem 0 0 1.05em; border-top: 0.6px solid var(--border); }
+.ps-hl li { font-size: 0.88em; line-height: 1.45; margin: 0.22em 0; }
+.ps-links { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1.4rem; }
+.ps-open {
+  padding: 0.45em 1.1em; border: 0.6px solid var(--ink); border-radius: 999px; background: var(--ink); color: var(--bg);
+  font: inherit; font-size: 0.85em; font-weight: 600; cursor: pointer; transition: opacity 0.15s ease;
 }
-.pd-open:hover { text-decoration-color: currentColor; }
-.pd-stage { display: none; }
-.pd--3d .pd-track { display: none; }
-.pd--3d .pd-stage {
-  display: block; position: relative; margin: 0.4rem calc(50% - 50vw) 0; height: clamp(22rem, 54vh, 31rem);
-}
-.pd-canvas {
-  display: block; width: 100%; height: 100%; outline: none; cursor: grab; touch-action: pan-y;
-  opacity: 0; transition: opacity 0.8s ease;
-}
-.pd-canvas.is-visible { opacity: 1; }
-.pd-canvas.is-dragging { cursor: grabbing; }
-@media (max-width: 640px) { .pd--3d .pd-stage { height: clamp(18rem, 52vh, 26rem); } }
-.pd-index { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.3rem 1.1rem; margin-top: 0.3rem; }
-.pd-index button {
-  padding: 0.2rem 0; border: none; border-bottom: 1px solid transparent; background: none; cursor: pointer;
-  font: inherit; font-size: 0.82em; color: var(--muted-2); transition: color 0.15s ease, border-color 0.15s ease;
-}
-.pd-index button:hover { color: var(--ink); }
-.pd-index button.is-active { color: var(--ink); border-bottom-color: var(--ink); }
-.pd-detail { margin-top: 2.2rem; padding-top: 1.4rem; border-top: 0.6px solid var(--border); scroll-margin-top: 1rem; }
-.pd-detail.is-in { animation: pd-in 0.35s ease both; }
-@keyframes pd-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-.pd-detail-title { margin: 0; font-size: 1.2em; font-weight: 700; line-height: 1.3; }
-.pd-detail-meta { margin: 0.35rem 0 1rem; font-size: 0.8em; color: var(--muted-2); }
-.pd-detail-body p { font-size: 0.93em; line-height: 1.6; margin: 0 0 0.75rem; text-align: justify; color: var(--ink-soft); }
-.pd-detail-body b { font-weight: 700; }
-.pd-links { display: flex; flex-wrap: wrap; gap: 0.4rem 1.4rem; margin-top: 0.4rem; }
-.pd-link {
+.ps-open:hover { opacity: 0.85; }
+.ps-link {
   font-size: 0.86em; font-weight: 600; color: var(--ink); text-decoration: underline;
   text-decoration-color: transparent; text-underline-offset: 3px; text-decoration-thickness: 1px;
   transition: text-decoration-color 0.15s ease;
 }
-.pd-link:hover { text-decoration-color: currentColor; }
-@media (max-width: 640px) {
-  .pd-card { padding: 1.1rem 1.1rem 1rem; }
-  .pd-index { justify-content: flex-start; }
+.ps-link:hover { text-decoration-color: currentColor; }
+.ps-index { display: flex; gap: 0.45rem; margin-top: 1.6rem; }
+.ps-index button {
+  width: 1.6rem; height: 3px; padding: 0; border: none; border-radius: 2px; cursor: pointer;
+  background: var(--border); transition: background 0.2s ease, width 0.2s ease;
+}
+.ps-index button:hover { background: var(--border-strong); }
+.ps-index button.is-active { background: var(--ink); width: 2.6rem; }
+
+/* Full write-up dialog. */
+.ps-dialog {
+  width: min(44rem, calc(100vw - 2rem)); max-height: min(86vh, 56rem); padding: 2.2rem 2.4rem 2rem;
+  border: 0.6px solid var(--border-strong); border-radius: 14px; background: var(--bg); color: var(--ink);
+  overflow-y: auto;
+}
+.ps-dialog::backdrop { background: rgba(0, 0, 0, 0.55); backdrop-filter: blur(3px); }
+.ps-dialog[open] { animation: ps-pop 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+@keyframes ps-pop { from { opacity: 0; transform: translateY(16px) scale(0.98); } to { opacity: 1; transform: none; } }
+.ps-close {
+  position: sticky; top: 0; float: right; margin: -0.8rem -1rem 0 0; padding: 0.3em 0.8em;
+  border: 0.6px solid var(--border); border-radius: 999px; background: var(--bg); color: var(--muted);
+  font: inherit; font-size: 0.8em; cursor: pointer;
+}
+.ps-close:hover { color: var(--ink); border-color: var(--border-strong); }
+.ps-dialog-title { margin: 0; font-size: 1.4em; line-height: 1.25; }
+.ps-body p { margin: 0 0 0.8rem; font-size: 0.94em; line-height: 1.65; text-align: justify; color: var(--ink-soft); }
+.ps-body b { font-weight: 700; }
+.ps-hl-label { margin: 1.2rem 0 0; font-size: 0.72em; letter-spacing: 0.6px; text-transform: uppercase; color: var(--muted-2); }
+html.ps-locked { overflow: hidden; }
+
+@media (max-width: 760px) {
+  .ps-scroller { height: calc(100svh + (var(--n) - 1) * 70svh); }
+  .ps-sticky { grid-template-columns: minmax(0, 1fr); grid-template-rows: 46svh auto; gap: 0.6rem; align-content: start; padding-top: 0.8rem; }
+  .ps-stage { height: 46svh; }
+  .ps-card { width: min(13rem, 56vw); margin: calc(min(13rem, 56vw) * -31 / 44) 0 0 calc(min(13rem, 56vw) / -2); }
+  .ps-title { font-size: 1.15em; }
+  .ps-tagline { font-size: 0.88em; margin: 0.4rem 0; }
+  .ps-hl { margin-bottom: 0.8rem; padding-top: 0.5rem; }
+  .ps-hl li { font-size: 0.82em; }
+  .ps-index { margin-top: 1rem; }
+  .ps-dialog { padding: 1.6rem 1.3rem; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .pd-detail.is-in { animation: none; }
+  .ps-summary.is-in, .ps-dialog[open] { animation: none; }
 }
+
 .pj-list { list-style: none; margin: 1rem 0 0; padding: 0; counter-reset: none; }
 .pj {
   display: grid;
