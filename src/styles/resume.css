@@ -320,7 +320,6 @@ h1, h2, h3, h4, h5, h6, .name {
 .projects-page { max-width: 62rem; margin: 0 auto; }
 
 /* ─── Projects stack: scroll deals portrait cards onto a pile ────────── */
-.ps-hint { margin: 0.3rem 0 0; font-size: 0.85em; color: var(--muted-2); }
 /* Tall section; its sticky child stays in view while the scroll drives the stack. */
 .ps-scroller { position: relative; height: calc(100vh + (var(--n) - 1) * 75vh); margin-top: 0.5rem; }
 .ps-sticky {
