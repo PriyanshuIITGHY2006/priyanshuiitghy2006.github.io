@@ -318,6 +318,81 @@ h1, h2, h3, h4, h5, h6, .name {
 
 /* ─── Detailed Projects page ────────────────────────────────────────── */
 .projects-page { max-width: 46rem; margin: 0 auto; }
+
+/* ─── Projects deck: sliding cards, the focused one full size ─────────── */
+.pd-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; }
+.pd-controls { display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.35rem; }
+.pd-count { font-size: 0.8em; color: var(--muted-2); font-variant-numeric: tabular-nums; margin-right: 0.5rem; }
+.pd-nav {
+  width: 2rem; height: 2rem; border: 0.6px solid var(--border); border-radius: 50%;
+  background: none; color: var(--ink); font: inherit; font-size: 1.1em; line-height: 1; cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.pd-nav:hover { border-color: var(--border-strong); background: var(--bg-hover); }
+.pd-track {
+  list-style: none; margin: 1rem 0 0; padding: 0.6rem 0 1rem;
+  display: flex; gap: 1rem; overflow-x: auto; scroll-snap-type: x mandatory;
+  scrollbar-width: none; outline: none;
+  /* full-bleed: the deck spans the viewport; side padding lets the first
+     and last cards reach the centre */
+  margin-inline: calc(50% - 50vw);
+  padding-inline: calc(50vw - min(17rem, 42vw));
+}
+html:has(.projects-page), body:has(.projects-page) { overflow-x: clip; }
+.pd-track::-webkit-scrollbar { display: none; }
+.pd-card {
+  --focus: 1;
+  flex: 0 0 min(34rem, 84vw); scroll-snap-align: center;
+  display: flex; flex-direction: column;
+  padding: 1.4rem 1.5rem 1.2rem; border: 0.6px solid var(--border); border-radius: 6px;
+  background: var(--bg-card);
+  transform: scale(calc(0.9 + 0.1 * var(--focus)));
+  opacity: calc(0.4 + 0.6 * var(--focus));
+  transition: border-color 0.2s ease;
+  cursor: pointer;
+}
+.pd-card.is-active { border-color: var(--border-strong); cursor: default; }
+.pd-meta { margin: 0 0 0.5rem; font-size: 0.75em; letter-spacing: 0.6px; text-transform: uppercase; color: var(--muted-2); }
+.pd-title { margin: 0; font-size: 1.15em; font-weight: 700; line-height: 1.3; }
+.pd-tagline { margin: 0.5rem 0 0.6rem; font-size: 0.93em; font-style: italic; line-height: 1.5; color: var(--ink-soft); }
+.pd-stack { margin: 0 0 0.8rem; font-size: 0.8em; color: var(--muted-2); line-height: 1.5; }
+.pd-hl { margin: 0 0 1rem; padding: 0.6rem 0 0 1.05em; border-top: 0.6px solid var(--border); }
+.pd-hl li { font-size: 0.86em; line-height: 1.45; margin: 0.2em 0; }
+.pd-open {
+  margin-top: auto; align-self: flex-start; padding: 0; border: none; background: none; cursor: pointer;
+  font: inherit; font-size: 0.85em; font-weight: 600; color: var(--ink);
+  text-decoration: underline; text-decoration-color: transparent; text-underline-offset: 3px;
+  transition: text-decoration-color 0.15s ease;
+}
+.pd-open:hover { text-decoration-color: currentColor; }
+.pd-index { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.3rem 1.1rem; margin-top: 0.3rem; }
+.pd-index button {
+  padding: 0.2rem 0; border: none; border-bottom: 1px solid transparent; background: none; cursor: pointer;
+  font: inherit; font-size: 0.82em; color: var(--muted-2); transition: color 0.15s ease, border-color 0.15s ease;
+}
+.pd-index button:hover { color: var(--ink); }
+.pd-index button.is-active { color: var(--ink); border-bottom-color: var(--ink); }
+.pd-detail { margin-top: 2.2rem; padding-top: 1.4rem; border-top: 0.6px solid var(--border); scroll-margin-top: 1rem; }
+.pd-detail.is-in { animation: pd-in 0.35s ease both; }
+@keyframes pd-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.pd-detail-title { margin: 0; font-size: 1.2em; font-weight: 700; line-height: 1.3; }
+.pd-detail-meta { margin: 0.35rem 0 1rem; font-size: 0.8em; color: var(--muted-2); }
+.pd-detail-body p { font-size: 0.93em; line-height: 1.6; margin: 0 0 0.75rem; text-align: justify; color: var(--ink-soft); }
+.pd-detail-body b { font-weight: 700; }
+.pd-links { display: flex; flex-wrap: wrap; gap: 0.4rem 1.4rem; margin-top: 0.4rem; }
+.pd-link {
+  font-size: 0.86em; font-weight: 600; color: var(--ink); text-decoration: underline;
+  text-decoration-color: transparent; text-underline-offset: 3px; text-decoration-thickness: 1px;
+  transition: text-decoration-color 0.15s ease;
+}
+.pd-link:hover { text-decoration-color: currentColor; }
+@media (max-width: 640px) {
+  .pd-card { padding: 1.1rem 1.1rem 1rem; }
+  .pd-index { justify-content: flex-start; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pd-detail.is-in { animation: none; }
+}
 .pj-list { list-style: none; margin: 1rem 0 0; padding: 0; counter-reset: none; }
 .pj {
   display: grid;
