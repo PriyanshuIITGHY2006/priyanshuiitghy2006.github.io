@@ -1,6 +1,7 @@
 import { resume } from "../data/resume";
 import { ACHIEVEMENTS, type DetailedAchievement } from "../data/achievements";
 import { loadDetailedAchievementsFromDB } from "../lib/supabase";
+import { showLive } from "../lib/live-data";
 
 function esc(s: string): string {
   return s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c] as string));
@@ -60,14 +61,11 @@ function pageHtml(achievements: DetailedAchievement[]): string {
 }
 
 export function mountAchievements(container: HTMLElement): void {
-  // Render static content immediately — no blank flash while the DB loads.
-  container.innerHTML = pageHtml(ACHIEVEMENTS);
-
-  loadDetailedAchievementsFromDB()
-    .then((live) => {
-      if (live.length) container.innerHTML = pageHtml(live);
-    })
-    .catch(() => {
-      // DB unreachable — static version already shown
-    });
+  showLive({
+    key: "achievements",
+    fallback: ACHIEVEMENTS,
+    load: loadDetailedAchievementsFromDB,
+    usable: (list) => list.length > 0 && list !== ACHIEVEMENTS, // loader returns the static list on error
+    render: (list) => (container.innerHTML = pageHtml(list)),
+  });
 }

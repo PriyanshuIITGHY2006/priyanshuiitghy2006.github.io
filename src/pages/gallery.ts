@@ -1,6 +1,7 @@
 import { resume } from "../data/resume";
 import { GALLERY, type GalleryItem } from "../data/gallery";
 import { loadGalleryFromDB } from "../lib/supabase";
+import { showLive } from "../lib/live-data";
 
 function esc(s: string): string {
   return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] as string));
@@ -168,14 +169,11 @@ function render(container: HTMLElement, items: GalleryItem[], initialImg?: strin
 }
 
 export function mountGallery(container: HTMLElement, initialImg?: string | null): void {
-  // Render static content immediately — no blank flash while the DB loads.
-  render(container, GALLERY, initialImg);
-
-  loadGalleryFromDB()
-    .then((live) => {
-      if (live.length) render(container, live, initialImg);
-    })
-    .catch(() => {
-      // DB unreachable — static version already shown
-    });
+  showLive({
+    key: "gallery",
+    fallback: GALLERY,
+    load: loadGalleryFromDB,
+    usable: (items) => items.length > 0 && items !== GALLERY, // loader returns the static list on error
+    render: (items) => render(container, items, initialImg),
+  });
 }

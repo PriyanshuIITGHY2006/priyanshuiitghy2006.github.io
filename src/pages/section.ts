@@ -1,6 +1,7 @@
 import type { ResumeData } from "../types";
 import { resume } from "../data/resume";
 import { loadResumeFromDB } from "../lib/supabase";
+import { showLive } from "../lib/live-data";
 import { loadCodeforces, rankName } from "../lib/codeforces";
 import { renderSection, type SectionKey } from "../render/resume";
 
@@ -25,21 +26,20 @@ function page(key: SectionKey, data: ResumeData): string {
     </article>`;
 }
 
-// Mount a standalone page for a single résumé section. Renders the static
-// copy immediately, then swaps in live Supabase data exactly like the home
-// page does — so there is never a blank flash while the DB loads.
+// Mount a standalone page for a single résumé section from live Supabase
+// data (cached copy first), falling back to the bundled copy only if the DB
+// is down.
 export function mountSection(container: HTMLElement, key: SectionKey): void {
-  container.innerHTML = page(key, resume);
-  if (key === "achievements") hydrateCodeforcesLine(container);
-
-  loadResumeFromDB()
-    .then((live) => {
-      container.innerHTML = page(key, live);
+  showLive({
+    key: "resume",
+    fallback: resume,
+    load: loadResumeFromDB,
+    usable: (data) => data !== resume, // loader returns the static copy on error
+    render: (data) => {
+      container.innerHTML = page(key, data);
       if (key === "achievements") hydrateCodeforcesLine(container);
-    })
-    .catch(() => {
-      /* DB unreachable — static version already shown */
-    });
+    },
+  });
 }
 
 // The Achievements section embeds the live Codeforces line — keep it in sync.

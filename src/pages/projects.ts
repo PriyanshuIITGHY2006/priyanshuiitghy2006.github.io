@@ -1,6 +1,7 @@
 import { resume } from "../data/resume";
 import { PROJECTS, type DetailedProject } from "../data/projects";
 import { loadDetailedProjectsFromDB } from "../lib/supabase";
+import { showLive } from "../lib/live-data";
 import type { ProjectStack } from "../lib/projects-webgl";
 
 // Projects as a stack of portrait cards. Scrolling (or swiping) down deals
@@ -214,14 +215,11 @@ export function mountProjects(container: HTMLElement): void {
     container.innerHTML = pageHtml(projects);
     current = initStack(container, projects, keep);
   };
-  // Render static content immediately — no blank flash while the DB loads.
-  render(PROJECTS);
-
-  loadDetailedProjectsFromDB()
-    .then((live) => {
-      if (live.length) render(live);
-    })
-    .catch(() => {
-      // DB unreachable — static version already shown
-    });
+  showLive({
+    key: "projects",
+    fallback: PROJECTS,
+    load: loadDetailedProjectsFromDB,
+    usable: (list) => list.length > 0 && list !== PROJECTS, // loader returns the static list on error
+    render,
+  });
 }

@@ -1,6 +1,7 @@
 import type { ResumeData } from "../types";
 import { resume } from "../data/resume";
 import { loadResumeFromDB, loadGradeCardFromDB } from "../lib/supabase";
+import { showLive } from "../lib/live-data";
 import {
   TRANSCRIPT,
   MINOR,
@@ -171,16 +172,18 @@ function pageHtml(data: ResumeData, transcript: Transcript, minor: MinorCourse[]
     </article>`;
 }
 
-// Render the elaborated Education page. Static copy first, then swap in
-// live Supabase data (matching the home page) so there is no blank flash.
+// Render the elaborated Education page from live Supabase data (cached
+// copy first), falling back to the bundled copy only if the DB is down.
 export function mountEducation(container: HTMLElement): void {
-  container.innerHTML = pageHtml(resume, TRANSCRIPT, MINOR.courses);
-
-  Promise.all([loadResumeFromDB(), loadGradeCardFromDB()])
-    .then(([liveResume, { transcript, minor }]) => {
-      container.innerHTML = pageHtml(liveResume, transcript, minor);
-    })
-    .catch(() => {
-      /* DB unreachable — static version already shown */
-    });
+  showLive({
+    key: "education",
+    fallback: { data: resume, transcript: TRANSCRIPT, minor: MINOR.courses },
+    load: async () => {
+      const [data, { transcript, minor }] = await Promise.all([loadResumeFromDB(), loadGradeCardFromDB()]);
+      return { data, transcript, minor };
+    },
+    // the loaders return the static objects on error
+    usable: (d) => d.data !== resume || d.transcript !== TRANSCRIPT,
+    render: (d) => (container.innerHTML = pageHtml(d.data, d.transcript, d.minor)),
+  });
 }
