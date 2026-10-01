@@ -1,10 +1,13 @@
 import { resume } from "../data/resume";
 import { PROJECTS, type DetailedProject } from "../data/projects";
 import { loadDetailedProjectsFromDB } from "../lib/supabase";
+import type { ProjectDeck } from "../lib/projects-webgl";
 
-// Projects as a sliding deck: a horizontal row of summary cards. The card in
-// focus is full size and the others recede; the focused project's full
-// write-up opens in the panel underneath, so nothing from the data is lost.
+// Projects as a sliding deck of cards. With WebGL2 the deck is real 3D
+// cards (lib/projects-webgl.ts); otherwise, or with reduced motion, it is a
+// horizontal row of HTML cards where the card in focus is full size and the
+// others recede. Either way the focused project's full write-up opens in
+// the panel underneath, so nothing from the data is lost.
 
 function esc(s: string): string {
   return s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c] as string));
@@ -61,6 +64,7 @@ function pageHtml(projects: DetailedProject[]): string {
             <button class="pd-nav" type="button" data-step="1" aria-label="Next project">›</button>
           </div>
         </div>
+        <div class="pd-stage"></div>
         <ol class="pd-track" tabindex="0" aria-roledescription="carousel" aria-label="Projects">
           ${projects.map((p, i) => card(p, i, total)).join("")}
         </ol>
@@ -73,15 +77,26 @@ function pageHtml(projects: DetailedProject[]): string {
 }
 
 /** Wires one rendered deck: focus tracking, controls, keyboard, detail panel. */
-function initDeck(root: HTMLElement, projects: DetailedProject[]): void {
+function initDeck(root: HTMLElement, projects: DetailedProject[], startId: string): () => string {
   const track = root.querySelector<HTMLElement>(".pd-track");
   const panel = root.querySelector<HTMLElement>(".pd-detail");
   const count = root.querySelector<HTMLElement>(".pd-count");
-  if (!track || !panel || !count || !projects.length) return;
+  if (!track || !panel || !count || !projects.length) return () => startId;
   const cards = [...track.querySelectorAll<HTMLElement>(".pd-card")];
   const indexBtns = [...root.querySelectorAll<HTMLButtonElement>(".pd-index button")];
   const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   let active = -1;
+  let deck3d: ProjectDeck | null = null;
+
+  const setActive = (i: number) => {
+    if (i === active) return;
+    active = i;
+    cards.forEach((c, j) => c.classList.toggle("is-active", j === active));
+    indexBtns.forEach((b, j) => b.classList.toggle("is-active", j === active));
+    count.textContent = `${String(active + 1).padStart(2, "0")} / ${String(cards.length).padStart(2, "0")}`;
+    showDetail(active);
+  };
+  const openDetail = () => panel.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
 
   const showDetail = (i: number) => {
     panel.innerHTML = detail(projects[i]);
@@ -103,16 +118,11 @@ function initDeck(root: HTMLElement, projects: DetailedProject[]): void {
       c.style.setProperty("--focus", (1 - t).toFixed(3));
       if (d < bestD) (bestD = d), (best = i);
     });
-    if (best !== active) {
-      active = best;
-      cards.forEach((c, i) => c.classList.toggle("is-active", i === active));
-      indexBtns.forEach((b, i) => b.classList.toggle("is-active", i === active));
-      count.textContent = `${String(active + 1).padStart(2, "0")} / ${String(cards.length).padStart(2, "0")}`;
-      showDetail(active);
-    }
+    if (!deck3d) setActive(best);
   };
 
   const go = (i: number) => {
+    if (deck3d) return deck3d.go(i);
     const c = cards[Math.max(0, Math.min(cards.length - 1, i))];
     track.scrollTo({ left: c.offsetLeft - (track.clientWidth - c.offsetWidth) / 2, behavior: reduce ? "auto" : "smooth" });
   };
@@ -136,7 +146,7 @@ function initDeck(root: HTMLElement, projects: DetailedProject[]): void {
     if (open) {
       const i = Number(open.dataset.i);
       if (i !== active) go(i);
-      panel.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+      openDetail();
       return;
     }
     const c = el.closest<HTMLElement>(".pd-card");
@@ -146,14 +156,40 @@ function initDeck(root: HTMLElement, projects: DetailedProject[]): void {
   window.addEventListener("resize", onResize, { passive: true });
 
   update();
-  const start = projects.findIndex((p) => p.id === location.hash.slice(1));
+  const start = projects.findIndex((p) => p.id === startId);
   if (start > 0) go(start);
+  const current = () => projects[Math.max(0, active)]?.id ?? startId;
+
+  // Upgrade to the 3D deck when the GPU allows (code-split: three.js only
+  // loads here). The HTML deck stays in the DOM as the fallback.
+  const stage = root.querySelector<HTMLElement>(".pd-stage");
+  if (!stage || reduce) return current;
+  void import("../lib/projects-webgl")
+    .then(({ mountProjectDeck }) => {
+      if (!stage.isConnected) return;
+      const page = root.querySelector(".projects-page");
+      page?.classList.add("pd--3d"); // show the stage first so it has a size
+      const deck = mountProjectDeck(stage, projects, { onFocus: setActive, onOpen: openDetail });
+      if (!deck) return void page?.classList.remove("pd--3d");
+      deck3d = deck;
+      deck.go(Math.max(0, active));
+    })
+    .catch(() => {
+      // Keep the HTML deck.
+    });
+  return current;
 }
 
 export function mountProjects(container: HTMLElement): void {
+  let shown = "";
+  let current = () => location.hash.slice(1);
   const render = (projects: DetailedProject[]) => {
+    const key = JSON.stringify(projects);
+    if (key === shown) return; // same data (e.g. the DB fell back to static)
+    shown = key;
+    const keep = current();
     container.innerHTML = pageHtml(projects);
-    initDeck(container, projects);
+    current = initDeck(container, projects, keep);
   };
   // Render static content immediately — no blank flash while the DB loads.
   render(PROJECTS);
