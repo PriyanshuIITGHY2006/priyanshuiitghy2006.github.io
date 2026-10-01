@@ -77,7 +77,6 @@ function pageHtml(projects: DetailedProject[]): string {
       </nav>
       <div class="section-body">
         <h2 class="section">Projects</h2>
-        <p class="ps-hint">Scroll to deal the next card onto the stack.</p>
       </div>
       <section class="ps-scroller" style="--n:${total}">
         <div class="ps-sticky">
