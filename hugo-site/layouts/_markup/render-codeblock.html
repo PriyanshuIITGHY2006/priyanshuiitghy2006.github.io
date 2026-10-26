@@ -1,0 +1,11 @@
+{{- /* Ordinary fenced code: ```cpp {title="main.cpp" numbers=true hl="2 4-6" add="3" del="5"} — or markers inside the code, see code-block.html */ -}}
+{{- $a := .Attributes -}}
+{{- $o := .Options -}}
+{{- partial "code-block.html" (dict
+  "code" .Inner
+  "lang" .Type
+  "title" (or $a.title $a.file $a.filename)
+  "numbers" (or $a.numbers $o.linenos $a.linenos)
+  "hl" (or $a.hl $o.hl_lines $a.hl_lines)
+  "add" $a.add
+  "del" $a.del) -}}

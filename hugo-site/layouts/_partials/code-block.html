@@ -1,0 +1,66 @@
+{{- /*
+  Renders a code block with an optional filename label, line numbers, highlighted lines and words, and diff colouring.
+  Takes a dict: code, lang, title, href, numbers, start (first line number), hl, add, del.
+
+  Markers at the end of a line (any comment style) are read and removed from the code:
+    [!code ++]  added line         [!code --]  removed line         [!code highlight]  highlighted line
+    [!code word:foo]  highlight every "foo" in the block (put it on a line of its own)
+*/ -}}
+{{- $lang := .lang | default "text" -}}
+{{- $start := .start | default 1 -}}
+{{- $pat := `\s*(?:/\*|//|#|--|;|<!--)?\s*\[!code\s+(\+\+|--|highlight|hl|word:[^\]\s]+)\s*\]\s*(?:\*/|-->)?\s*$` -}}
+{{- $hl := partial "line-set.html" (replace (.hl | default "" | string) " " ",") -}}
+{{- $add := partial "line-set.html" .add -}}
+{{- $del := partial "line-set.html" .del -}}
+{{- $words := slice -}}
+{{- $lines := slice -}}
+{{- range split (replace (strings.TrimRight "\n" .code) "\r\n" "\n") "\n" -}}
+  {{- $m := findRESubmatch $pat . 1 -}}
+  {{- if $m -}}
+    {{- $kind := index (index $m 0) 1 -}}
+    {{- $rest := replaceRE $pat "" . -}}
+    {{- if hasPrefix $kind "word:" -}}
+      {{- $words = $words | append (strings.TrimPrefix "word:" $kind) -}}
+      {{- if strings.ContainsNonSpace $rest }}{{ $lines = $lines | append $rest }}{{ end -}}
+    {{- else -}}
+      {{- $lines = $lines | append $rest -}}
+      {{- $n := len $lines -}}
+      {{- if eq $kind "++" }}{{ $add = $add | append $n }}
+      {{- else if eq $kind "--" }}{{ $del = $del | append $n }}
+      {{- else }}{{ $hl = $hl | append $n }}{{ end -}}
+    {{- end -}}
+  {{- else -}}
+    {{- $lines = $lines | append . -}}
+  {{- end -}}
+{{- end -}}
+
+{{- $html := transform.Highlight (delimit $lines "\n") $lang "" | string -}}
+{{- $parts := split $html `<span class="line">` -}}
+{{- $marked := index $parts 0 -}}
+{{- range $i, $p := after 1 $parts -}}
+  {{- $n := add $i 1 -}}
+  {{- $cls := "line" -}}
+  {{- if in $add $n }}{{ $cls = "line diff add" }}{{ else if in $del $n }}{{ $cls = "line diff del" }}{{ else if in $hl $n }}{{ $cls = "line hl-line" }}{{ end -}}
+  {{- $marked = printf `%s<span class="%s">%s` $marked $cls $p -}}
+{{- end -}}
+
+{{- range $words -}}
+  {{- $esc := . | htmlEscape -}}
+  {{- $pieces := split $marked "<" -}}
+  {{- $out := index $pieces 0 -}}
+  {{- range after 1 $pieces -}}
+    {{- $bits := split . ">" -}}
+    {{- $text := "" -}}
+    {{- if gt (len $bits) 1 }}{{ $text = replace (index $bits 1) $esc (printf `<mark class="word">%s</mark>` $esc) }}{{ end -}}
+    {{- $out = printf "%s<%s>%s" $out (index $bits 0) $text -}}
+  {{- end -}}
+  {{- $marked = $out -}}
+{{- end -}}
+
+{{- $gutter := or .numbers (len $add) (len $del) -}}
+<figure class="code-block{{ if .numbers }} numbered{{ end }}{{ if $gutter }} has-gutter{{ end }}" style="--ln-reset: {{ sub $start 1 }}">
+  {{- with .title }}
+  <figcaption>{{ with $.href }}<a href="{{ . }}" rel="noopener" target="_blank">{{ $.title }}</a>{{ else }}<span>{{ . }}</span>{{ end }}</figcaption>
+  {{- end }}
+  {{ $marked | safeHTML }}
+</figure>

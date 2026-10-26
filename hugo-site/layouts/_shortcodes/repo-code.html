@@ -30,23 +30,6 @@
 {{- end -}}
 
 {{- $lang := .Get "lang" | default (strings.TrimPrefix "." (path.Ext $path)) -}}
-{{- $html := transform.Highlight (delimit $all "\n") $lang "" | string -}}
-
-{{- $hl := partial "line-set.html" (.Get "hl") -}}
-{{- $add := partial "line-set.html" (.Get "add") -}}
-{{- $del := partial "line-set.html" (.Get "del") -}}
-{{- $parts := split $html `<span class="line">` -}}
-{{- $marked := index $parts 0 -}}
-{{- range $i, $p := after 1 $parts -}}
-  {{- $n := add $i 1 -}}
-  {{- $cls := "line" -}}
-  {{- if in $add $n }}{{ $cls = "line diff add" }}{{ else if in $del $n }}{{ $cls = "line diff del" }}{{ else if in $hl $n }}{{ $cls = "line hl-line" }}{{ end -}}
-  {{- $marked = printf `%s<span class="%s">%s` $marked $cls $p -}}
-{{- end -}}
-
 {{- $blob := printf "https://github.com/%s/blob/%s/%s" $repo $ref $path -}}
 {{- if .Get "lines" }}{{ $blob = printf "%s#L%d-L%d" $blob $start (add $start (sub (len $all) 1)) }}{{ end -}}
-<figure class="repo-code{{ if .Get "numbers" }} numbered{{ end }}" style="--ln-reset: {{ sub $start 1 }}">
-  <figcaption><a href="{{ $blob }}" rel="noopener" target="_blank">{{ .Get "title" | default $path }}</a></figcaption>
-  {{ $marked | safeHTML }}
-</figure>
+{{- partial "code-block.html" (dict "code" (delimit $all "\n") "lang" $lang "title" (.Get "title" | default $path) "href" $blob "numbers" (.Get "numbers") "start" $start "hl" (.Get "hl") "add" (.Get "add") "del" (.Get "del")) -}}
