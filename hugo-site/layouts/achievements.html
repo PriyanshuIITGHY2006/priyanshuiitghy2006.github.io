@@ -1,0 +1,27 @@
+{{- define "main" }}
+<article class="post-single">
+  <header class="post-header">
+    <h1 class="post-title entry-hint-parent">{{ .Title }}</h1>
+  </header>
+
+  <ol class="ach-list" id="ach-list" data-url="{{ site.Params.supabaseUrl }}" data-key="{{ site.Params.supabaseanonkey }}">
+    {{- range hugo.Data.achievements }}
+    <li class="ach-item">
+      <h2 class="ach-title">{{ .title }}</h2>
+      <div class="ach-meta">
+        <span class="ach-date">{{ .date }}</span>
+        {{- range .tags }}<span class="ach-tag">{{ . }}</span>{{ end }}
+      </div>
+      <p class="ach-blurb">{{ .blurb | safeHTML }}</p>
+      {{- if or .verify .link }}
+      <div class="ach-links">
+        {{- with .verify }}<a class="ach-link" href="{{ printf "gallery?img=%s" (. | urlquery) | relURL }}">Show credential</a>{{ end }}
+        {{- with .link }}<a class="ach-link" href="{{ .href }}"{{ if not (hasPrefix .href "#") }} target="_blank" rel="noopener"{{ end }}>{{ .label }}</a>{{ end }}
+      </div>
+      {{- end }}
+    </li>
+    {{- end }}
+  </ol>
+  <script defer src="{{ "js/achievements-live.js" | relURL }}"></script>
+</article>
+{{- end }}

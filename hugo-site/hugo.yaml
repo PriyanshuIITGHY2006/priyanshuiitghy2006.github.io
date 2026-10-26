@@ -45,6 +45,10 @@ params:
   resumeUrl: "https://vadbagtnekrjwrimvgxe.supabase.co/storage/v1/object/public/resume/cv.pdf"
   resumeFilename: "Priyanshu_Debnath_CV.pdf"
 
+  # Public (anon) Supabase API, used by the Achievements page to pick up edits
+  # made in the admin. The key is injected at build time (HUGO_PARAMS_SUPABASEANONKEY).
+  supabaseUrl: "https://vadbagtnekrjwrimvgxe.supabase.co"
+
   homeInfoParams:
     Title: "Priyanshu Debnath"
     Content: >-
@@ -89,6 +93,10 @@ menu:
       name: Posts
       pageRef: /posts
       weight: 10
+    - identifier: achievements
+      name: Achievements
+      pageRef: /achievements
+      weight: 25
     - identifier: resume
       name: Resume
       pageRef: /resume
