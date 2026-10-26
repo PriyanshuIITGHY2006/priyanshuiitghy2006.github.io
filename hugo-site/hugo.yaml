@@ -12,6 +12,11 @@ pagination:
 outputs:
   home: [HTML, RSS, JSON]
 
+# Keep the feed at the same URL the previous site used.
+outputFormats:
+  RSS:
+    baseName: feed
+
 privacy:
   youtube:
     privacyEnhanced: true
@@ -59,6 +64,8 @@ params:
       url: "https://discord.com/users/priyanshu_32718"
     - name: email
       url: "mailto:priyanshuib01@gmail.com"
+    - name: rss
+      url: "https://priyanshudebnath.me/feed.xml"
 
   assets:
     favicon: "favicon.ico"
