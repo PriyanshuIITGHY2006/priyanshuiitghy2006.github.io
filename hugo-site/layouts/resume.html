@@ -6,22 +6,6 @@
     <h1 class="post-title entry-hint-parent">{{ .Title }}</h1>
   </header>
 
-  <section class="resume-card">
-    <div class="resume-doc" aria-hidden="true">
-      <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"></path>
-        <path d="M14 3v5h5"></path>
-        <path d="M9 13h6M9 17h6M9 9h2"></path>
-      </svg>
-    </div>
-    <div class="resume-info">
-      <div class="resume-name">{{ site.Params.author }}</div>
-      <div class="resume-line">B.Tech, Electronics and Electrical Engineering</div>
-      <div class="resume-line">Minor in Mathematics, IIT Guwahati</div>
-      <div class="resume-file">{{ $name }} · PDF</div>
-    </div>
-  </section>
-
   <p class="resume-actions">
     <a class="resume-btn" href="{{ $url }}?download={{ $name }}" rel="noopener">
       <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -29,8 +13,8 @@
       </svg>
       Download CV
     </a>
-    <a class="resume-view" href="{{ $url }}" target="_blank" rel="noopener">View in browser</a>
   </p>
-  <p class="resume-note">This always points to the latest version.</p>
+
+  <iframe class="resume-preview" src="{{ $url }}#view=FitH" title="Resume preview" loading="lazy"></iframe>
 </article>
 {{- end }}
