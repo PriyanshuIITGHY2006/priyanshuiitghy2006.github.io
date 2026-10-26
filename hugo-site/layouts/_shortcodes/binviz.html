@@ -1,0 +1,13 @@
+{{- $algo := .Get "algorithm" | default "next-fit" -}}
+<figure class="binviz" data-algorithm="{{ $algo }}" data-capacity="{{ .Get "capacity" }}" data-items="{{ .Get "items" }}">
+  <div class="binviz-canvas" aria-hidden="true"></div>
+  <figcaption>
+    {{- with .Get "caption" }}<span class="binviz-caption">{{ . }}</span>{{ end -}}
+    <span class="binviz-status" aria-live="polite"></span>
+    <span class="binviz-controls">
+      <button type="button" data-act="step">Step</button>
+      <button type="button" data-act="play">Play</button>
+      <button type="button" data-act="reset">Reset</button>
+    </span>
+  </figcaption>
+</figure>

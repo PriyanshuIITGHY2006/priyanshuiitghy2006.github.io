@@ -1,0 +1,16 @@
+{{- define "main" }}
+<article class="post-single">
+  <header class="post-header">
+    <h1 class="post-title entry-hint-parent">{{ .Title }}</h1>
+  </header>
+  <div class="post-content">
+    {{ .Content }}
+    {{- $url := site.Params.resumeUrl }}
+    {{- $name := site.Params.resumeFilename | default "resume.pdf" }}
+    <p class="resume-actions">
+      <a class="resume-btn" href="{{ $url }}?download={{ $name }}" rel="noopener">Download CV</a>
+      <a class="resume-view" href="{{ $url }}" target="_blank" rel="noopener">View in browser</a>
+    </p>
+  </div>
+</article>
+{{- end }}

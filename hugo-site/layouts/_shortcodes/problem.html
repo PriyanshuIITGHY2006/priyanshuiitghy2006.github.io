@@ -1,0 +1,13 @@
+<div class="problem-card">
+  <div class="problem-title">{{ .Get "title" }}</div>
+  <div class="problem-meta">
+    {{- with .Get "source" }}<span>{{ . }}</span>{{ end }}
+    {{- with .Get "rating" }}<span>Rating {{ . }}</span>{{ end }}
+    {{- with .Get "limits" }}<span>{{ . }}</span>{{ end }}
+  </div>
+  {{- with .Get "tags" }}
+  <div class="problem-tags">
+    {{- range split . "," }}<span>{{ trim . " " }}</span>{{ end }}
+  </div>
+  {{- end }}
+</div>

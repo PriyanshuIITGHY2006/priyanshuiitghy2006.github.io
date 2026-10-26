@@ -1,0 +1,26 @@
+{{- if and .IsPage (eq .Section "posts") }}
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    var content = document.querySelector(".post-content");
+    if (!content) return;
+    var run = function () {
+      if (!window.renderMathInElement) return setTimeout(run, 50);
+      window.renderMathInElement(content, {
+        delimiters: [
+          { left: "$$", right: "$$", display: true },
+          { left: "\\[", right: "\\]", display: true },
+          { left: "$", right: "$", display: false },
+          { left: "\\(", right: "\\)", display: false }
+        ],
+        throwOnError: false
+      });
+    };
+    run();
+  });
+</script>
+{{- end }}
+{{- if .Page.HasShortcode "binviz" }}
+<script defer src="{{ "js/binviz.js" | relURL }}"></script>
+{{- end }}

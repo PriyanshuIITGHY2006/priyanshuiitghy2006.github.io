@@ -1,0 +1,114 @@
+# Override at build time for other hosts, e.g. `hugo --baseURL https://example.netlify.app/`
+baseURL: "https://priyanshudebnath.me/hugo/"
+locale: en-us
+title: Priyanshu Debnath
+theme: PaperMod
+
+enableRobotsTXT: true
+enableEmoji: true
+pagination:
+  pagerSize: 8
+
+outputs:
+  home: [HTML, RSS, JSON]
+
+privacy:
+  youtube:
+    privacyEnhanced: true
+
+taxonomies:
+  tag: tags
+
+params:
+  env: production
+  description: "Competitive programming, systems and algorithms by Priyanshu Debnath, IIT Guwahati."
+  author: Priyanshu Debnath
+  defaultTheme: auto
+  DateFormat: "January 2, 2006"
+  mainSections: [posts]
+
+  ShowReadingTime: true
+  ShowPostNavLinks: true
+  ShowBreadCrumbs: false
+  ShowCodeCopyButtons: true
+  ShowToc: true
+  TocOpen: false
+  ShowShareButtons: false
+  disableSpecial1stPost: true
+
+  # Public Supabase Storage URL for the admin-managed CV (bucket "resume", file "cv.pdf").
+  resumeUrl: "https://vadbagtnekrjwrimvgxe.supabase.co/storage/v1/object/public/resume/cv.pdf"
+  resumeFilename: "Priyanshu_Debnath_CV.pdf"
+
+  homeInfoParams:
+    Title: "Priyanshu Debnath"
+    Content: >
+      B.Tech in Electronics and Electrical Engineering with a minor in Mathematics at
+      IIT Guwahati. I write about competitive programming, systems and algorithms, and
+      build things in machine learning and quantitative finance.
+      The [resume](resume/) is one download away.
+
+  socialIcons:
+    - name: github
+      url: "https://github.com/PriyanshuIITGHY2006"
+    - name: linkedin
+      url: "https://linkedin.com/in/priyanshu-debnath-3a81711b3"
+    - name: codeforces
+      url: "https://codeforces.com/profile/PriyanshuIITGHY2006"
+    - name: discord
+      url: "https://discord.com/users/priyanshu_32718"
+    - name: email
+      url: "mailto:priyanshuib01@gmail.com"
+
+  assets:
+    favicon: "favicon.ico"
+    favicon16x16: "favicon-16x16.png"
+    favicon32x32: "favicon-32x32.png"
+    apple_touch_icon: "apple-touch-icon.png"
+    disableHLJS: true
+
+  fuseOpts:
+    isCaseSensitive: false
+    shouldSort: true
+    location: 0
+    distance: 1000
+    threshold: 0.4
+    minMatchCharLength: 0
+    keys: ["title", "permalink", "summary", "content"]
+
+menu:
+  main:
+    - identifier: posts
+      name: Posts
+      pageRef: /posts
+      weight: 10
+    - identifier: resume
+      name: Resume
+      pageRef: /resume
+      weight: 30
+    - identifier: archive
+      name: Archive
+      pageRef: /archive
+      weight: 40
+    - identifier: search
+      name: Search
+      pageRef: /search
+      weight: 50
+    - identifier: tags
+      name: Tags
+      pageRef: /tags
+      weight: 60
+
+markup:
+  highlight:
+    noClasses: false
+    lineNos: false
+  goldmark:
+    extensions:
+      passthrough:
+        enable: true
+        delimiters:
+          block: [['\[', '\]'], ['$$', '$$']]
+          inline: [['\(', '\)'], ['$', '$']]
+    renderer:
+      unsafe: true
