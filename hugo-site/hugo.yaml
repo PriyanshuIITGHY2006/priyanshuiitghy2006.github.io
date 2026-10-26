@@ -52,10 +52,12 @@ params:
   homeInfoParams:
     Title: "Priyanshu Debnath"
     Content: >-
-      Sophomore B.Tech student in Electronics and Electrical Engineering
-      (Mathematics minor) at IIT Guwahati. Codeforces Expert who spends most
-      days doing a bit of cp, exploring c++ in depth, and occasionally
-      touching grass. This is where I write about it.
+      Hi, I'm Priyanshu :D I'm a second-year EEE student at IIT Guwahati.
+      I love cp and most of the time that's what I do. I'm also learning C++
+      internals and low-level systems programming. On some days I like doing
+      absolutely nothing :p. I'm open to internships for winter 2026 and
+      summer 2027, so say hi if you've got something in mind. I write about
+      what I learn here.
 
   socialIcons:
     - name: github
