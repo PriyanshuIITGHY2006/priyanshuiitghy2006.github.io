@@ -97,6 +97,10 @@ menu:
       name: Achievements
       pageRef: /achievements
       weight: 25
+    - identifier: gallery
+      name: Gallery
+      pageRef: /gallery
+      weight: 27
     - identifier: resume
       name: Resume
       pageRef: /resume

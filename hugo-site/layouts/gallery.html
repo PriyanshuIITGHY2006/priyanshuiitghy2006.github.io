@@ -1,0 +1,46 @@
+{{- define "main" }}
+<article class="post-single">
+  <header class="post-header">
+    <h1 class="post-title entry-hint-parent">{{ .Title }}</h1>
+  </header>
+
+  <div id="gl-root" data-base="{{ "" | relURL }}" data-worker="{{ "js/vendor/pdf.worker.min.js" | relURL }}" data-url="{{ site.Params.supabaseUrl }}" data-key="{{ site.Params.supabaseanonkey }}">
+    <div class="gl-grid" id="gl-grid">
+      {{- range hugo.Data.gallery }}
+      <a class="gl-card" href="{{ .src | relURL }}">
+        <span class="gl-meta">
+          <span class="gl-name">{{ .title }}</span>
+          {{- with .date }}<span class="gl-date">{{ . }}</span>{{ end }}
+        </span>
+      </a>
+      {{- end }}
+    </div>
+
+    <div class="gl-lb" id="gl-lb" role="dialog" aria-modal="true" aria-labelledby="gl-lb-title" hidden>
+      <div class="gl-lb-backdrop" data-close></div>
+      <div class="gl-lb-panel">
+        <header class="gl-lb-head">
+          <div class="gl-lb-heading">
+            <h2 class="gl-lb-title" id="gl-lb-title"></h2>
+            <p class="gl-lb-desc" id="gl-lb-desc"></p>
+          </div>
+          <button type="button" class="gl-lb-btn" data-close aria-label="Close">&times;</button>
+        </header>
+        <div class="gl-lb-media" id="gl-lb-media"></div>
+        <footer class="gl-lb-foot">
+          <button type="button" class="gl-lb-btn" data-prev aria-label="Previous">&lsaquo; Prev</button>
+          <span class="gl-lb-actions">
+            <a class="gl-lb-link" id="gl-lb-open" target="_blank" rel="noopener">Open original</a>
+            <button type="button" class="gl-lb-link" id="gl-lb-copy">Copy link</button>
+          </span>
+          <button type="button" class="gl-lb-btn" data-next aria-label="Next">Next &rsaquo;</button>
+        </footer>
+      </div>
+    </div>
+  </div>
+
+  <script type="application/json" id="gl-data">{{ hugo.Data.gallery | jsonify | safeJS }}</script>
+  <script defer src="{{ "js/vendor/pdf.min.js" | relURL }}"></script>
+  <script defer src="{{ "js/gallery.js" | relURL }}"></script>
+</article>
+{{- end }}
