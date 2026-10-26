@@ -235,3 +235,19 @@ a.gl-card .gl-meta { padding-top: 14px; }
   border-left: 3px solid #f85149;
   border-radius: var(--radius);
 }
+
+/* Diagrams (diagram shortcode) and repository link card (repo-card shortcode) */
+.diagram { margin: 0 0 var(--content-gap); }
+.diagram svg { display: block; width: 100%; height: auto; max-width: 640px; margin: 0 auto; color: var(--primary); }
+.diagram figcaption { margin-top: 6px; font-weight: 400; font-size: 0.85rem; text-align: center; color: var(--secondary); }
+.post-content a.repo-card {
+  display: flex; align-items: center; gap: 16px;
+  margin: 0 0 var(--content-gap); padding: 16px 20px;
+  color: var(--primary); text-decoration: none; box-shadow: none; border-bottom: 0;
+  background: var(--code-bg); border: 1px solid var(--border); border-radius: var(--radius);
+}
+.post-content a.repo-card:hover { border-color: var(--secondary); }
+.repo-card-logo { flex: none; }
+.repo-card-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.repo-card-name { font-size: 0.8rem; color: var(--secondary); overflow-wrap: anywhere; }
+.repo-card-desc { font-size: 0.9rem; color: var(--secondary); }

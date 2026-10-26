@@ -1,0 +1,9 @@
+{{- /* Inline SVG from assets/diagrams/<post slug>/<name>.svg, so it takes the page's text colour. {{< diagram name="idea" caption="..." >}} */ -}}
+{{- $name := .Get "name" -}}
+{{- $slug := .Page.File.ContentBaseName -}}
+{{- $svg := resources.Get (printf "diagrams/%s/%s.svg" $slug $name) -}}
+{{- if not $svg }}{{ errorf "diagram: assets/diagrams/%s/%s.svg not found (%s)" $slug $name .Position }}{{ end -}}
+<figure class="diagram">
+  {{ $svg.Content | safeHTML }}
+  {{- with .Get "caption" }}<figcaption>{{ . }}</figcaption>{{ end }}
+</figure>
