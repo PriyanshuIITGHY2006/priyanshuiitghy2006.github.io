@@ -10,9 +10,7 @@ cover:
   hiddenInList: true
 ---
 
-{{< repo-card repo="PriyanshuIITGHY2006/InterIIT_Quant_Jain-Streeter" title="Calm-Trend Regime (CTR)" desc="Daily BTC/USDT and ETH/USDT strategies with a custom backtest engine. Inter IIT Tech Meet 15.0." >}}
-
-This project is from the Inter IIT Tech Meet 15.0 quant problem. Kushagra Verma and I made it as team Jain Streeter. This post explains the task, the research and the method.
+The Inter IIT Tech Meet 15.0 Bootcamp gave us a quant problem. Kushagra Verma and I solved it as team Jain Streeter. This post explains the task, the research and the method.
 
 ## Problem statement
 
