@@ -38,7 +38,8 @@ params:
   ShowCodeCopyButtons: true
   ShowToc: true
   TocOpen: false
-  ShowShareButtons: false
+  ShowShareButtons: true
+  ShareButtons: [x, linkedin, reddit, facebook, whatsapp, telegram, ycombinator]
   disableSpecial1stPost: true
 
   # Public Supabase Storage URL for the admin-managed CV (bucket "resume", file "cv.pdf").

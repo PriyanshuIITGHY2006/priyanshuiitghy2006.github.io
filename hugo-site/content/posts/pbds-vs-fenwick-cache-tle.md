@@ -7,7 +7,6 @@ description: "My approach to Zhily and Barknights was correct from the start, bu
 cover:
   image: "gallery-media/1000505831.png"
   relative: false
-  hiddenInList: true
 pdf: "gallery-media/pbds-vs-fenwick-cache-tle.pdf"
 ---
 ## The problem
