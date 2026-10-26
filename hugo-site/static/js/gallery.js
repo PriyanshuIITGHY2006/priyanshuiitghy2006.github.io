@@ -16,7 +16,7 @@
   var copyBtn = document.getElementById("gl-lb-copy");
 
   var base = root.dataset.base || "/";
-  var items = JSON.parse(document.getElementById("gl-data").textContent || "[]");
+  var items = [];
   var current = -1;
   var token = 0;
 
@@ -69,9 +69,13 @@
       .catch(function () {});
   }
 
+  function status(message) {
+    grid.innerHTML = '<p class="gl-empty">' + esc(message) + "</p>";
+  }
+
   function renderGrid() {
     if (!items.length) {
-      grid.innerHTML = '<p class="gl-empty">No files yet.</p>';
+      status("No files yet.");
       return;
     }
     grid.innerHTML = items.map(function (it, i) {
@@ -196,10 +200,9 @@
   });
 
   // ── Start ──────────────────────────────────────────────────────────────
-  // The grid is hidden (data-pending) until we know which list to show, so the
-  // built-in copy never flashes before the live one. A copy saved from the last
-  // visit is used straight away; otherwise the live copy is awaited for up to
-  // 0.9s before falling back to the built-in list.
+  // The list comes from the Supabase site_images table (managed in the admin).
+  // A copy saved from the last visit is shown straight away while the fresh
+  // one loads, so repeat visits don't flicker.
   var KEY = "gl-live-v1";
   var wanted = new URLSearchParams(location.search).get("img");
   var shown = false;
@@ -219,7 +222,6 @@
     var changed = signature(list) !== signature(items);
     items = list;
     if (changed || !shown) renderGrid();
-    grid.removeAttribute("data-pending");
     shown = true;
     if (currentId) {
       var i = indexOf(currentId);
@@ -232,10 +234,8 @@
   var cached = null;
   try { cached = JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) {}
 
-  if (!url || !key) { show(items); return; }
-
+  if (!url || !key) { status("The gallery is unavailable right now."); return; }
   if (cached && cached.length) show(cached);
-  else setTimeout(function () { if (!shown) show(items); }, 900);
 
   fetch(url + "/rest/v1/site_images?select=*&kind=eq.gallery&order=sort_order", {
     headers: { apikey: key, Authorization: "Bearer " + key }
@@ -248,12 +248,10 @@
       var live = rows
         .filter(function (r) { return r.id && r.title && r.src; })
         .map(function (r) { return { id: r.id, title: r.title, src: r.src, date: r.date || "", description: r.description || "" }; });
-      if (live.length) {
-        try { localStorage.setItem(KEY, JSON.stringify(live)); } catch (e) {}
-        show(live);
-      } else if (!shown) {
-        show(items);
-      }
+      try { localStorage.setItem(KEY, JSON.stringify(live)); } catch (e) {}
+      show(live);
     })
-    .catch(function () { if (!shown) show(items); });
+    .catch(function () {
+      if (!shown) status("Couldn't load the gallery. Please try again later.");
+    });
 })();

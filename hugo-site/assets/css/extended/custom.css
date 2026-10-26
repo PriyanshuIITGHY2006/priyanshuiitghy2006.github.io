@@ -191,5 +191,4 @@ a.gl-card .gl-meta { padding-top: 14px; }
 .gl-lb-btn:hover { border-color: var(--secondary); }
 .gl-lb-link { padding: 0; border: 0; border-bottom: 1px solid var(--primary); background: none; color: var(--primary); font: inherit; cursor: pointer; }
 @media (max-width: 480px) { .gl-lb-foot { flex-wrap: wrap; justify-content: center; } .gl-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; } }
-
-[data-pending] { visibility: hidden; }
+.ach-status { margin: 0; color: var(--secondary); list-style: none; }

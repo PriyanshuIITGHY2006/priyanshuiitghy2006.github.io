@@ -1,27 +1,17 @@
-// Shows the achievements currently in the Supabase `achievements` table, so
-// edits made in the admin appear without a rebuild.
-//
-// The list is hidden (data-pending) until this script has chosen what to show,
-// so the built-in copy never flashes before the live one:
-//   - a copy saved from the last visit is shown straight away;
-//   - otherwise the live copy is awaited for up to 0.9s, then the built-in
-//     list is shown as a fallback.
-// If Supabase can't be reached the built-in list stays.
+// Shows the achievements in the Supabase `achievements` table (managed in the
+// admin). A copy saved from the last visit is shown straight away while the
+// fresh one loads, so repeat visits don't flicker.
 (function () {
   "use strict";
   var list = document.getElementById("ach-list");
   if (!list) return;
 
-  var KEY = "ach-live-v1";
-  var revealed = false;
-  function reveal() {
-    revealed = true;
-    list.removeAttribute("data-pending");
-  }
-
+  var KEY = "ach-live-v2";
   var url = list.dataset.url, key = list.dataset.key;
-  if (!url || !key) { reveal(); return; }
 
+  function status(message) {
+    list.innerHTML = '<li class="ach-status">' + esc(message) + "</li>";
+  }
   function esc(s) {
     return String(s).replace(/[&<>"]/g, function (c) {
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
@@ -55,23 +45,18 @@
     );
   }
 
-  function clean(el) {
-    return el.textContent.replace(/\s+/g, " ").trim();
-  }
+  var shown = null;
   function show(items) {
-    var next = document.createElement("ol");
-    next.innerHTML = items.map(render).join("");
-    if (clean(next) !== clean(list)) list.innerHTML = next.innerHTML;
+    var html = items.length ? items.map(render).join("") : '<li class="ach-status">No achievements yet.</li>';
+    if (html !== shown) list.innerHTML = html;
+    shown = html;
   }
+
+  if (!url || !key) { status("The achievements are unavailable right now."); return; }
 
   var cached = null;
   try { cached = JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) {}
-  if (cached && cached.length) {
-    show(cached);
-    reveal();
-  } else {
-    setTimeout(function () { if (!revealed) reveal(); }, 900);
-  }
+  if (cached && cached.length) show(cached);
 
   fetch(url + "/rest/v1/achievements?select=*&order=sort_order", {
     headers: { apikey: key, Authorization: "Bearer " + key }
@@ -81,12 +66,12 @@
       return res.json();
     })
     .then(function (rows) {
+      // Rows that haven't been given a title and description yet are skipped.
       var items = rows.filter(function (a) { return a.title && a.blurb; });
-      if (items.length) {
-        try { localStorage.setItem(KEY, JSON.stringify(items)); } catch (e) {}
-        show(items);
-      }
-      reveal();
+      try { localStorage.setItem(KEY, JSON.stringify(items)); } catch (e) {}
+      show(items);
     })
-    .catch(reveal);
+    .catch(function () {
+      if (shown === null) status("Couldn't load the achievements. Please try again later.");
+    });
 })();
