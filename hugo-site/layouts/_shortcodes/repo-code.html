@@ -1,0 +1,52 @@
+{{- /*
+  Shows a file from a public GitHub repository as a code block, fetched when the site is built.
+
+  {{< repo-code repo="owner/name" path="src/main.cpp" >}}
+
+  Optional: ref (branch, tag or commit; default HEAD), lines="10-30" (the part of the file to show),
+  title (label; default is the path), lang, numbers=true, hl="2,4-6" (highlight), add="3" and del="5"
+  (diff colouring). Line numbers in hl, add and del count from the first line shown.
+*/ -}}
+{{- $repo := .Get "repo" -}}
+{{- $path := .Get "path" -}}
+{{- if or (not $repo) (not $path) }}{{ errorf "repo-code needs both repo and path (%s)" .Position }}{{ end -}}
+{{- $ref := .Get "ref" | default "HEAD" -}}
+{{- $raw := printf "https://raw.githubusercontent.com/%s/%s/%s" $repo $ref $path -}}
+{{- $content := "" -}}
+{{- with try (resources.GetRemote $raw) -}}
+  {{- with .Err }}{{ errorf "repo-code: could not fetch %s: %s (%s)" $raw . $.Position }}
+  {{- else with .Value }}{{ $content = .Content }}
+  {{- else }}{{ errorf "repo-code: %s was not found (%s)" $raw $.Position }}{{ end -}}
+{{- end -}}
+
+{{- $all := split (replace (strings.TrimRight "\n" $content) "\r\n" "\n") "\n" -}}
+{{- $start := 1 -}}
+{{- with .Get "lines" -}}
+  {{- $bounds := split . "-" -}}
+  {{- $start = int (index $bounds 0) -}}
+  {{- $end := $start -}}
+  {{- if gt (len $bounds) 1 }}{{ $end = int (index $bounds 1) }}{{ end -}}
+  {{- $all = first (add (sub $end $start) 1) (after (sub $start 1) $all) -}}
+{{- end -}}
+
+{{- $lang := .Get "lang" | default (strings.TrimPrefix "." (path.Ext $path)) -}}
+{{- $html := transform.Highlight (delimit $all "\n") $lang "" | string -}}
+
+{{- $hl := partial "line-set.html" (.Get "hl") -}}
+{{- $add := partial "line-set.html" (.Get "add") -}}
+{{- $del := partial "line-set.html" (.Get "del") -}}
+{{- $parts := split $html `<span class="line">` -}}
+{{- $marked := index $parts 0 -}}
+{{- range $i, $p := after 1 $parts -}}
+  {{- $n := add $i 1 -}}
+  {{- $cls := "line" -}}
+  {{- if in $add $n }}{{ $cls = "line diff add" }}{{ else if in $del $n }}{{ $cls = "line diff del" }}{{ else if in $hl $n }}{{ $cls = "line hl-line" }}{{ end -}}
+  {{- $marked = printf `%s<span class="%s">%s` $marked $cls $p -}}
+{{- end -}}
+
+{{- $blob := printf "https://github.com/%s/blob/%s/%s" $repo $ref $path -}}
+{{- if .Get "lines" }}{{ $blob = printf "%s#L%d-L%d" $blob $start (add $start (sub (len $all) 1)) }}{{ end -}}
+<figure class="repo-code{{ if .Get "numbers" }} numbered{{ end }}" style="--ln-reset: {{ sub $start 1 }}">
+  <figcaption><a href="{{ $blob }}" rel="noopener" target="_blank">{{ .Get "title" | default $path }}</a></figcaption>
+  {{ $marked | safeHTML }}
+</figure>

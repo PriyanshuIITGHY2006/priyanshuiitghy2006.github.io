@@ -192,3 +192,36 @@ a.gl-card .gl-meta { padding-top: 14px; }
 .gl-lb-link { padding: 0; border: 0; border-bottom: 1px solid var(--primary); background: none; color: var(--primary); font: inherit; cursor: pointer; }
 @media (max-width: 480px) { .gl-lb-foot { flex-wrap: wrap; justify-content: center; } .gl-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; } }
 .ach-status { margin: 0; color: var(--secondary); list-style: none; }
+
+/* Code sourced from a GitHub repository (repo-code shortcode) */
+.repo-code { margin: 0 0 var(--content-gap); }
+.repo-code figcaption { font-size: 0.8rem; line-height: 1; padding: 0 0 0 4px; }
+.repo-code figcaption a {
+  display: inline-block;
+  padding: 6px 12px;
+  background: var(--code-block-bg);
+  color: var(--secondary);
+  border-radius: var(--radius) var(--radius) 0 0;
+  border-bottom: 0;
+  box-shadow: none;
+  text-decoration: none;
+}
+.repo-code .highlight:not(table) { margin-bottom: 0; border-top-left-radius: 0; overflow-x: auto; }
+.repo-code .line { display: block; position: relative; padding-left: 28px; }
+.repo-code .line .cl { padding: 0 10px 0 0; }
+.repo-code.numbered .highlight { counter-reset: ln var(--ln-reset); }
+.repo-code.numbered .line { counter-increment: ln; }
+.repo-code.numbered .line::before {
+  content: counter(ln);
+  position: absolute; left: 0; width: 22px; text-align: right;
+  color: var(--secondary); opacity: 0.6; user-select: none;
+}
+.repo-code .line.hl-line { background: rgba(120, 140, 255, 0.18); }
+.repo-code .line.diff.add { background: rgba(46, 160, 67, 0.22); }
+.repo-code .line.diff.del { background: rgba(248, 81, 73, 0.22); }
+.repo-code .line.diff::before {
+  position: absolute; left: 0; width: 22px; text-align: right;
+  opacity: 1; user-select: none; counter-increment: none;
+}
+.repo-code .line.diff.add::before { content: "+"; color: #2ea043; }
+.repo-code .line.diff.del::before { content: "-"; color: #f85149; }

@@ -1,0 +1,13 @@
+{{- /* Expands a spec such as "3,5-7" into a slice of line numbers. */ -}}
+{{- $out := slice -}}
+{{- range split (. | string) "," -}}
+  {{- $part := trim . " " -}}
+  {{- if $part -}}
+    {{- $bounds := split $part "-" -}}
+    {{- $from := int (index $bounds 0) -}}
+    {{- $to := $from -}}
+    {{- if gt (len $bounds) 1 }}{{ $to = int (index $bounds 1) }}{{ end -}}
+    {{- range seq $from $to }}{{ $out = $out | append . }}{{ end -}}
+  {{- end -}}
+{{- end -}}
+{{- return $out -}}
