@@ -13,6 +13,9 @@
             {{ $opts := dict "display" "block" }}
             {{ .Content | $.Page.RenderString $opts }}
         </div>
+        {{- with site.Params.resumeUrl }}
+        <p class="home-resume">Download my resume <a href="{{ . }}?download={{ site.Params.resumeFilename | default "resume.pdf" }}" rel="noopener">here</a>.</p>
+        {{- end }}
         <footer class="entry-footer">
             {{ partial "social_icons.html" (dict "align" site.Params.homeInfoParams.AlignSocialIconsTo) }}
         </footer>
