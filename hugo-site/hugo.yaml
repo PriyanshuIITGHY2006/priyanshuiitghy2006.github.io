@@ -40,13 +40,21 @@ params:
   resumeUrl: "https://vadbagtnekrjwrimvgxe.supabase.co/storage/v1/object/public/resume/cv.pdf"
   resumeFilename: "Priyanshu_Debnath_CV.pdf"
 
-  homeInfoParams:
-    Title: "Priyanshu Debnath"
-    Content: >
+  profileMode:
+    enabled: true
+    title: "Priyanshu Debnath"
+    subtitle: >-
       B.Tech in Electronics and Electrical Engineering with a minor in Mathematics at
-      IIT Guwahati. I write about competitive programming, systems and algorithms, and
-      build things in machine learning and quantitative finance.
-      The [resume](resume/) is one download away.
+      IIT Guwahati. I write about competitive programming, systems and algorithms.
+    imageUrl: "profile.jpg"
+    imageTitle: "Priyanshu Debnath"
+    imageWidth: 150
+    imageHeight: 150
+    buttons:
+      - name: Posts
+        url: posts/
+      - name: Resume
+        url: resume/
 
   socialIcons:
     - name: github

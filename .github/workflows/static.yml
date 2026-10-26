@@ -47,6 +47,14 @@ jobs:
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
           VITE_TURNSTILE_SITE_KEY: ${{ secrets.VITE_TURNSTILE_SITE_KEY }}
 
+      # The Hugo/PaperMod version of the site is served under /hugo/. It is
+      # best-effort: if it fails to build, the main site still deploys.
+      - name: Build Hugo site (served at /hugo/)
+        continue-on-error: true
+        run: |
+          curl -fsSL https://github.com/gohugoio/hugo/releases/download/v0.168.0/hugo_extended_0.168.0_linux-amd64.tar.gz | tar -xz hugo
+          ./hugo --source hugo-site --destination "$GITHUB_WORKSPACE/dist/hugo" --baseURL https://priyanshudebnath.me/hugo/ --minify
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
