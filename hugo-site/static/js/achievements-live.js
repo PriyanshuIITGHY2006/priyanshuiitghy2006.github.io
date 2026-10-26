@@ -1,10 +1,26 @@
-// Replaces the built-in achievements list with the rows currently in the
-// Supabase `achievements` table, so edits made in the admin show up without
-// a rebuild. If the request fails, the list rendered at build time stays.
+// Shows the achievements currently in the Supabase `achievements` table, so
+// edits made in the admin appear without a rebuild.
+//
+// The list is hidden (data-pending) until this script has chosen what to show,
+// so the built-in copy never flashes before the live one:
+//   - a copy saved from the last visit is shown straight away;
+//   - otherwise the live copy is awaited for up to 0.9s, then the built-in
+//     list is shown as a fallback.
+// If Supabase can't be reached the built-in list stays.
 (function () {
   "use strict";
   var list = document.getElementById("ach-list");
-  if (!list || !list.dataset.url || !list.dataset.key) return;
+  if (!list) return;
+
+  var KEY = "ach-live-v1";
+  var revealed = false;
+  function reveal() {
+    revealed = true;
+    list.removeAttribute("data-pending");
+  }
+
+  var url = list.dataset.url, key = list.dataset.key;
+  if (!url || !key) { reveal(); return; }
 
   function esc(s) {
     return String(s).replace(/[&<>"]/g, function (c) {
@@ -39,8 +55,26 @@
     );
   }
 
-  fetch(list.dataset.url + "/rest/v1/achievements?select=*&order=sort_order", {
-    headers: { apikey: list.dataset.key, Authorization: "Bearer " + list.dataset.key }
+  function clean(el) {
+    return el.textContent.replace(/\s+/g, " ").trim();
+  }
+  function show(items) {
+    var next = document.createElement("ol");
+    next.innerHTML = items.map(render).join("");
+    if (clean(next) !== clean(list)) list.innerHTML = next.innerHTML;
+  }
+
+  var cached = null;
+  try { cached = JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) {}
+  if (cached && cached.length) {
+    show(cached);
+    reveal();
+  } else {
+    setTimeout(function () { if (!revealed) reveal(); }, 900);
+  }
+
+  fetch(url + "/rest/v1/achievements?select=*&order=sort_order", {
+    headers: { apikey: key, Authorization: "Bearer " + key }
   })
     .then(function (res) {
       if (!res.ok) throw new Error("bad status");
@@ -48,12 +82,11 @@
     })
     .then(function (rows) {
       var items = rows.filter(function (a) { return a.title && a.blurb; });
-      if (!items.length) return;
-      var next = document.createElement("ol");
-      next.innerHTML = items.map(render).join("");
-      var clean = function (el) { return el.textContent.replace(/\s+/g, " ").trim(); };
-      if (clean(next) === clean(list)) return;
-      list.innerHTML = next.innerHTML;
+      if (items.length) {
+        try { localStorage.setItem(KEY, JSON.stringify(items)); } catch (e) {}
+        show(items);
+      }
+      reveal();
     })
-    .catch(function () {});
+    .catch(reveal);
 })();

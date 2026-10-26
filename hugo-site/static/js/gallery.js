@@ -196,7 +196,14 @@
   });
 
   // ── Start ──────────────────────────────────────────────────────────────
+  // The grid is hidden (data-pending) until we know which list to show, so the
+  // built-in copy never flashes before the live one. A copy saved from the last
+  // visit is used straight away; otherwise the live copy is awaited for up to
+  // 0.9s before falling back to the built-in list.
+  var KEY = "gl-live-v1";
   var wanted = new URLSearchParams(location.search).get("img");
+  var shown = false;
+
   function openWanted() {
     if (!wanted || current >= 0) return;
     var i = indexOf(wanted);
@@ -207,36 +214,46 @@
     return list.map(function (x) { return [x.id, x.title, x.src, x.date, x.description].join("|"); }).join("\n");
   }
 
-  function startAfterLibs() {
-    renderGrid();
+  function show(list) {
+    var currentId = current >= 0 ? items[current].id : null;
+    var changed = signature(list) !== signature(items);
+    items = list;
+    if (changed || !shown) renderGrid();
+    grid.removeAttribute("data-pending");
+    shown = true;
+    if (currentId) {
+      var i = indexOf(currentId);
+      if (i >= 0) current = i; else close();
+    }
     openWanted();
-
-    var url = root.dataset.url, key = root.dataset.key;
-    if (!url || !key) return;
-    fetch(url + "/rest/v1/site_images?select=*&kind=eq.gallery&order=sort_order", {
-      headers: { apikey: key, Authorization: "Bearer " + key }
-    })
-      .then(function (res) {
-        if (!res.ok) throw new Error("bad status");
-        return res.json();
-      })
-      .then(function (rows) {
-        var live = rows
-          .filter(function (r) { return r.id && r.title && r.src; })
-          .map(function (r) { return { id: r.id, title: r.title, src: r.src, date: r.date || "", description: r.description || "" }; });
-        if (!live.length || signature(live) === signature(items)) return;
-        var currentId = current >= 0 ? items[current].id : null;
-        items = live;
-        renderGrid();
-        if (currentId) {
-          var i = indexOf(currentId);
-          if (i >= 0) current = i; else close();
-        }
-        openWanted();
-      })
-      .catch(function () {});
   }
 
-  // pdf.min.js is deferred like this file, so it has already run by now.
-  startAfterLibs();
+  var url = root.dataset.url, key = root.dataset.key;
+  var cached = null;
+  try { cached = JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) {}
+
+  if (!url || !key) { show(items); return; }
+
+  if (cached && cached.length) show(cached);
+  else setTimeout(function () { if (!shown) show(items); }, 900);
+
+  fetch(url + "/rest/v1/site_images?select=*&kind=eq.gallery&order=sort_order", {
+    headers: { apikey: key, Authorization: "Bearer " + key }
+  })
+    .then(function (res) {
+      if (!res.ok) throw new Error("bad status");
+      return res.json();
+    })
+    .then(function (rows) {
+      var live = rows
+        .filter(function (r) { return r.id && r.title && r.src; })
+        .map(function (r) { return { id: r.id, title: r.title, src: r.src, date: r.date || "", description: r.description || "" }; });
+      if (live.length) {
+        try { localStorage.setItem(KEY, JSON.stringify(live)); } catch (e) {}
+        show(live);
+      } else if (!shown) {
+        show(items);
+      }
+    })
+    .catch(function () { if (!shown) show(items); });
 })();

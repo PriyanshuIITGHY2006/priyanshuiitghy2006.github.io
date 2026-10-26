@@ -5,7 +5,7 @@
   </header>
 
   <div id="gl-root" data-base="{{ "" | relURL }}" data-worker="{{ "js/vendor/pdf.worker.min.js" | relURL }}" data-url="{{ site.Params.supabaseUrl }}" data-key="{{ site.Params.supabaseanonkey }}">
-    <div class="gl-grid" id="gl-grid">
+    <div class="gl-grid" id="gl-grid" data-pending>
       {{- range hugo.Data.gallery }}
       <a class="gl-card" href="{{ .src | relURL }}">
         <span class="gl-meta">
@@ -39,6 +39,7 @@
     </div>
   </div>
 
+  <noscript><style>[data-pending]{visibility:visible!important}</style></noscript>
   <script type="application/json" id="gl-data">{{ hugo.Data.gallery | jsonify | safeJS }}</script>
   <script defer src="{{ "js/vendor/pdf.min.js" | relURL }}"></script>
   <script defer src="{{ "js/gallery.js" | relURL }}"></script>

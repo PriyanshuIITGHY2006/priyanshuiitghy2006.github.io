@@ -4,7 +4,7 @@
     <h1 class="post-title entry-hint-parent">{{ .Title }}</h1>
   </header>
 
-  <ol class="ach-list" id="ach-list" data-url="{{ site.Params.supabaseUrl }}" data-key="{{ site.Params.supabaseanonkey }}">
+  <ol class="ach-list" id="ach-list" data-pending data-url="{{ site.Params.supabaseUrl }}" data-key="{{ site.Params.supabaseanonkey }}">
     {{- range hugo.Data.achievements }}
     <li class="ach-item">
       <h2 class="ach-title">{{ .title }}</h2>
@@ -22,6 +22,7 @@
     </li>
     {{- end }}
   </ol>
+  <noscript><style>[data-pending]{visibility:visible!important}</style></noscript>
   <script defer src="{{ "js/achievements-live.js" | relURL }}"></script>
 </article>
 {{- end }}
