@@ -1,5 +1,5 @@
 # Override at build time for other hosts, e.g. `hugo --baseURL https://example.netlify.app/`
-baseURL: "https://priyanshudebnath.me/hugo/"
+baseURL: "https://priyanshudebnath.me/"
 locale: en-us
 title: Priyanshu Debnath
 theme: PaperMod
