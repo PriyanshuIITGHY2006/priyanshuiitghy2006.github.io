@@ -22,5 +22,5 @@
 </script>
 {{- end }}
 {{- if .Page.HasShortcode "binviz" }}
-<script defer src="{{ "js/binviz.js" | relURL }}"></script>
+{{ partial "script.html" "js/binviz.js" }}
 {{- end }}

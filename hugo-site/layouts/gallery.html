@@ -32,6 +32,6 @@
 
   <noscript><p class="gl-empty">Turn on JavaScript to see the gallery.</p></noscript>
   <script defer src="{{ "js/vendor/pdf.min.js" | relURL }}"></script>
-  <script defer src="{{ "js/gallery.js" | relURL }}"></script>
+  {{ partial "script.html" "js/gallery.js" }}
 </article>
 {{- end }}

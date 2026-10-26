@@ -1,0 +1,2 @@
+{{- /* A deferred local script whose URL changes whenever its content does, so a browser never pairs a new page with a stale cached script. Pass the path under static/, e.g. "js/gallery.js". */ -}}
+<script defer src="{{ . | relURL }}?v={{ readFile (printf "static/%s" .) | crypto.MD5 }}"></script>

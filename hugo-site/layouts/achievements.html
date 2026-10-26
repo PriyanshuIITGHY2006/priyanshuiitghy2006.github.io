@@ -8,6 +8,6 @@
     <li class="ach-status">Loading...</li>
   </ol>
   <noscript><p class="ach-status">Turn on JavaScript to see the achievements.</p></noscript>
-  <script defer src="{{ "js/achievements-live.js" | relURL }}"></script>
+  {{ partial "script.html" "js/achievements-live.js" }}
 </article>
 {{- end }}
