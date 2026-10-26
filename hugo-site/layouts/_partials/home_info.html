@@ -1,0 +1,21 @@
+{{- with site.Params.homeInfoParams }}
+{{- $photo := resources.Get "profile.jpg" }}
+<article class="first-entry home-info{{ if $photo }} home-info-photo{{ end }}">
+    {{- with $photo }}
+    {{- $img := .Fill "320x320 q85" }}
+    <img class="home-photo" src="{{ $img.RelPermalink }}" width="160" height="160" alt="{{ site.Params.author }}" draggable="false">
+    {{- end }}
+    <div class="home-info-text">
+        <header class="entry-header">
+            <h1>{{ .Title | markdownify }}</h1>
+        </header>
+        <div class="entry-content md-content">
+            {{ $opts := dict "display" "block" }}
+            {{ .Content | $.Page.RenderString $opts }}
+        </div>
+        <footer class="entry-footer">
+            {{ partial "social_icons.html" (dict "align" site.Params.homeInfoParams.AlignSocialIconsTo) }}
+        </footer>
+    </div>
+</article>
+{{- end -}}
