@@ -29,7 +29,7 @@ params:
 
   ShowReadingTime: true
   ShowPostNavLinks: true
-  ShowBreadCrumbs: false
+  ShowBreadCrumbs: true
   ShowCodeCopyButtons: true
   ShowToc: true
   TocOpen: false
