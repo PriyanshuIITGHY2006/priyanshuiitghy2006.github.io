@@ -226,3 +226,12 @@ a.gl-card .gl-meta { padding-top: 14px; }
 .code-block.numbered .line::before { content: counter(ln); color: var(--secondary); opacity: 0.6; }
 .code-block .line.diff.add::before { content: "+"; color: #2ea043; opacity: 1; }
 .code-block .line.diff.del::before { content: "-"; color: #f85149; opacity: 1; }
+.code-fetch-failed {
+  margin: 0 0 var(--content-gap);
+  padding: 12px 16px;
+  font-size: 0.9rem;
+  color: var(--secondary);
+  background: var(--code-block-bg);
+  border-left: 3px solid #f85149;
+  border-radius: var(--radius);
+}

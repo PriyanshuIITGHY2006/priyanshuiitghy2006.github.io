@@ -4,7 +4,8 @@
   {{< repo-code repo="owner/name" path="src/main.cpp" >}}
 
   Optional: ref (branch, tag or commit; default HEAD), lines="10-30" (the part of the file to show),
-  title (label; default is the path), lang, numbers=true, hl="2,4-6" (highlight), add="3" and del="5"
+  title (label; default is the path).
+  If the file can't be fetched, only this block shows "Failed to fetch"; the rest of the page and the build are unaffected, lang, numbers=true, hl="2,4-6" (highlight), add="3" and del="5"
   (diff colouring). Line numbers in hl, add and del count from the first line shown.
 */ -}}
 {{- $repo := .Get "repo" -}}
@@ -14,11 +15,13 @@
 {{- $raw := printf "https://raw.githubusercontent.com/%s/%s/%s" $repo $ref $path -}}
 {{- $content := "" -}}
 {{- with try (resources.GetRemote $raw) -}}
-  {{- with .Err }}{{ errorf "repo-code: could not fetch %s: %s (%s)" $raw . $.Position }}
+  {{- with .Err }}{{ warnf "repo-code: could not fetch %s: %s (%s)" $raw . $.Position }}
   {{- else with .Value }}{{ $content = .Content }}
-  {{- else }}{{ errorf "repo-code: %s was not found (%s)" $raw $.Position }}{{ end -}}
+  {{- else }}{{ warnf "repo-code: %s was not found (%s)" $raw $.Position }}{{ end -}}
 {{- end -}}
-
+{{- if not $content -}}
+<div class="code-fetch-failed">Failed to fetch <a href="https://github.com/{{ $repo }}/blob/{{ $ref }}/{{ $path }}" rel="noopener" target="_blank">{{ .Get "title" | default $path }}</a></div>
+{{- else -}}
 {{- $all := split (replace (strings.TrimRight "\n" $content) "\r\n" "\n") "\n" -}}
 {{- $start := 1 -}}
 {{- with .Get "lines" -}}
@@ -33,3 +36,4 @@
 {{- $blob := printf "https://github.com/%s/blob/%s/%s" $repo $ref $path -}}
 {{- if .Get "lines" }}{{ $blob = printf "%s#L%d-L%d" $blob $start (add $start (sub (len $all) 1)) }}{{ end -}}
 {{- partial "code-block.html" (dict "code" (delimit $all "\n") "lang" $lang "title" (.Get "title" | default $path) "href" $blob "numbers" (.Get "numbers") "start" $start "hl" (.Get "hl") "add" (.Get "add") "del" (.Get "del")) -}}
+{{- end -}}
