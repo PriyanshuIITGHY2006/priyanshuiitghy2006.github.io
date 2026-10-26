@@ -7,6 +7,7 @@ description: "My solution to Vlad, Misha and Two Arrays was correct and still go
 cover:
   image: "gallery-media/1000505797.png"
   relative: false
+  hiddenInList: true
 pdf: "gallery-media/scan-from-both-ends.pdf"
 ---
 I got TLE on test 14 with a solution that was completely correct. Then I changed one loop, the order in which I check indices, and it passed comfortably.

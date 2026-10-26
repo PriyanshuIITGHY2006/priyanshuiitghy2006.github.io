@@ -7,6 +7,7 @@ description: "Hi, it's my first blog. I went looking for proof that the stack an
 cover:
   image: "blog-media/stack-heap-registers/cover.jpg"
   relative: false
+  hiddenInList: true
 pdf: "gallery-media/stack-heap-registers.pdf"
 ---
 Hi, it's my first blog. Please clap.

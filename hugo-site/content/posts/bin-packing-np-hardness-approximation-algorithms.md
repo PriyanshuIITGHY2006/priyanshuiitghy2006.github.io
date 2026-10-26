@@ -7,6 +7,7 @@ description: "A full pass through bin packing — the formal problem, why the de
 cover:
   image: "blog-media/bin-packing-np-hardness-approximation-algorithms/cover.png"
   relative: false
+  hiddenInList: true
 pdf: "gallery-media/bin-packing-np-hardness-approximation-algorithms.pdf"
 ---
 I was solving [Codeforces 2038L — Bridge Renovation](https://codeforces.com/contest/2038/problem/L), got a clean closed-form answer out of it, and then asked myself the obvious follow-up: what if the constraints hadn't been so generous? That question is what turned into this post — the formal bin-packing problem, exactly why it's NP-hard (and the sharper, less commonly explained fact that it's *strongly* NP-hard), every classical approximation algorithm with a proof of its worst-case bound (not just a citation of one), the handful of special cases where the problem quietly becomes polynomial, and the backtracking/bitmask techniques you'd reach for if a contest handed you a small instance and expected an exact answer.
