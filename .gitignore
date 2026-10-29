@@ -1,7 +1,11 @@
-node_modules
-dist
+# Hugo
+public/
+resources/
+.hugo_build.lock
+
+# Admin app
+node_modules/
+
 .DS_Store
-*.local
 .env
 .env.*
-!.env.example
