@@ -8,6 +8,7 @@ cover:
   image: "blog-media/calm-trend-regime/cover.png"
   relative: false
   hiddenInList: true
+pdf: "gallery-media/calm-trend-regime.pdf"
 ---
 
 The Inter IIT Tech Meet 15.0 Bootcamp gave us a quant problem. Kushagra Verma and I solved it as team Jain Streeter. This post explains the task, the research and the method.
