@@ -236,7 +236,7 @@ export async function renderBlogEditor(el: HTMLElement): Promise<void> {
   });
 
   // ── Preview ────────────────────────────────────────────────────────────
-  const { renderPreview } = await import("./preview");
+  const { renderPreview, hydrateRepoCode } = await import("./preview");
   let debounceId: number | undefined;
   function renderPreviewSoon(): void {
     window.clearTimeout(debounceId);
@@ -244,6 +244,7 @@ export async function renderBlogEditor(el: HTMLElement): Promise<void> {
       const src = bodyEl.value.trim();
       try {
         previewEl.innerHTML = src ? renderPreview(src) : `<p class="note">Start typing to see a preview.</p>`;
+        hydrateRepoCode(previewEl);
       } catch (err) {
         previewEl.innerHTML = `<p class="err">Preview error: ${esc(err instanceof Error ? err.message : String(err))}</p>`;
       }

@@ -11,12 +11,14 @@ export interface Shortcode {
   end: number;
 }
 
-const TAG_RE = /\{\{([<%])\s*(\/?)([\w-]+)((?:\s+[\w-]+=(?:"[^"]*"|`[^`]*`|[^\s>%}]+))*)\s*\/?\s*[>%]\}\}/g;
-const PARAM_RE = /([\w-]+)=(?:"([^"]*)"|`([^`]*)`|([^\s>%}]+))/g;
+// Arguments are named (a="x") or positional ({{< youtube ID >}}).
+const TAG_RE = /\{\{([<%])\s*(\/?)([\w-]+)((?:\s+(?:[\w-]+=)?(?:"[^"]*"|`[^`]*`|[^\s>%}"`]+))*)\s*\/?\s*[>%]\}\}/g;
+const PARAM_RE = /(?:([\w-]+)=)?(?:"([^"]*)"|`([^`]*)`|([^\s>%}"`]+))/g;
 
 function parseParams(s: string): Record<string, string> {
   const out: Record<string, string> = {};
-  for (const m of s.matchAll(PARAM_RE)) out[m[1]] = m[2] ?? m[3] ?? m[4] ?? "";
+  let position = 0;
+  for (const m of s.matchAll(PARAM_RE)) out[m[1] ?? String(position++)] = m[2] ?? m[3] ?? m[4] ?? "";
   return out;
 }
 
