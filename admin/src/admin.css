@@ -1,369 +1,145 @@
-/* ─── Admin panel — same visual language as the rest of the site: Computer
-   Modern serif, thin hairline borders, monochrome ink-on-paper buttons,
-   colour used sparingly. The login screen reuses resume.css's page/section
-   components directly so it reads as part of the site, not a bolted-on
-   tool. ─────────────────────────────────────────────────────────────── */
+/* Admin. Plain system styling, light and dark like the site. */
 
-.admin-login-page { max-width: 26rem; margin: 3rem auto 0; }
-.admin-login-page .section-body { text-align: left; }
-
-.admin-login-form {
-  display: flex;
-  flex-direction: column;
-  gap: 0.8rem;
-  margin-top: 1rem;
+:root {
+  --bg: #f5f5f5;
+  --card: #fff;
+  --text: #1f1f1f;
+  --muted: #6b6b6b;
+  --border: #dcdcdc;
+  --accent: #1f1f1f;
+  --accent-text: #fff;
+  --ok: #15803d;
+  --err: #b91c1c;
+  --code: #f2f2f2;
+  color-scheme: light;
 }
-.admin-login-form label {
-  display: block;
-  font-size: 0.78em;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--muted);
-  margin-bottom: 0.25rem;
-}
-.admin-login-form input {
-  width: 100%;
-  font-family: var(--cm-sans);
-  font-size: 0.95em;
-  color: var(--ink);
-  background: transparent;
-  border: none;
-  border-bottom: 0.6px solid var(--border);
-  padding: 0.5em 0.05em;
-  box-sizing: border-box;
-  transition: border-color 0.14s ease;
-}
-.admin-login-form input:focus { outline: none; border-color: var(--ink); }
-.admin-login-actions { margin-top: 0.2rem; }
-.admin-login-submit { width: 100%; text-align: center; cursor: pointer; }
-.admin-login-submit:disabled { opacity: 0.6; cursor: default; }
-.admin-login-error {
-  font-size: 0.86em;
-  border-radius: 4px;
-  padding: 0.5em 0.7em;
-  background: var(--danger-bg);
-  color: var(--danger-ink);
-  border: 0.6px solid var(--danger-border);
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1d1e20;
+    --card: #2e2e33;
+    --text: #dadadb;
+    --muted: #9b9c9d;
+    --border: #414146;
+    --accent: #dadadb;
+    --accent-text: #1d1e20;
+    --ok: #4ade80;
+    --err: #f87171;
+    --code: #37383e;
+    color-scheme: dark;
+  }
 }
 
-/* ─── Panel shell ──────────────────────────────────────────────────────── */
-.admin-page .section-body { max-width: 62rem; margin: 0 auto; }
-
-.admin-panel-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  flex-wrap: wrap;
-  margin: 0.5rem 0 1rem;
-}
-.admin-panel-actions { display: flex; align-items: center; gap: 0.5rem; }
-
-/* Tab bar — same small-caps underline treatment as the Codeforces page. */
-.admin-tabbar {
-  display: flex;
-  gap: 1.4rem;
-  flex-wrap: wrap;
-  border-bottom: 0.6px solid var(--border);
-  margin: 0.8rem 0 1.3rem;
-}
-.admin-tab-btn {
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
-  font-family: var(--cm-sans);
-  font-size: 0.85em;
-  font-variant: small-caps;
-  letter-spacing: 0.5px;
-  color: var(--muted-2);
-  padding: 0.45rem 0.05rem;
-  cursor: pointer;
-}
-.admin-tab-btn:hover { color: var(--ink-soft); }
-.admin-tab-btn.active { color: var(--ink); border-bottom-color: var(--ink); font-weight: 700; }
-
-/* ─── Form sections (add project / achievement / ...) ────────────────── */
-.admin-form-section {
-  background: var(--bg-card);
-  border: 0.6px solid var(--border);
-  border-radius: 6px;
-  padding: 1.1rem 1.3rem;
-  margin-bottom: 1.4rem;
-}
-.admin-form-section h3 {
-  margin: 0 0 0.8rem;
-  font-family: var(--cm);
-  font-variant: small-caps;
-  font-size: 1.05em;
-  letter-spacing: 0.3px;
-  color: var(--ink-soft);
-  font-weight: 400;
-}
-
-.admin-form { display: grid; gap: 0.7rem; }
-.admin-form label {
-  display: block;
-  font-size: 0.76em;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--muted);
-  margin-bottom: 0.25rem;
-}
-.admin-form input[type="text"],
-.admin-form textarea {
-  width: 100%;
-  font-family: var(--cm-sans);
-  font-size: 0.92em;
-  color: var(--ink);
-  background: transparent;
-  border: none;
-  border-bottom: 0.6px solid var(--border);
-  padding: 0.4em 0.05em;
-  box-sizing: border-box;
-  transition: border-color 0.14s ease;
-}
-.admin-form input[type="text"]:focus,
-.admin-form textarea:focus { outline: none; border-color: var(--ink); }
-.admin-form input[readonly] { color: var(--muted-2); background: var(--bg-inset); border-bottom-color: transparent; }
-.admin-form textarea { resize: vertical; min-height: 4.2rem; }
-.admin-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem; }
-.admin-form-actions { display: flex; gap: 0.6rem; margin-top: 0.2rem; }
-
-/* Bullets sub-form */
-.admin-bullet-list { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.5rem; }
-.admin-bullet-row { display: flex; gap: 0.5rem; align-items: flex-start; }
-.admin-bullet-row textarea { flex: 1; min-height: 3rem; }
-
-/* ─── Buttons — reuse .pj-link's bordered-pill look; primary/danger are
-   just tints of the same shape, not a different visual system. ────────── */
-.admin-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35em;
-  font-family: var(--cm-sans);
-  font-size: 0.85em;
-  font-weight: 600;
-  color: var(--ink);
-  text-decoration: none;
-  border: 0.6px solid var(--border);
-  border-radius: 4px;
-  padding: 0.3em 0.85em;
-  background: var(--bg-card);
-  cursor: pointer;
-  white-space: nowrap;
-  transition: background 0.12s ease, border-color 0.12s ease, opacity 0.12s ease;
-}
-.admin-btn:hover { background: var(--bg-hover); border-color: var(--border-strong); }
-.admin-btn:disabled { opacity: 0.55; cursor: default; }
-.admin-btn + .admin-btn { margin-left: 0; }
-
-.admin-btn-primary { background: var(--ink); border-color: var(--ink); color: var(--bg); }
-.admin-btn-primary:hover { background: var(--ink-soft); border-color: var(--ink-soft); }
-
-.admin-btn-danger { color: var(--danger-ink); border-color: var(--danger-border); background: var(--danger-bg); }
-.admin-btn-danger:hover { background: var(--danger-border); border-color: var(--danger-ink); }
-
-/* ─── Tables ───────────────────────────────────────────────────────────── */
-.admin-table-wrap { overflow-x: auto; border-radius: 6px; }
-.admin-table {
-  width: 100%;
-  border-collapse: collapse;
-  background: var(--bg-card);
-  border: 0.6px solid var(--border);
-  border-radius: 6px;
-  margin-bottom: 1.6rem;
-  font-size: 0.85em;
-}
-.admin-table th,
-.admin-table td {
-  border-bottom: 0.6px solid var(--border-soft);
-  padding: 0.55em 0.7em;
-  text-align: left;
-  vertical-align: top;
-}
-.admin-table th {
-  background: var(--bg-inset);
-  font-family: var(--cm-sans);
-  font-weight: 700;
-  white-space: nowrap;
-  font-size: 0.92em;
-}
-.admin-table tbody tr:hover td { background: var(--bg-hover); }
-.admin-table tbody tr:last-child td { border-bottom: none; }
-.admin-table-empty { text-align: center !important; color: var(--muted-2); font-style: italic; padding: 1.4rem 0.7em !important; }
-
-.truncate { max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-/* ─── Status messages ──────────────────────────────────────────────────── */
-.admin-status {
-  font-size: 0.86em;
-  padding: 0.5em 0.7em;
-  border-radius: 4px;
-  margin-bottom: 0.7rem;
-  border: 0.6px solid transparent;
-}
-.admin-status-ok { background: var(--success-bg); color: var(--success-ink); border-color: var(--success-border); }
-.admin-status-err { background: var(--danger-bg); color: var(--danger-ink); border-color: var(--danger-border); }
-
-.admin-loading { color: var(--muted-2); font-style: italic; padding: 0.8rem 0; }
-.admin-empty-note { color: var(--muted-2); font-style: italic; padding: 0.6rem 0 1.2rem; }
-
-/* ─── Blog post editor: markdown / live-preview split ─────────────────── */
-.admin-editor-split {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-  align-items: start;
-}
-.admin-editor-pane { display: flex; flex-direction: column; min-width: 0; }
-.admin-editor-pane-label {
-  display: block;
-  font-size: 0.76em;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--muted);
-  margin-bottom: 0.35rem;
-}
-.admin-editor-textarea {
-  width: 100%;
-  height: 32rem;
-  resize: vertical;
-  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
-  font-size: 0.84em;
-  line-height: 1.55;
-  color: var(--ink);
-  border: 0.6px solid var(--border);
-  border-radius: 6px;
-  padding: 0.8rem 0.9rem;
-  background: var(--bg-card);
-  box-sizing: border-box;
-}
-.admin-editor-textarea:focus { outline: none; border-color: var(--border-strong); }
-.admin-editor-preview {
-  height: 32rem;
-  overflow-y: auto;
-  border: 0.6px solid var(--border);
-  border-radius: 6px;
-  padding: 0.9rem 1.1rem;
-  background: var(--bg-card);
-  box-sizing: border-box;
-}
-
-@media (max-width: 860px) {
-  .admin-editor-split { grid-template-columns: 1fr; }
-  .admin-editor-textarea, .admin-editor-preview { height: 22rem; }
-}
-
-/* ─── Change password panel ────────────────────────────────────────────── */
-.admin-account-panel {
-  background: var(--bg-card);
-  border: 0.6px solid var(--border);
-  border-radius: 6px;
-  padding: 1.1rem 1.3rem;
-  margin-bottom: 1.4rem;
-  max-width: 26rem;
-}
-.admin-account-panel h3 {
-  margin: 0 0 0.8rem;
-  font-family: var(--cm);
-  font-variant: small-caps;
-  font-size: 1.05em;
-  letter-spacing: 0.3px;
-  color: var(--ink-soft);
-  font-weight: 400;
-}
-
-@media (max-width: 640px) {
-  .admin-form-row { grid-template-columns: 1fr; }
-  .admin-panel-header { flex-direction: column; align-items: flex-start; }
-}
-
-/* ─── Select / checkbox rows (verify dropdowns, "show in CV" toggle) ──── */
-.admin-form select {
-  width: 100%;
-  font-family: var(--cm-sans);
-  font-size: 0.92em;
-  color: var(--ink);
+* { box-sizing: border-box; }
+body {
+  margin: 0;
   background: var(--bg);
-  border: none;
-  border-bottom: 0.6px solid var(--border);
-  padding: 0.4em 0.05em;
-  box-sizing: border-box;
+  color: var(--text);
+  font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
-.admin-form select:focus { outline: none; border-color: var(--ink); }
-.admin-checkbox-row {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.85em;
-  color: var(--ink-soft);
+a { color: inherit; }
+.site-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  max-width: 72rem; margin: 0 auto; padding: 1rem 16px;
 }
-.admin-checkbox-row input[type="checkbox"] { width: 1rem; height: 1rem; }
+.site-head a { font-weight: 700; text-decoration: none; }
+main { max-width: 72rem; margin: 0 auto; padding: 0 16px 4rem; }
 
-/* ─── Extra-links sub-form (mirrors the bullets sub-form) ─────────────── */
-.admin-link-list { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.5rem; }
-.admin-link-row { display: flex; gap: 0.5rem; align-items: center; }
-.admin-link-row input { flex: 1; }
+h2, h3 { margin: 0 0 0.8rem; }
+h3 { font-size: 1.05rem; }
 
-/* ─── Markdown writing guide ────────────────────────────────────────────── */
-.admin-help {
-  background: var(--bg-card);
-  border: 0.6px solid var(--border);
-  border-radius: 6px;
-  padding: 0.7rem 1.1rem;
-  margin: 0.8rem 0;
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem 1.1rem;
+  margin: 0 0 1rem;
 }
-.admin-help summary {
-  cursor: pointer;
-  font-size: 0.85em;
-  font-weight: 600;
-  color: var(--ink-soft);
-  user-select: none;
+.login { max-width: 24rem; margin: 3rem auto; display: grid; gap: 0.8rem; }
+
+.panel-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.6rem; margin-bottom: 1rem; }
+.tabs { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.tab {
+  font: inherit; cursor: pointer; padding: 0.4rem 0.8rem; border-radius: 6px;
+  border: 1px solid transparent; background: none; color: var(--muted);
 }
-.admin-help-body { margin-top: 0.8rem; display: grid; gap: 1rem; }
-.admin-help-section h4 {
-  margin: 0 0 0.3rem;
-  font-size: 0.85em;
-  color: var(--ink);
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--text); background: var(--card); border-color: var(--border); }
+
+.form { display: grid; gap: 0.7rem; }
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem; }
+@media (max-width: 640px) { .row { grid-template-columns: 1fr; } }
+label { display: grid; gap: 0.25rem; font-size: 0.85rem; color: var(--muted); }
+label.check { display: flex; align-items: center; gap: 0.5rem; }
+input[type="text"], input[type="email"], input[type="password"], select, textarea {
+  font: inherit; color: var(--text); background: var(--bg);
+  border: 1px solid var(--border); border-radius: 6px; padding: 0.45rem 0.6rem; width: 100%;
 }
-.admin-help-section p { margin: 0.3rem 0; font-size: 0.82em; color: var(--muted); line-height: 1.5; }
-.admin-help-section code {
-  background: var(--bg-inset);
-  border-radius: 3px;
-  padding: 0.1em 0.35em;
-  font-size: 0.92em;
+input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+input[readonly] { opacity: 0.7; }
+textarea { min-height: 5rem; resize: vertical; }
+.inline { display: flex; gap: 0.4rem; }
+.inline > :first-child { flex: 1; min-width: 0; }
+
+.btn {
+  font: inherit; font-size: 0.85rem; cursor: pointer; text-decoration: none; white-space: nowrap;
+  padding: 0.4rem 0.75rem; border-radius: 6px; border: 1px solid var(--border);
+  background: var(--card); color: var(--text); display: inline-block;
 }
-.admin-help-example {
-  background: var(--bg-inset);
-  border-radius: 4px;
-  padding: 0.6em 0.8em;
-  font-size: 0.8em;
-  overflow-x: auto;
-  white-space: pre;
-  margin: 0.4rem 0;
+.btn:hover { border-color: var(--text); }
+.btn:disabled { opacity: 0.5; cursor: default; }
+.btn.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+.btn.danger { color: var(--err); }
+.btn.danger:hover { border-color: var(--err); }
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.actions.sticky {
+  position: sticky; bottom: 0; z-index: 5; background: var(--bg);
+  padding: 0.7rem 0; border-top: 1px solid var(--border); margin-top: 1rem;
 }
 
-/* ─── Blog editor: LaTeX export ───────────────────────────────────────────── */
-.admin-latex > summary { cursor: pointer; list-style: none; }
-.admin-latex > summary::-webkit-details-marker { display: none; }
-.admin-latex > summary::before { content: "\25B8  "; color: var(--muted-2); }
-.admin-latex[open] > summary::before { content: "\25BE  "; }
-.admin-latex-steps { margin: 0.8rem 0; padding-left: 1.3rem; font-size: 0.88em; color: var(--ink-soft); line-height: 1.6; }
-.admin-latex-out { min-height: 320px; margin-top: 0.7rem; font-size: 0.8em; }
-.admin-latex-warn { color: var(--danger-ink); }
-.admin-latex-rules { margin-top: 0.8rem; font-size: 0.85em; color: var(--ink-soft); }
-.admin-latex-rules summary { cursor: pointer; font-weight: 600; }
-.admin-latex-rules li { margin: 0.25rem 0; }
-#be-latex-info { font-size: 0.88em; margin-top: 0.6rem; }
-#be-latex-info ul { margin: 0.3rem 0 0.6rem; padding-left: 1.2rem; }
-.admin-latex-progress {
-  margin-top: 0.7rem;
-  padding: 0.55rem 0.8rem;
-  border: 0.6px solid var(--border);
-  border-left: 3px solid var(--ink);
-  border-radius: 4px;
-  font-size: 0.88em;
-  background: var(--bg-card, transparent);
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+th, td { text-align: left; padding: 0.45rem 0.5rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
+th { color: var(--muted); font-weight: 600; }
+td.empty { color: var(--muted); text-align: center; padding: 1rem; }
+.truncate { max-width: 28rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nowrap { white-space: nowrap; }
+.thumb { width: 40px; height: 40px; object-fit: cover; border-radius: 4px; display: block; }
+.tag { font-size: 0.75rem; padding: 0.1rem 0.4rem; border: 1px solid var(--border); border-radius: 4px; }
+
+.note { color: var(--muted); font-size: 0.85rem; margin: 0 0 0.6rem; }
+.status { font-size: 0.85rem; padding: 0.45rem 0.6rem; border-radius: 6px; margin: 0.5rem 0; border: 1px solid; }
+.status.ok, .ok { color: var(--ok); }
+.status.err, .err { color: var(--err); }
+
+/* Editor */
+.editor-split { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+@media (max-width: 900px) { .editor-split { grid-template-columns: 1fr; } }
+.pane { display: grid; gap: 0.3rem; align-content: start; font-size: 0.85rem; color: var(--muted); }
+.editor {
+  font: 13px/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  min-height: 70vh; tab-size: 4;
 }
-#be-latex .admin-form-actions { flex-wrap: wrap; }
+.preview {
+  color: var(--text); font-size: 15px; background: var(--card); border: 1px solid var(--border);
+  border-radius: 6px; padding: 0.4rem 1rem; height: 70vh; overflow: auto;
+}
+.preview img { max-width: 100%; }
+.preview pre { background: var(--code); padding: 0.6rem; border-radius: 6px; overflow-x: auto; font-size: 13px; }
+.preview code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.preview table { margin: 0.6rem 0; }
+.pv-code { margin: 0.8rem 0; }
+.pv-code figcaption { font: 12px ui-monospace, monospace; color: var(--muted); }
+.pv-sc, .pv-collapse { border: 1px dashed var(--border); border-radius: 6px; padding: 0.5rem 0.7rem; margin: 0.8rem 0; }
+.pv-sc-head { font-size: 0.85rem; color: var(--muted); }
+.pv-collapse summary { cursor: pointer; font-weight: 600; }
+
+.help { margin: 0 0 1rem; }
+.help summary, .latex summary { cursor: pointer; }
+.latex summary h3 { display: inline; }
+.help-body { display: grid; grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr)); gap: 0.6rem 1rem; margin-top: 0.6rem; }
+.help-section h4 { margin: 0.4rem 0 0.2rem; font-size: 0.9rem; }
+.help-section p { margin: 0.2rem 0; font-size: 0.85rem; }
+.help-example, code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; }
+.help-example { background: var(--code); padding: 0.5rem; border-radius: 6px; white-space: pre-wrap; margin: 0.3rem 0; }
+.latex-out { min-height: 20rem; margin-top: 0.6rem; }
+.progress { margin-top: 0.6rem; font-size: 0.9rem; }

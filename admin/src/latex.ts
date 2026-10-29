@@ -1,26 +1,25 @@
 // Markdown → LaTeX for a blog post, used by the admin "LaTeX export" panel.
-// The output is a complete pdfLaTeX document meant to be pasted into
-// Overleaf as-is; the compiled PDF is then uploaded back from admin.
+// The output is a complete pdfLaTeX document. The "Compile blog PDFs"
+// workflow typesets it, or it can be opened in Overleaf and edited first.
 //
-// Conversion rules (keep in sync with the help text in admin-blog-editor.ts):
+// Conversion rules (keep in sync with the help text in blog-editor.ts):
 //   ## / ###            → \section / \subsection (#### and deeper → \paragraph)
 //   **b** *i* `code`    → \textbf / \emph / \texttt
 //   [text](url)         → \href (site-relative links become absolute)
-//   ![alt](path)        → figure + \includegraphics{<file name>}; the file must
-//                         be uploaded to the Overleaf project (listed in `images`)
+//   ![alt](path)        → figure + \includegraphics{<file name>}; the compile
+//                         workflow copies the file from static/
 //   $..$ / $$..$$       → inline / display math, passed through verbatim
-//   ```lang             → listings block (C++, C, Python, Java, SQL, Bash styled)
+//   ```lang {title=…}   → listings block (C++, C, Python, Java, SQL, Bash styled)
 //   lists, quotes, tables, --- → itemize/enumerate, quote box, booktabs, rule
-//   :::note/tip/warning/important, :::spoiler → titled boxes (spoilers printed open)
-//   :::tabs             → each code block, captioned with its tab label
-//   :::problem          → problem card box
-//   :::testcases        → input/expected listings, truncated, large cases linked
-//   :::youtube, :::binviz → a link to the online version
+//   Shortcodes: collapse → titled box (printed open), callout → box by type,
+//   problem → problem card, repo-card → link, youtube → link,
+//   diagram / repo-code / binviz → a link to the online post.
 //   Raw HTML is dropped; characters pdfLaTeX can't typeset (emoji etc.) are
 //   removed and reported in `warnings`.
 
 import { Marked, type Token, type Tokens } from "marked";
 import markedKatex from "marked-katex-extension";
+import { findShortcodes } from "./shortcodes";
 
 export interface LatexPostMeta {
   slug: string;
@@ -40,58 +39,31 @@ export interface LatexExport {
   warnings: string[];
 }
 
-// ─── Block extensions (tokenizers only — rendering happens in the walker) ───
+// ─── Shortcodes (tokenizer only; rendering happens in the walker) ────────
 
 type BlockTok = Tokens.Generic & { tokens?: Token[] };
 type Lexer = { lexer: { blockTokens: (s: string, t: Token[]) => void } };
 
-function fenced(name: string, withBody: boolean) {
-  const re = new RegExp(`^:::${name}\\b([^\\n]*)\\n([\\s\\S]*?)\\n:::(?:\\n|$)`);
-  return {
-    name: `x-${name}`,
-    level: "block" as const,
-    start(src: string) {
-      const i = src.indexOf(`:::${name}`);
-      return i === -1 ? undefined : i;
-    },
-    tokenizer(this: Lexer, src: string) {
-      const m = re.exec(src);
-      if (!m) return undefined;
-      const tok: BlockTok = { type: `x-${name}`, raw: m[0], arg: m[1].trim(), body: m[2], tokens: [] };
-      if (withBody) this.lexer.blockTokens(m[2], tok.tokens!);
-      return tok;
-    },
-  };
-}
-
-const youtube = {
-  name: "x-youtube",
+const shortcode = {
+  name: "x-sc",
   level: "block" as const,
   start(src: string) {
-    const i = src.indexOf(":::youtube");
+    const i = src.search(/\{\{[<%]/);
     return i === -1 ? undefined : i;
   },
-  tokenizer(src: string) {
-    const m = /^:::youtube[ \t]+(\S+)[ \t]*\n?:::(?:\n|$)/.exec(src);
-    return m ? { type: "x-youtube", raw: m[0], arg: m[1] } : undefined;
+  tokenizer(this: Lexer, src: string) {
+    if (!/^\{\{[<%]/.test(src)) return undefined;
+    const sc = findShortcodes(src)[0];
+    if (!sc || sc.start !== 0) return undefined;
+    const raw = src.slice(0, sc.end).concat(src.slice(sc.end).match(/^[ \t]*\n?/)![0]);
+    const tok: BlockTok = { type: "x-sc", raw, name: sc.name, params: sc.params, tokens: [] };
+    if (sc.inner !== undefined) this.lexer.blockTokens(sc.inner, tok.tokens!);
+    return tok;
   },
 };
 
 const md = new Marked({ gfm: true });
-md.use({
-  extensions: [
-    fenced("spoiler", true),
-    fenced("note", true),
-    fenced("tip", true),
-    fenced("warning", true),
-    fenced("important", true),
-    fenced("tabs", true),
-    fenced("problem", false),
-    fenced("testcases", false),
-    fenced("binviz", false),
-    youtube,
-  ],
-});
+md.use({ extensions: [shortcode] });
 md.use(markedKatex({ throwOnError: false, nonStandard: true }));
 
 // ─── Escaping ───────────────────────────────────────────────────────────────
@@ -155,7 +127,7 @@ class Ctx {
   }
 
   postUrl(): string {
-    return `${this.meta.siteOrigin}/blog/${encodeURIComponent(this.meta.slug)}/`;
+    return `${this.meta.siteOrigin}/posts/${encodeURIComponent(this.meta.slug)}/`;
   }
 }
 
@@ -235,61 +207,21 @@ const LISTINGS_LANG: Record<string, string> = {
   sql: "SQL", bash: "bash", sh: "bash", shell: "bash",
 };
 
-function codeBlock(text: string, lang: string | undefined, c: Ctx, title?: string): string {
-  const parts = (lang || "").trim().split(/\s+/);
-  const language = LISTINGS_LANG[(parts[0] || "").toLowerCase()];
+function codeBlock(text: string, lang: string | undefined, c: Ctx): string {
+  const [first = "", ...rest] = (lang || "").trim().split(/\s+/);
+  const language = LISTINGS_LANG[first.toLowerCase()];
+  const title = rest.join(" ").match(/title="([^"]*)"/)?.[1];
+  // [!code ++] style markers only mean something on the site.
+  const clean = text.replace(/[ \t]*(?:\/\/|#|--|\/\*)?[ \t]*\[!code [^\]]+\][ \t]*(?:\*\/)?/g, "");
   const opts = [language ? `language=${language}` : "", title ? `title={${c.text(title)}}` : ""].filter(Boolean).join(", ");
-  return `\\begin{lstlisting}${opts ? `[${opts}]` : ""}\n${c.code(text)}\n\\end{lstlisting}`;
+  return `\\begin{lstlisting}${opts ? `[${opts}]` : ""}\n${c.code(clean)}\n\\end{lstlisting}`;
 }
 
 function box(kind: string, title: string, body: string): string {
   return `\\begin{${kind}}{${title}}\n${body}\n\\end{${kind}}`;
 }
 
-function truncate(s: string, maxLines = 8, maxChars = 400): { text: string; cut: boolean } {
-  let text = s.replace(/\n$/, "");
-  let cut = false;
-  const lines = text.split("\n");
-  if (lines.length > maxLines) {
-    text = lines.slice(0, maxLines).join("\n");
-    cut = true;
-  }
-  text = text.split("\n").map((l) => (l.length > 90 ? `${l.slice(0, 90)} ...` : l)).join("\n");
-  if (/ \.\.\.$/m.test(text)) cut = true;
-  if (text.length > maxChars) {
-    text = text.slice(0, maxChars);
-    cut = true;
-  }
-  return { text, cut };
-}
-
-function testcasesLatex(json: string, c: Ctx): string {
-  let cases: { name?: string; input?: string; expected?: string; inputUrl?: string; expectedUrl?: string }[];
-  try {
-    cases = JSON.parse(json);
-    if (!Array.isArray(cases)) throw new Error();
-  } catch {
-    c.warnings.add("A :::testcases block has invalid JSON and was skipped.");
-    return "";
-  }
-  const parts = cases.map((tc, i) => {
-    const name = c.text(tc.name || `Test ${i + 1}`);
-    const field = (label: string, value: string | undefined, url: string | undefined) => {
-      if (url) return `\\textit{${label}:} \\href{${c.url(url)}}{download (large file)}\\par`;
-      const { text, cut } = truncate(value ?? "");
-      return `\\textit{${label}${cut ? " (truncated)" : ""}:}\n\\begin{lstlisting}[style=plain]\n${c.code(text || " ")}\n\\end{lstlisting}`;
-    };
-    return `\\textbf{${name}}\\par\\smallskip\n${field("Input", tc.input, tc.inputUrl)}\n${field("Expected output", tc.expected, tc.expectedUrl)}`;
-  });
-  return box("notebox", "Test cases", `${parts.join("\n\\medskip\n")}\n\\par\\smallskip\\footnotesize Run them in the browser at \\url{${c.postUrl()}}.`);
-}
-
-function problemLatex(body: string, c: Ctx): string {
-  const f: Record<string, string> = {};
-  for (const line of body.split("\n")) {
-    const i = line.indexOf(":");
-    if (i > 0) f[line.slice(0, i).trim().toLowerCase()] = line.slice(i + 1).trim();
-  }
+function problemLatex(f: Record<string, string>, c: Ctx): string {
   const title = c.text(f.title || "Problem");
   const head = f.url && /^https?:\/\//.test(f.url) ? `\\href{${c.url(f.url)}}{${title}}` : title;
   const meta = [f.source, f.limits].filter(Boolean).map((x) => c.text(x!)).join(" \\quad\\textperiodcentered\\quad ");
@@ -301,6 +233,41 @@ function problemLatex(body: string, c: Ctx): string {
     tags ? `\\smallskip{\\footnotesize\\ttfamily ${tags}}` : "",
     "\\end{problembox}",
   ].filter(Boolean).join("\n");
+}
+
+const CALLOUT_BOX: Record<string, [string, string]> = {
+  note: ["notebox", "Note"], important: ["notebox", "Important"], tip: ["tipbox", "Tip"],
+  warning: ["warnbox", "Warning"], caution: ["warnbox", "Caution"],
+};
+
+function shortcodeLatex(g: BlockTok, c: Ctx): string {
+  const p = g.params as Record<string, string>;
+  const online = `\\noindent\\textit{Shown in the online version:} \\url{${c.postUrl()}}`;
+  switch (g.name) {
+    case "collapse":
+      return box("notebox", c.text(p.summary || "Details"), blocks(g.tokens, c));
+    case "callout": {
+      const [kind, label] = CALLOUT_BOX[p.type ?? "note"] ?? CALLOUT_BOX.note;
+      return box(kind, c.text(p.title || label), blocks(g.tokens, c));
+    }
+    case "problem":
+      return problemLatex(p, c);
+    case "repo-card":
+      return `\\noindent\\textit{Repository:} \\href{${c.url(`https://github.com/${p.repo}`)}}{\\texttt{${c.text(p.repo ?? "")}}}${p.title ? ` --- ${c.text(p.title)}` : ""}`;
+    case "youtube": {
+      const id = p.id ?? Object.values(p)[0] ?? "";
+      return `\\noindent\\textit{Video:} \\url{${c.url(`https://youtu.be/${id}`)}}`;
+    }
+    case "diagram":
+      return p.caption ? `${online}\\par\\textit{Diagram: ${c.text(p.caption)}}` : online;
+    case "repo-code":
+      return `\\noindent\\textit{Code:} \\href{${c.url(`https://github.com/${p.repo}/blob/${p.ref || "HEAD"}/${p.path}`)}}{\\texttt{${c.text(p.title || p.path || "")}}}`;
+    case "binviz":
+      return online;
+    default:
+      c.warnings.add(`Shortcode "${g.name}" has no LaTeX form and was left out.`);
+      return g.tokens?.length ? blocks(g.tokens, c) : "";
+  }
 }
 
 function tableLatex(t: Tokens.Table, c: Ctx): string {
@@ -365,37 +332,8 @@ function block(t: Token, c: Ctx): string {
       return "\\par\\medskip\\noindent\\rule{\\linewidth}{0.4pt}\\par\\medskip";
     case "blockKatex":
       return `\\[\n${g.text.trim()}\n\\]`;
-    case "x-spoiler":
-      return box("notebox", c.text(g.arg || "Hint"), blocks(g.tokens, c));
-    case "x-note":
-      return box("notebox", c.text(g.arg || "Note"), blocks(g.tokens, c));
-    case "x-important":
-      return box("notebox", c.text(g.arg || "Important"), blocks(g.tokens, c));
-    case "x-tip":
-      return box("tipbox", c.text(g.arg || "Tip"), blocks(g.tokens, c));
-    case "x-warning":
-      return box("warnbox", c.text(g.arg || "Warning"), blocks(g.tokens, c));
-    case "x-tabs":
-      return (g.tokens ?? [])
-        .map((tok) => {
-          if (tok.type !== "code") return block(tok, c);
-          const parts = ((tok as Tokens.Code).lang || "").trim().split(/\s+/);
-          const label = parts.find((p) => p.startsWith("label="))?.slice(6).replace(/_/g, " ") ?? LISTINGS_LANG[parts[0]?.toLowerCase()] ?? parts[0];
-          return codeBlock((tok as Tokens.Code).text, (tok as Tokens.Code).lang, c, label);
-        })
-        .filter(Boolean)
-        .join("\n\n");
-    case "x-problem":
-      return problemLatex(g.body, c);
-    case "x-testcases":
-      return testcasesLatex(g.body, c);
-    case "x-youtube": {
-      const m = String(g.arg).match(/(?:youtu\.be\/|v=|embed\/|shorts\/)([\w-]{6,})/);
-      const url = `https://youtu.be/${m ? m[1] : g.arg}`;
-      return `\\noindent\\textit{Video:} \\url{${c.url(url)}}`;
-    }
-    case "x-binviz":
-      return `\\noindent\\textit{An interactive visualization is available in the online version:} \\url{${c.postUrl()}}`;
+    case "x-sc":
+      return shortcodeLatex(g, c);
     default:
       return g.tokens ? blocks(g.tokens, c) : g.text ? c.text(decodeEntities(g.text)) : "";
   }
@@ -539,7 +477,7 @@ ${titleBlock}
 ${body}
 
 \\vfill
-\\noindent{\\footnotesize\\color{muted} Read online, with runnable code: \\url{${c.url(url)}}}
+\\noindent{\\footnotesize\\color{muted} Read online: \\url{${c.url(url)}}}
 \\end{document}
 `;
   return { tex, images: c.images, warnings: [...c.warnings] };

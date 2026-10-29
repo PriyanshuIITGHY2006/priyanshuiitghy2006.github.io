@@ -1,7 +1,7 @@
 # Compiles blog post PDFs. Admin's "Compile & publish PDF" commits
 # latex/<slug>.tex (generated from the post); this job typesets it with
 # TeX Live (pdfLaTeX, same engine as Overleaf), commits the PDF to
-# public/gallery-media/<slug>.pdf, sets `pdf:` in the post's frontmatter,
+# static/gallery-media/<slug>.pdf, sets `pdf:` in the post's front matter,
 # then triggers the Pages deploy (commits made with GITHUB_TOKEN don't
 # trigger other workflows on their own).
 name: Compile blog PDFs
@@ -71,17 +71,16 @@ jobs:
             dir="build/$slug"
             mkdir -p "$dir"
             cp "$f" "$dir/main.tex"
-            # Images the post uses are listed as "%! image: <path under public/>".
+            # Images the post uses are listed as "%! image: <path under static/>".
             grep -oP '^%! image: \K.+' "$f" | while IFS= read -r src; do
-              cp "public/$src" "$dir/" || echo "::warning::Missing image public/$src"
+              cp "static/$src" "$dir/" || echo "::warning::Missing image static/$src"
             done
             echo "::group::latexmk $slug"
             docker run --rm -v "$PWD/$dir:/work" -w /work texlive/texlive:latest \
               latexmk -pdf -interaction=nonstopmode -halt-on-error main.tex
             echo "::endgroup::"
-            mkdir -p public/gallery-media
-            cp "$dir/main.pdf" "public/gallery-media/$slug.pdf"
-            node scripts/set-frontmatter.mjs "src/data/blogs/$slug.md" pdf "gallery-media/$slug.pdf"
+            cp "$dir/main.pdf" "static/gallery-media/$slug.pdf"
+            node .github/set-frontmatter.mjs "content/posts/$slug.md" pdf '"gallery-media/'"$slug"'.pdf"'
           done
 
       - name: Upload LaTeX logs
@@ -99,7 +98,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
-          git add public/gallery-media/*.pdf src/data/blogs/*.md
+          git add static/gallery-media/*.pdf content/posts/*.md
           if git diff --cached --quiet; then
             echo "Nothing changed."
             exit 0
@@ -116,4 +115,4 @@ jobs:
         if: steps.commit.outputs.pushed == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh workflow run static.yml --ref Website
+        run: gh workflow run deploy.yml --ref Website

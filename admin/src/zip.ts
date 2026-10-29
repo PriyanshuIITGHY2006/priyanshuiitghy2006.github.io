@@ -1,9 +1,6 @@
-  if (chars < 1024) return `${chars} B`;
-  if (chars < 1024 * 1024) return `${(chars / 1024).toFixed(1)} KB`;
-  return `${(chars / 1024 / 1024).toFixed(1)} MB`;
-}
+// Builds an uncompressed .zip in the browser (for the Overleaf project download).
 
-function saveBlob(blob: Blob, filename: string): void {
+export function saveBlob(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -14,9 +11,6 @@ function saveBlob(blob: Blob, filename: string): void {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-export function downloadText(text: string, filename: string): void {
-  saveBlob(new Blob([text], { type: "text/plain;charset=utf-8" }), filename);
-}
 
 const CRC_TABLE = (() => {
   const t = new Uint32Array(256);

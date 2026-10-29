@@ -1,7 +1,4 @@
-// Lightweight themed replacement for the browser's native confirm() — used
-// by the admin panel so destructive actions (delete project, delete
-// comment, ...) get a modal that actually matches the site instead of a
-// jarring native dialog.
+// Small modal used instead of the browser's confirm() for destructive actions.
 
 let stylesInjected = false;
 
@@ -18,18 +15,17 @@ function injectStyles(): void {
       animation: confirm-fade-in 0.12s ease;
     }
     .confirm-card {
-      background: var(--bg-card);
-      border: 0.6px solid var(--border);
+      background: var(--card);
+      border: 1px solid var(--border);
       border-radius: 8px;
-      box-shadow: 0 8px 28px var(--shadow);
+      box-shadow: 0 8px 28px rgba(0,0,0,0.25);
       max-width: 24rem;
       width: 100%;
       padding: 1.3rem 1.4rem;
-      font-family: var(--cm);
-      color: var(--ink);
+      color: var(--text);
       animation: confirm-pop-in 0.14s ease;
     }
-    .confirm-message { font-size: 0.95em; line-height: 1.5; margin: 0 0 1.1rem; color: var(--ink-soft); }
+    .confirm-message { font-size: 0.95em; line-height: 1.5; margin: 0 0 1.1rem; color: var(--text); }
     .confirm-actions { display: flex; justify-content: flex-end; gap: 0.6rem; }
     @keyframes confirm-fade-in { from { opacity: 0; } to { opacity: 1; } }
     @keyframes confirm-pop-in { from { opacity: 0; transform: translateY(6px) scale(0.98); } to { opacity: 1; transform: none; } }
@@ -47,8 +43,8 @@ export function confirmDialog(message: string, confirmLabel = "Delete"): Promise
       <div class="confirm-card" role="alertdialog" aria-modal="true">
         <p class="confirm-message"></p>
         <div class="confirm-actions">
-          <button type="button" class="pj-link" data-confirm-cancel>Cancel</button>
-          <button type="button" class="pj-link admin-btn-danger" data-confirm-ok></button>
+          <button type="button" class="btn" data-confirm-cancel>Cancel</button>
+          <button type="button" class="btn danger" data-confirm-ok></button>
         </div>
       </div>`;
     backdrop.querySelector(".confirm-message")!.textContent = message;

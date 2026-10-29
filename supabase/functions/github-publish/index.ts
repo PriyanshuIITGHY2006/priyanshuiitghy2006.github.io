@@ -1,16 +1,14 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-// Admin-only bridge to the GitHub Contents API: commits gallery images to
-// public/gallery-media/, blog post markdown to src/data/blogs/, and project
-// write-up markdown to src/data/project-writeups/, all on the branch the
-// site's existing GitHub Actions workflow deploys from. A commit here
-// triggers that same build+deploy pipeline — nothing else needs to know a
+// Admin-only bridge to the GitHub Contents API: commits uploads to
+// static/gallery-media/, posts to content/posts/ and LaTeX sources to
+// latex/, all on the branch the deploy workflow builds from. A commit here
+// triggers that same build and deploy, so nothing else needs to know a
 // publish happened.
 //
-// The image folder is "gallery-media", not "gallery" — the SPA has a real
-// /gallery route, and GitHub Pages treats a public/gallery/ directory as a
-// real path, which broke direct loads/refreshes of /gallery.
+// The upload folder is "gallery-media", not "gallery", because /gallery is
+// a page on the site.
 const GITHUB_OWNER = "PriyanshuIITGHY2006";
 const GITHUB_REPO = "priyanshuiitghy2006.github.io";
 const GITHUB_BRANCH = "Website";
@@ -107,12 +105,30 @@ function base64ToUtf8(b64: string): string {
 
 // read_file / delete_file only ever touch content this function itself
 // manages — never an arbitrary repo path.
-const READABLE_PATH_RES = [
-  /^src\/data\/blogs\/[a-z0-9-]+\.md$/,
-  /^src\/data\/project-writeups\/[a-z0-9-]+\.md$/,
-];
+const POSTS_DIR = "content/posts";
 function isReadableDeletablePath(path: string): boolean {
-  return READABLE_PATH_RES.some((re) => re.test(path));
+  return /^content\/posts\/[a-z0-9-]+\.md$/.test(path);
+}
+
+async function readFile(path: string): Promise<string | null> {
+  const res = await githubFetch(repoContentsUrl(path, `?ref=${GITHUB_BRANCH}`));
+  if (res.status === 404) return null;
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`GitHub read of ${path} failed (${res.status}): ${text.slice(0, 300)}`);
+  }
+  const data = await res.json();
+  return typeof data.content === "string" ? base64ToUtf8(data.content) : "";
+}
+
+// Title and date from a post's front matter, for the admin's post list.
+function frontMatterValue(file: string, key: string): string {
+  const fm = file.match(/^---\r?\n([\s\S]*?)\r?\n---/)?.[1] ?? "";
+  const raw = fm.match(new RegExp(`^${key}:\\s*(.*)$`, "m"))?.[1]?.trim() ?? "";
+  if (raw.startsWith('"')) {
+    try { return JSON.parse(raw); } catch { /* fall through */ }
+  }
+  return raw.replace(/^'(.*)'$/, "$1");
 }
 
 Deno.serve(async (req) => {
@@ -133,7 +149,7 @@ Deno.serve(async (req) => {
         return json({ error: "filename and contentBase64 are required" }, 400);
       }
       const safe = safeFilename(filename);
-      const { path } = await putFile(`public/gallery-media/${safe}`, contentBase64, `Add gallery image: ${safe}`);
+      const { path } = await putFile(`static/gallery-media/${safe}`, contentBase64, `Add gallery image: ${safe}`);
       return json({ ok: true, path, src: `gallery-media/${encodeURIComponent(safe)}` });
     }
 
@@ -146,7 +162,7 @@ Deno.serve(async (req) => {
       if (!/^[a-z0-9-]+$/.test(slug)) {
         return json({ error: "slug must contain only lowercase letters, digits, and hyphens" }, 400);
       }
-      const { path } = await putFile(`src/data/blogs/${slug}.md`, utf8ToBase64(content), `Publish blog post: ${slug}`);
+      const { path } = await putFile(`${POSTS_DIR}/${slug}.md`, utf8ToBase64(content), `Publish blog post: ${slug}`);
       return json({ ok: true, path });
     }
 
@@ -168,58 +184,33 @@ Deno.serve(async (req) => {
       return json({ ok: true, path });
     }
 
-    if (body.action === "publish_project_writeup") {
-      const id: unknown = body.id;
-      const content: unknown = body.content;
-      if (typeof id !== "string" || typeof content !== "string" || !id || !content) {
-        return json({ error: "id and content are required" }, 400);
-      }
-      if (!/^[a-z0-9-]+$/.test(id)) {
-        return json({ error: "id must contain only lowercase letters, digits, and hyphens" }, 400);
-      }
-      const { path } = await putFile(`src/data/project-writeups/${id}.md`, utf8ToBase64(content), `Publish project write-up: ${id}`);
-      return json({ ok: true, path });
-    }
-
     if (body.action === "read_file") {
       const path: unknown = body.path;
       if (typeof path !== "string" || !isReadableDeletablePath(path)) {
         return json({ error: "Invalid or disallowed path" }, 400);
       }
-      const res = await githubFetch(repoContentsUrl(path, `?ref=${GITHUB_BRANCH}`));
-      if (res.status === 404) {
-        return json({ ok: true, exists: false, content: "" });
-      }
-      if (!res.ok) {
-        const text = await res.text().catch(() => "");
-        return json({ error: `GitHub read of ${path} failed (${res.status}): ${text.slice(0, 300)}` }, 502);
-      }
-      const data = await res.json();
-      const content = typeof data.content === "string" ? base64ToUtf8(data.content) : "";
-      return json({ ok: true, exists: true, content });
+      const content = await readFile(path);
+      return json({ ok: true, exists: content !== null, content: content ?? "" });
     }
 
-    if (body.action === "list_directory") {
-      const dir: unknown = body.dir;
-      const allowedDirs = ["src/data/blogs", "src/data/project-writeups"];
-      if (typeof dir !== "string" || !allowedDirs.includes(dir)) {
-        return json({ error: "Invalid or disallowed directory" }, 400);
-      }
-      const res = await githubFetch(repoContentsUrl(dir, `?ref=${GITHUB_BRANCH}`));
-      if (res.status === 404) {
-        return json({ ok: true, files: [] });
-      }
+    if (body.action === "list_posts") {
+      const res = await githubFetch(repoContentsUrl(POSTS_DIR, `?ref=${GITHUB_BRANCH}`));
+      if (res.status === 404) return json({ ok: true, posts: [] });
       if (!res.ok) {
         const text = await res.text().catch(() => "");
-        return json({ error: `GitHub list of ${dir} failed (${res.status}): ${text.slice(0, 300)}` }, 502);
+        return json({ error: `GitHub list of ${POSTS_DIR} failed (${res.status}): ${text.slice(0, 300)}` }, 502);
       }
       const data = await res.json();
-      const files = Array.isArray(data)
+      const slugs: string[] = Array.isArray(data)
         ? data
-            .filter((f: { type?: string; name?: string }) => f.type === "file" && typeof f.name === "string" && f.name.endsWith(".md"))
+            .filter((f: { type?: string; name?: string }) => f.type === "file" && typeof f.name === "string" && /^[a-z0-9-]+\.md$/.test(f.name))
             .map((f: { name: string }) => f.name.replace(/\.md$/, ""))
         : [];
-      return json({ ok: true, files });
+      const posts = await Promise.all(slugs.map(async (slug) => {
+        const file = (await readFile(`${POSTS_DIR}/${slug}.md`)) ?? "";
+        return { slug, title: frontMatterValue(file, "title"), date: frontMatterValue(file, "date") };
+      }));
+      return json({ ok: true, posts });
     }
 
     if (body.action === "delete_file") {

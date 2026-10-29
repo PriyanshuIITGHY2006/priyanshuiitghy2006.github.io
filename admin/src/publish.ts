@@ -1,22 +1,17 @@
-// Thin client for the github-publish edge function — the only place admin
-// actions reach out to GitHub (image uploads, blog post commits). Both
-// calls reuse the admin's own logged-in Supabase session automatically
-// (supabase-js attaches it to functions.invoke), which the function checks
-// against is_admin() before touching GitHub at all.
+// Thin client for the github-publish edge function, the only place the
+// admin reaches GitHub. supabase-js attaches the admin's session to
+// functions.invoke, and the function checks is_admin() before doing anything.
 
 import { supabase } from "./supabase";
 
-const MAX_UPLOAD_BYTES = 5 * 1024 * 1024; // 5MB — plenty for certificates/covers
+const MAX_UPLOAD_BYTES = 5 * 1024 * 1024; // 5MB, plenty for certificates and covers
 
-interface PublishErrorBody {
-  error: string;
-}
+export const POSTS_DIR = "content/posts";
 
 async function callGithubPublish<T>(body: Record<string, unknown>): Promise<T> {
   const { data, error } = await supabase.functions.invoke("github-publish", { body });
   if (error) throw new Error(error.message || "GitHub publish failed.");
-  const result = data as (T & Partial<PublishErrorBody>) | PublishErrorBody;
-  if (result && "error" in result && result.error) throw new Error(result.error);
+  if (data && typeof data === "object" && "error" in data && data.error) throw new Error(String(data.error));
   return data as T;
 }
 
@@ -33,94 +28,38 @@ function fileToBase64(file: File): Promise<string> {
   });
 }
 
-export async function uploadImageToGithub(file: File): Promise<{ path: string; src: string }> {
+/** Commits the file to static/gallery-media/; `src` is its site-relative path. */
+export async function uploadFileToGithub(file: File): Promise<{ path: string; src: string }> {
   if (file.size > MAX_UPLOAD_BYTES) {
-    throw new Error(`File is too large — keep it under ${Math.round(MAX_UPLOAD_BYTES / 1024 / 1024)}MB.`);
+    throw new Error(`File is too large. Keep it under ${Math.round(MAX_UPLOAD_BYTES / 1024 / 1024)}MB.`);
   }
   const contentBase64 = await fileToBase64(file);
-  return callGithubPublish<{ path: string; src: string }>({
-    action: "upload_image",
-    filename: file.name,
-    contentBase64,
-  });
+  return callGithubPublish({ action: "upload_image", filename: file.name, contentBase64 });
 }
 
-export async function publishBlogPostToGithub(slug: string, content: string): Promise<{ path: string }> {
-  return callGithubPublish<{ path: string }>({ action: "publish_blog_post", slug, content });
+export function publishPost(slug: string, content: string): Promise<{ path: string }> {
+  return callGithubPublish({ action: "publish_blog_post", slug, content });
 }
 
 /** Commits latex/<slug>.tex; the "Compile blog PDFs" workflow does the rest. */
-export async function publishLatexToGithub(slug: string, content: string): Promise<{ path: string }> {
-  return callGithubPublish<{ path: string }>({ action: "publish_latex", slug, content });
+export function publishLatex(slug: string, content: string): Promise<{ path: string }> {
+  return callGithubPublish({ action: "publish_latex", slug, content });
 }
 
-export async function publishProjectWriteupToGithub(id: string, content: string): Promise<{ path: string }> {
-  return callGithubPublish<{ path: string }>({ action: "publish_project_writeup", id, content });
+export function readPost(slug: string): Promise<{ exists: boolean; content: string }> {
+  return callGithubPublish({ action: "read_file", path: `${POSTS_DIR}/${slug}.md` });
 }
 
-async function readFileFromGithub(path: string): Promise<{ exists: boolean; content: string }> {
-  return callGithubPublish<{ exists: boolean; content: string }>({ action: "read_file", path });
+export function deletePost(slug: string): Promise<{ deleted: boolean }> {
+  return callGithubPublish({ action: "delete_file", path: `${POSTS_DIR}/${slug}.md` });
 }
 
-async function deleteFileFromGithub(path: string): Promise<{ deleted: boolean }> {
-  return callGithubPublish<{ deleted: boolean }>({ action: "delete_file", path });
+export interface PostListing {
+  slug: string;
+  title: string;
+  date: string;
 }
 
-export function readProjectWriteupFromGithub(id: string): Promise<{ exists: boolean; content: string }> {
-  return readFileFromGithub(`src/data/project-writeups/${id}.md`);
-}
-
-export function deleteProjectWriteupFromGithub(id: string): Promise<{ deleted: boolean }> {
-  return deleteFileFromGithub(`src/data/project-writeups/${id}.md`);
-}
-
-export function readBlogPostFromGithub(slug: string): Promise<{ exists: boolean; content: string }> {
-  return readFileFromGithub(`src/data/blogs/${slug}.md`);
-}
-
-export function deleteBlogPostFromGithub(slug: string): Promise<{ deleted: boolean }> {
-  return deleteFileFromGithub(`src/data/blogs/${slug}.md`);
-}
-
-export function listBlogSlugsFromGithub(): Promise<{ files: string[] }> {
-  return callGithubPublish<{ files: string[] }>({ action: "list_directory", dir: "src/data/blogs" });
-}
-
-// ── Email campaigns: thin client for the email-campaign edge function ──────
-// Draft CRUD (list/save/delete) happens directly through supabase-js from
-// the admin panel — RLS already gates that on is_admin(). Only the actual
-// Brevo send needs an edge function, since that alone requires the
-// BREVO_API_KEY secret held server-side.
-async function callEmailCampaign<T>(body: Record<string, unknown>): Promise<T> {
-  const { data, error } = await supabase.functions.invoke("email-campaign", { body });
-  if (error) throw new Error(error.message || "Email send failed.");
-  const result = data as (T & Partial<PublishErrorBody>) | PublishErrorBody;
-  if (result && "error" in result && result.error) throw new Error(result.error);
-  return data as T;
-}
-
-export interface CampaignAttachment {
-  name: string;
-  bucket: string;
-  path: string;
-  size: number;
-}
-
-export type RecipientMode = "subscribers" | "custom";
-
-export function sendTestCampaignEmail(fields: {
-  subject: string;
-  preheader: string;
-  bodyMarkdown: string;
-  testEmail: string;
-  recipientMode?: RecipientMode;
-  senderName?: string;
-  senderEmail?: string;
-  attachments?: CampaignAttachment[];
-}): Promise<{ ok: true }> {
-  return callEmailCampaign<{ ok: true }>({ action: "send_test", ...fields });
-}
-
-export function sendCampaign(campaignId: string): Promise<{ ok: true; sent: number; failed: number; total: number }> {
-  return callEmailCampaign<{ ok: true; sent: number; failed: number; total: number }>({ action: "send_campaign", campaignId });
+export function listPosts(): Promise<{ posts: PostListing[] }> {
+  return callGithubPublish({ action: "list_posts" });
 }

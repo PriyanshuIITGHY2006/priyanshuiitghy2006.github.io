@@ -1,6 +1,5 @@
-# Flags dead external links (GitHub repos, LinkedIn, etc.) in blog posts
-# and the site's data files before they rot silently. Runs on every PR/push
-# so a bad link gets caught in review, plus weekly to catch links that go
+# Flags dead links in the built site's posts and pages before they rot
+# silently. Runs on every PR and push, plus weekly to catch links that go
 # dead after merge.
 name: Check links
 
@@ -12,6 +11,9 @@ on:
     - cron: "0 6 * * 1" # every Monday 06:00 UTC
   workflow_dispatch:
 
+env:
+  HUGO_VERSION: "0.168.0"
+
 jobs:
   lychee:
     runs-on: ubuntu-latest
@@ -19,22 +21,27 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Build Hugo site
+        run: |
+          curl -fsSL "https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}/hugo_extended_${HUGO_VERSION}_linux-amd64.tar.gz" | tar -xz -C "$RUNNER_TEMP" hugo
+          "$RUNNER_TEMP/hugo" --baseURL /
+
       - name: Link Checker
-        id: lychee
         uses: lycheeverse/lychee-action@v2
         with:
           args: >-
             --no-progress
-            --scheme https
             --root-dir "${{ github.workspace }}/public"
             --exclude "^https://(www\.)?linkedin\.com"
             --exclude "^https://codeforces\.com"
-            --exclude "^https://x\.com"
-            --exclude "^https://twitter\.com"
+            --exclude "^https://(x|twitter)\.com"
+            --exclude "^https://(www\.)?(reddit|facebook)\.com"
+            --exclude "^https://(api\.whatsapp\.com|telegram\.me|news\.ycombinator\.com)"
             --exclude "^https://(www\.)?researchgate\.net"
-            'src/data/**/*.ts'
-            'src/data/blogs/*.md'
-            'index.html'
+            --exclude "^https://discord\.com"
+            --exclude "supabase\.co"
+            'public/posts/**/index.html'
+            'public/about/index.html'
           format: markdown
           fail: true
         env:

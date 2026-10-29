@@ -1,6 +1,6 @@
-// Sets (or adds) one `key: value` line in a blog post's frontmatter.
+// Sets (or adds) one top-level `key: value` line in a post's front matter.
 // Used by .github/workflows/latex-pdf.yml to link a compiled PDF:
-//   node scripts/set-frontmatter.mjs src/data/blogs/<slug>.md pdf gallery-media/<slug>.pdf
+//   node .github/set-frontmatter.mjs content/posts/<slug>.md pdf '"gallery-media/<slug>.pdf"'
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 
 const [file, key, value] = process.argv.slice(2);
@@ -20,7 +20,7 @@ if (!m) {
   process.exit(1);
 }
 const lines = m[1].split(/\r?\n/);
-const i = lines.findIndex((l) => l.slice(0, l.indexOf(":")).trim() === key);
+const i = lines.findIndex((l) => l.startsWith(`${key}:`));
 if (i === -1) lines.push(`${key}: ${value}`);
 else lines[i] = `${key}: ${value}`;
 writeFileSync(file, `---\n${lines.join("\n")}\n---${m[2]}`);

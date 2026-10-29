@@ -1,0 +1,75 @@
+# Builds the Hugo site, then the admin app into /admin, and deploys both to Pages.
+name: Build & deploy to Pages
+
+on:
+  push:
+    branches: ["Website"]
+    # LaTeX sources don't affect the site; latex-pdf.yml compiles them and
+    # dispatches this workflow once the PDF is committed.
+    paths-ignore: ["latex/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+env:
+  HUGO_VERSION: "0.168.0"
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: admin/package-lock.json
+
+      # Processed images (WebP, resized covers) are reused between builds.
+      - name: Restore Hugo cache
+        uses: actions/cache@v4
+        with:
+          path: resources/_gen
+          key: hugo-gen-${{ hashFiles('static/**', 'assets/**', 'content/**') }}
+          restore-keys: hugo-gen-
+
+      - name: Build Hugo site
+        env:
+          HUGO_PARAMS_SUPABASEANONKEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        run: |
+          curl -fsSL "https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}/hugo_extended_${HUGO_VERSION}_linux-amd64.tar.gz" | tar -xz -C "$RUNNER_TEMP" hugo
+          "$RUNNER_TEMP/hugo" --gc --minify --baseURL https://priyanshudebnath.me/
+
+      - name: Build admin app
+        working-directory: admin
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        run: |
+          npm ci
+          npm run build
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: "public"
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
