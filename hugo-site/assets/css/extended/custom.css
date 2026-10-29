@@ -251,3 +251,12 @@ a.gl-card .gl-meta { padding-top: 14px; }
 .repo-card-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .repo-card-name { font-size: 0.8rem; color: var(--secondary); overflow-wrap: anywhere; }
 .repo-card-desc { font-size: 0.9rem; color: var(--secondary); }
+
+/* About page: "#" markers on headings */
+.about-page .post-title { display: block; }
+.about-page .post-title::before { content: "# "; color: #e4572e; }
+.about-page .post-content h2 { margin-top: 1.8em; }
+.about-page .post-content h2::before { content: "## "; color: #e4572e; font-weight: 400; }
+.about-page .post-content ul { margin-bottom: var(--content-gap); }
+.about-page .post-content a { text-decoration: underline; text-underline-offset: 3px; box-shadow: none; }
+.about-page .ach-title { font-size: 1.05rem; }

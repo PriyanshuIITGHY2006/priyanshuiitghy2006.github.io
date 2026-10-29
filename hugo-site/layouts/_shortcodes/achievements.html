@@ -1,0 +1,6 @@
+{{- /* The live achievements list from the admin (Supabase). */ -}}
+<ol class="ach-list" id="ach-list" data-url="{{ site.Params.supabaseUrl }}" data-key="{{ site.Params.supabaseanonkey }}">
+  <li class="ach-status">Loading...</li>
+</ol>
+<noscript><p class="ach-status">Turn on JavaScript to see the achievements.</p></noscript>
+{{ partial "script.html" "js/achievements-live.js" }}

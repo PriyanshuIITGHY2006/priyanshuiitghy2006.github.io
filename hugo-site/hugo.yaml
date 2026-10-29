@@ -92,14 +92,14 @@ params:
 
 menu:
   main:
+    - identifier: about
+      name: About
+      pageRef: /about
+      weight: 5
     - identifier: posts
       name: Posts
       pageRef: /posts
       weight: 10
-    - identifier: achievements
-      name: Achievements
-      pageRef: /achievements
-      weight: 25
     - identifier: resume
       name: Resume
       pageRef: /resume
