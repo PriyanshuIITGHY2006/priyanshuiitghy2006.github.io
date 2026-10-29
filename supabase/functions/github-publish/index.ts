@@ -131,6 +131,65 @@ function frontMatterValue(file: string, key: string): string {
   return raw.replace(/^'(.*)'$/, "$1");
 }
 
+// Moves static/gallery-media/<from> to static/gallery-media/<to> in one
+// commit, and rewrites every post that links to the old name in that same
+// commit, so the site never builds with a broken link.
+async function renameMedia(fromSrc: string, toName: string): Promise<{ src: string; updatedPosts: string[] }> {
+  const fromName = decodeURIComponent(fromSrc.replace(/^gallery-media\//, ""));
+  // Keep the old extension when the new name has none.
+  if (!/\.[A-Za-z0-9]+$/.test(toName)) toName += fromName.match(/\.[A-Za-z0-9]+$/)?.[0] ?? "";
+  const fromPath = `static/gallery-media/${fromName}`;
+  const toPath = `static/gallery-media/${toName}`;
+  const toSrc = `gallery-media/${encodeURIComponent(toName)}`;
+  if (fromPath === toPath) throw new Error("The new name is the same as the old one.");
+
+  const blobSha = await getFileSha(fromPath);
+  if (!blobSha) throw new Error(`${fromPath} does not exist.`);
+  if (await getFileSha(toPath)) throw new Error(`A file named ${toName} already exists.`);
+
+  const api = `${GITHUB_API}/repos/${GITHUB_OWNER}/${GITHUB_REPO}/git`;
+  const getJson = async (url: string, init?: RequestInit) => {
+    const res = await githubFetch(url, init);
+    if (!res.ok) throw new Error(`GitHub ${init?.method ?? "GET"} ${url.replace(api, "")} failed (${res.status}): ${(await res.text()).slice(0, 300)}`);
+    return res.json();
+  };
+
+  // Posts that mention the old path, written either way it can appear.
+  const oldForms = [...new Set([`gallery-media/${fromName}`, `gallery-media/${encodeURIComponent(fromName)}`, fromSrc])];
+  const listing = await githubFetch(repoContentsUrl(POSTS_DIR, `?ref=${GITHUB_BRANCH}`));
+  const files: { name: string; type: string }[] = listing.ok ? await listing.json() : [];
+  const postChanges: { path: string; content: string }[] = [];
+  for (const f of files) {
+    if (f.type !== "file" || !f.name.endsWith(".md")) continue;
+    const path = `${POSTS_DIR}/${f.name}`;
+    const text = (await readFile(path)) ?? "";
+    let updated = text;
+    for (const old of oldForms) updated = updated.split(old).join(toSrc);
+    if (updated !== text) postChanges.push({ path, content: updated });
+  }
+
+  const head = await getJson(`${api}/ref/heads/${GITHUB_BRANCH}`);
+  const headSha: string = head.object.sha;
+  const headCommit = await getJson(`${api}/commits/${headSha}`);
+  const tree = await getJson(`${api}/trees`, {
+    method: "POST",
+    body: JSON.stringify({
+      base_tree: headCommit.tree.sha,
+      tree: [
+        { path: toPath, mode: "100644", type: "blob", sha: blobSha },
+        { path: fromPath, mode: "100644", type: "blob", sha: null },
+        ...postChanges.map((p) => ({ path: p.path, mode: "100644", type: "blob", content: p.content })),
+      ],
+    }),
+  });
+  const commit = await getJson(`${api}/commits`, {
+    method: "POST",
+    body: JSON.stringify({ message: `Rename ${fromName} to ${toName}`, tree: tree.sha, parents: [headSha] }),
+  });
+  await getJson(`${api}/refs/heads/${GITHUB_BRANCH}`, { method: "PATCH", body: JSON.stringify({ sha: commit.sha }) });
+  return { src: toSrc, updatedPosts: postChanges.map((p) => p.path) };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
@@ -211,6 +270,16 @@ Deno.serve(async (req) => {
         return { slug, title: frontMatterValue(file, "title"), date: frontMatterValue(file, "date") };
       }));
       return json({ ok: true, posts });
+    }
+
+    if (body.action === "rename_media") {
+      const from: unknown = body.from;
+      const to: unknown = body.to;
+      if (typeof from !== "string" || !/^gallery-media\/[^/]+$/.test(from) || typeof to !== "string" || !to.trim()) {
+        return json({ error: "from (gallery-media/<file>) and to (new file name) are required" }, 400);
+      }
+      const result = await renameMedia(from, safeFilename(to));
+      return json({ ok: true, ...result });
     }
 
     if (body.action === "delete_file") {

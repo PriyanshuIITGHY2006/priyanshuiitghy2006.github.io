@@ -1,6 +1,6 @@
 import { supabase, RESUME_PDF_BUCKET, RESUME_PDF_FILE, getResumePdfUrl, loadAllSiteImages, type DBSiteImage } from "./supabase";
 import { confirmDialog } from "./confirm-dialog";
-import { uploadFileToGithub } from "./publish";
+import { uploadFileToGithub, renameMedia } from "./publish";
 import { esc, setStatus, emptyRow, errorText } from "./ui";
 
 // A Supabase session is what gates writes (RLS checks is_admin() on the
@@ -268,6 +268,14 @@ async function saveAchievement(el: HTMLElement, btn: HTMLButtonElement, rows: Ac
 // ── Images (Gallery page, credentials, blog covers) ────────────────────────
 // Files are committed to static/gallery-media/ through GitHub; the
 // site_images row is what the Gallery page and the pickers read.
+function fileName(src: string): string {
+  try {
+    return decodeURIComponent(src.split("/").pop() ?? src);
+  } catch {
+    return src.split("/").pop() ?? src;
+  }
+}
+
 function slugifyFilename(name: string): string {
   const slug = name.replace(/\.[^./]+$/, "").toLowerCase().trim().replace(/[^\w\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-");
   return slug || `image-${Date.now()}`;
@@ -308,9 +316,35 @@ async function renderImages(el: HTMLElement): Promise<void> {
           ${images.length ? images.map((img) => `
             <tr>
               <td>${/\.pdf$/i.test(img.src) ? `<span class="tag">PDF</span>` : `<img class="thumb" src="/${esc(img.src)}" alt="" loading="lazy"/>`}</td>
-              <td class="truncate"><a href="/${esc(img.src)}" target="_blank" rel="noopener">${esc(img.title)}</a></td>
+              <td class="truncate"><a href="/${esc(img.src)}" target="_blank" rel="noopener">${esc(img.title)}</a><div class="note">${esc(fileName(img.src))}</div></td>
               <td>${esc(img.kind)}</td>
-              <td><button class="btn danger" data-del="${esc(img.id)}">Remove</button></td>
+              <td class="nowrap">
+                <button class="btn" data-edit="${esc(img.id)}">Edit</button>
+                <button class="btn danger" data-del="${esc(img.id)}">Remove</button>
+              </td>
+            </tr>
+            <tr id="img-edit-${esc(img.id)}" hidden>
+              <td colspan="4">
+                <div class="status" hidden></div>
+                <div class="form" data-img-form="${esc(img.id)}">
+                  <div class="row">
+                    <label>Title<input type="text" name="title" value="${esc(img.title)}"/></label>
+                    <label>File name<input type="text" name="file" value="${esc(fileName(img.src))}"/></label>
+                  </div>
+                  <div class="row">
+                    <label>Date<input type="text" name="date" value="${esc(img.date ?? "")}"/></label>
+                    <label>Shows up in
+                      <select name="kind">
+                        <option value="gallery" ${img.kind === "gallery" ? "selected" : ""}>Gallery and achievement credentials</option>
+                        <option value="blog-cover" ${img.kind === "blog-cover" ? "selected" : ""}>Blog cover picker only</option>
+                      </select>
+                    </label>
+                  </div>
+                  <label>Description<input type="text" name="description" value="${esc(img.description ?? "")}"/></label>
+                  <p class="note">Changing the file name moves the file on GitHub and fixes every post that uses it, in one commit. The new name is live after the next deploy (about 1-2 min).</p>
+                  <div class="actions"><button class="btn primary" data-save="${esc(img.id)}">Save</button></div>
+                </div>
+              </td>
             </tr>`).join("") : emptyRow(4, "No files yet.")}
         </tbody>
       </table></div>
@@ -352,6 +386,51 @@ async function renderImages(el: HTMLElement): Promise<void> {
       uploadBtn.disabled = false;
       uploadBtn.textContent = "Upload";
     }
+  });
+
+  el.querySelectorAll<HTMLButtonElement>("[data-edit]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const row = el.querySelector<HTMLElement>(`#img-edit-${CSS.escape(btn.dataset.edit!)}`)!;
+      row.hidden = !row.hidden;
+    });
+  });
+
+  el.querySelectorAll<HTMLButtonElement>("[data-save]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const img = images.find((i) => i.id === btn.dataset.save)!;
+      const form = el.querySelector<HTMLElement>(`[data-img-form="${CSS.escape(img.id)}"]`)!;
+      const rowStatus = form.parentElement!.querySelector<HTMLElement>(".status");
+      const g = (name: string) => (form.querySelector<HTMLInputElement | HTMLSelectElement>(`[name="${name}"]`)?.value ?? "").trim();
+      btn.disabled = true;
+      btn.textContent = "Saving…";
+      try {
+        let src = img.src;
+        let note = "";
+        const newName = g("file");
+        if (newName && newName !== fileName(img.src)) {
+          const renamed = await renameMedia(img.src, newName);
+          src = renamed.src;
+          if (renamed.updatedPosts.length) note = ` Updated ${renamed.updatedPosts.length} post(s) that used it.`;
+          // Other listings of the same file follow it to the new name.
+          const { error } = await supabase.from("site_images").update({ src }).eq("src", img.src);
+          if (error) throw new Error(error.message);
+        }
+        const { error } = await supabase.from("site_images").update({
+          title: g("title") || img.title,
+          date: g("date") || null,
+          description: g("description") || null,
+          kind: g("kind"),
+          src,
+        }).eq("id", img.id);
+        if (error) throw new Error(error.message);
+        await renderImages(el);
+        setStatus(el.querySelector<HTMLElement>("#img-status"), `Saved.${note}`, true);
+      } catch (err) {
+        setStatus(rowStatus, `Error: ${errorText(err)}`, false);
+        btn.disabled = false;
+        btn.textContent = "Save";
+      }
+    });
   });
 
   el.querySelectorAll<HTMLButtonElement>("[data-del]").forEach((btn) => {

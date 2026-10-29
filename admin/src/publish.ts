@@ -63,3 +63,8 @@ export interface PostListing {
 export function listPosts(): Promise<{ posts: PostListing[] }> {
   return callGithubPublish({ action: "list_posts" });
 }
+
+/** Renames a file in static/gallery-media/ and updates every post that links to it. */
+export function renameMedia(from: string, to: string): Promise<{ src: string; updatedPosts: string[] }> {
+  return callGithubPublish({ action: "rename_media", from, to });
+}
