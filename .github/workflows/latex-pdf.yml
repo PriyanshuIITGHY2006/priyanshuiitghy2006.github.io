@@ -72,7 +72,7 @@ jobs:
             mkdir -p "$dir"
             cp "$f" "$dir/main.tex"
             # Images the post uses are listed as "%! image: <path under static/>".
-            grep -oP '^%! image: \K.+' "$f" | while IFS= read -r src; do
+            { grep -oP '^%! image: \K.+' "$f" || true; } | while IFS= read -r src; do
               cp "static/$src" "$dir/" || echo "::warning::Missing image static/$src"
             done
             echo "::group::latexmk $slug"
