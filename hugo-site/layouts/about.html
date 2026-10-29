@@ -1,9 +1,9 @@
 {{- define "main" }}
-<article class="post-single about-page">
+<article class="post-single">
   <header class="post-header">
     <h1 class="post-title entry-hint-parent">{{ .Title }}</h1>
   </header>
-  <div class="post-content">
+  <div class="post-content md-content">
     {{- with site.Params.homeInfoParams.Content }}<p>{{ . | markdownify }}</p>{{ end }}
     {{ .Content }}
   </div>

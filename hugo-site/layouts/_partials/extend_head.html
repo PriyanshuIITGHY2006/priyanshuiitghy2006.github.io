@@ -2,7 +2,3 @@
 {{- if and .IsPage (eq .Section "posts") }}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" crossorigin="anonymous">
 {{- end }}
-{{- if eq .Layout "about" }}
-{{- $about := resources.Get "css/about.css" | minify | fingerprint }}
-<link rel="stylesheet" href="{{ $about.RelPermalink }}" integrity="{{ $about.Data.Integrity }}">
-{{- end }}
