@@ -98,7 +98,8 @@ textarea { min-height: 5rem; resize: vertical; }
 
 .table-wrap { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-th, td { text-align: left; padding: 0.45rem 0.5rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
+th, td { padding: 0.45rem 0.5rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
+th:not([align]), td:not([align]) { text-align: left; }
 th { color: var(--muted); font-weight: 600; }
 td.empty { color: var(--muted); text-align: center; padding: 1rem; }
 .truncate { max-width: 28rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -132,6 +133,21 @@ td.empty { color: var(--muted); text-align: center; padding: 1rem; }
 .pv-sc, .pv-collapse { border: 1px dashed var(--border); border-radius: 6px; padding: 0.5rem 0.7rem; margin: 0.8rem 0; }
 .pv-sc-head { font-size: 0.85rem; color: var(--muted); }
 .pv-collapse summary { cursor: pointer; font-weight: 600; }
+.pv-callout-warning { border-color: var(--err); }
+.pv-yt { display: block; max-width: 320px; border-radius: 6px; margin-top: 0.4rem; }
+.preview blockquote { margin: 0.8rem 0; padding-left: 1rem; border-left: 3px solid var(--border); color: var(--muted); }
+.preview .footnotes { font-size: 0.85rem; color: var(--muted); border-top: 1px solid var(--border); margin-top: 1rem; }
+
+/* Code lines in the preview, like layouts/_partials/code-block.html */
+.pv-code pre code { display: grid; }
+.pv-code .ln { display: block; white-space: pre; padding-right: 0.5rem; }
+.pv-code .gutter { display: inline-block; width: 2.2em; margin-right: 0.6em; text-align: right; color: var(--muted); user-select: none; }
+.pv-code .ln.hl { background: rgba(120, 140, 255, 0.18); }
+.pv-code .ln.add { background: rgba(46, 160, 67, 0.22); }
+.pv-code .ln.del { background: rgba(248, 81, 73, 0.22); }
+.pv-code .ln.add .gutter { color: #2ea043; }
+.pv-code .ln.del .gutter { color: #f85149; }
+.pv-code mark { background: rgba(255, 200, 60, 0.35); color: inherit; border-radius: 3px; padding: 0 2px; }
 
 .help { margin: 0 0 1rem; }
 .help summary, .latex summary { cursor: pointer; }

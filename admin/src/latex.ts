@@ -20,6 +20,7 @@
 import { Marked, type Token, type Tokens } from "marked";
 import markedKatex from "marked-katex-extension";
 import { findShortcodes } from "./shortcodes";
+import { normalizeMath } from "./math";
 
 export interface LatexPostMeta {
   slug: string;
@@ -255,7 +256,7 @@ function shortcodeLatex(g: BlockTok, c: Ctx): string {
     case "repo-card":
       return `\\noindent\\textit{Repository:} \\href{${c.url(`https://github.com/${p.repo}`)}}{\\texttt{${c.text(p.repo ?? "")}}}${p.title ? ` --- ${c.text(p.title)}` : ""}`;
     case "youtube": {
-      const id = p.id ?? Object.values(p)[0] ?? "";
+      const id = p.id ?? p["0"] ?? "";
       return `\\noindent\\textit{Video:} \\url{${c.url(`https://youtu.be/${id}`)}}`;
     }
     case "diagram":
@@ -433,7 +434,7 @@ const PREAMBLE = String.raw`\documentclass[11pt,a4paper]{article}
 export function blogToLatex(markdown: string, meta: LatexPostMeta): LatexExport {
   const siteOrigin = meta.siteOrigin ?? "https://priyanshudebnath.me";
   const c = new Ctx({ slug: meta.slug, siteOrigin });
-  const body = blocks(md.lexer(markdown), c);
+  const body = blocks(md.lexer(normalizeMath(markdown)), c);
   const author = meta.author ?? "Priyanshu Debnath";
   const url = c.postUrl();
   const dateLine = [meta.date && `Published ${c.text(meta.date)}`, meta.updated && `Updated ${c.text(meta.updated)}`]
