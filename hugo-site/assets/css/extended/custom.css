@@ -251,3 +251,11 @@ a.gl-card .gl-meta { padding-top: 14px; }
 .repo-card-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .repo-card-name { font-size: 0.8rem; color: var(--secondary); overflow-wrap: anywhere; }
 .repo-card-desc { font-size: 0.9rem; color: var(--secondary); }
+
+/* About page: "#" markers on headings, lists without bullets */
+.about-page .post-title::before { content: "# "; }
+.about-page .md-content h2::before { content: "## "; }
+.about-page .md-content ul { list-style: none; padding-left: 0; }
+.about-page .md-content li { margin: 0 0 12px; }
+.about-page .post-title { display: block; }
+.about-page .ach-status { padding: 0; margin: 0; }
