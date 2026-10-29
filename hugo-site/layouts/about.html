@@ -6,6 +6,7 @@
   <div class="post-content md-content">
     {{- with site.Params.homeInfoParams.Content }}<p>{{ . | markdownify }}</p>{{ end }}
     {{ .Content }}
+    {{ partial "social_icons.html" (dict "align" "left") }}
   </div>
 </article>
 {{- end }}
