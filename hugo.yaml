@@ -130,3 +130,18 @@ markup:
           inline: [['\(', '\)'], ['$', '$']]
     renderer:
       unsafe: true
+
+# Uploaded media lives in static/ (the admin commits there). It is also
+# mounted under assets/ so Hugo can resize it and convert it to WebP.
+# Declaring mounts replaces the defaults for assets and static, so both
+# are listed again.
+module:
+  mounts:
+    - source: assets
+      target: assets
+    - source: static
+      target: static
+    - source: static/blog-media
+      target: assets/blog-media
+    - source: static/gallery-media
+      target: assets/gallery-media

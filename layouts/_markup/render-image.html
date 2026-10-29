@@ -1,20 +1,15 @@
+{{- /* Images in posts. A page resource or a file under assets/ (static media is mounted there) gets resized WebP copies; anything else is linked as written, made site-relative so it works from any page. */ -}}
 {{- $u := urls.Parse .Destination -}}
-{{- $src := $u.String -}}
+{{- $res := "" -}}
 {{- if not $u.IsAbs -}}
-  {{- if hasPrefix $src "/" -}}
-    {{- $src = relURL (strings.TrimPrefix "/" $src) -}}
-  {{- else -}}
-    {{- $path := strings.TrimPrefix "./" $u.Path }}
-    {{- with or (.PageInner.Resources.Get $path) (resources.Get $path) -}}
-      {{- $src = .RelPermalink -}}
-    {{- end -}}
-  {{- end -}}
+  {{- $path := strings.TrimPrefix "/" (strings.TrimPrefix "./" $u.Path) -}}
+  {{- $res = or (.PageInner.Resources.Get $path) (resources.Get $path) -}}
 {{- end -}}
-{{- $attributes := merge .Attributes (dict "alt" .Text "src" $src "title" (.Title | transform.HTMLEscape) "loading" "lazy") -}}
-<img
-  {{- range $k, $v := $attributes -}}
-    {{- if $v -}}
-      {{- printf " %s=%q" $k $v | safeHTMLAttr -}}
-    {{- end -}}
-  {{- end -}}>
+{{- if and $res (in (slice "jpeg" "png" "webp" "gif" "bmp" "tiff") $res.MediaType.SubType) -}}
+  {{- partial "responsive-img.html" (dict "img" $res "alt" .Text "sizes" "(min-width: 768px) 720px, 100vw") -}}
+{{- else -}}
+  {{- $src := $u.String -}}
+  {{- if not $u.IsAbs }}{{ $src = relURL (strings.TrimPrefix "/" $src) }}{{ end -}}
+  <img src="{{ $src }}" alt="{{ .Text }}"{{ with .Title }} title="{{ . }}"{{ end }} loading="lazy" decoding="async">
+{{- end -}}
 {{- /**/ -}}

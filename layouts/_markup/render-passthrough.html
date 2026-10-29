@@ -1,0 +1,11 @@
+{{- /* Math is rendered to HTML when the site is built, so pages need only the KaTeX stylesheet, not its scripts. Marks the page so extend_head.html adds that stylesheet. */ -}}
+{{- $opts := dict "displayMode" (eq .Type "block") "output" "htmlAndMathml" "throwOnError" false -}}
+{{- with try (transform.ToMath .Inner $opts) -}}
+  {{- with .Err -}}
+    {{- warnf "math on %s: %s" $.Page.RelPermalink . -}}
+    {{- $.Inner -}}
+  {{- else -}}
+    {{- .Value -}}
+    {{- $.Page.Store.Set "hasMath" true -}}
+  {{- end -}}
+{{- end -}}

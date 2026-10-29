@@ -1,0 +1,17 @@
+{{- /* PaperMod's cover, serving resized WebP copies with a fixed width and height so the page doesn't jump while it loads. Images Hugo can't process fall back to a plain <img>. */ -}}
+{{- with .cxt }}
+{{- if and .Params.cover.image (not $.isHidden) }}
+<figure class="entry-cover">
+  {{- $loading := cond $.IsSingle "eager" "lazy" }}
+  {{- $alt := .Params.cover.alt | default .Params.cover.caption | plainify }}
+  {{- $cover := (.Resources.ByType "image").GetMatch (printf "*%s*" .Params.cover.image) }}
+  {{- if not $cover }}{{ $cover = resources.Get .Params.cover.image }}{{ end }}
+  {{- if and $cover (in (slice "jpeg" "png" "webp" "gif" "bmp" "tiff") $cover.MediaType.SubType) }}
+    {{- partial "responsive-img.html" (dict "img" $cover "alt" $alt "loading" $loading "sizes" "(min-width: 768px) 720px, 100vw" "priority" $.IsSingle) }}
+  {{- else }}
+    <img loading="{{ $loading }}" src="{{ .Params.cover.image | absURL }}" alt="{{ $alt }}">
+  {{- end }}
+  {{- if $.IsSingle }}{{ with .Params.cover.caption }}<figcaption>{{ . | markdownify }}</figcaption>{{ end }}{{ end }}
+</figure>
+{{- end }}
+{{- end -}}
