@@ -1,16 +1,19 @@
 {{- /*
   An <img> with WebP copies at several widths (never wider than the original).
-  dict: img (image resource), alt, loading ("lazy" or "eager"), sizes, priority (bool, for the main image above the fold).
+  dict: img (image resource), alt, loading ("lazy" or "eager"), sizes, priority (bool, for the main image above the fold),
+  photo (bool: always lossy, for large illustrations such as covers).
 */ -}}
 {{- $img := .img -}}
+{{- /* Screenshots in posts (PNG, GIF) stay pixel-exact so text is sharp; photos and covers use high-quality lossy WebP. */ -}}
+{{- $opts := cond (or .photo (in (slice "jpeg" "tiff") $img.MediaType.SubType)) "webp q88 photo" "webp lossless" -}}
 {{- $srcset := slice -}}
 {{- range slice 360 720 1080 1500 -}}
   {{- if lt . $img.Width -}}
-    {{- $srcset = $srcset | append (printf "%s %dw" ($img.Resize (printf "%dx webp q80" .)).RelPermalink .) -}}
+    {{- $srcset = $srcset | append (printf "%s %dw" ($img.Resize (printf "%dx %s" . $opts)).RelPermalink .) -}}
   {{- end -}}
 {{- end -}}
 {{- $full := $img -}}
-{{- if ne $img.MediaType.SubType "gif" }}{{ $full = $img.Process "webp q80" }}{{ end -}}
+{{- if ne $img.MediaType.SubType "gif" }}{{ $full = $img.Process $opts }}{{ end -}}
 {{- $srcset = $srcset | append (printf "%s %dw" $full.RelPermalink $img.Width) -}}
 <img src="{{ $full.RelPermalink }}" srcset="{{ delimit $srcset ", " }}" sizes="{{ .sizes | default "(min-width: 768px) 720px, 100vw" }}" width="{{ $img.Width }}" height="{{ $img.Height }}" alt="{{ .alt }}" loading="{{ .loading | default "lazy" }}" decoding="async"{{ if .priority }} fetchpriority="high"{{ end }}>
 {{- /**/ -}}

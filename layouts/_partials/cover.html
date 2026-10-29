@@ -7,7 +7,7 @@
   {{- $cover := (.Resources.ByType "image").GetMatch (printf "*%s*" .Params.cover.image) }}
   {{- if not $cover }}{{ $cover = resources.Get .Params.cover.image }}{{ end }}
   {{- if and $cover (in (slice "jpeg" "png" "webp" "gif" "bmp" "tiff") $cover.MediaType.SubType) }}
-    {{- partial "responsive-img.html" (dict "img" $cover "alt" $alt "loading" $loading "sizes" "(min-width: 768px) 720px, 100vw" "priority" $.IsSingle) }}
+    {{- partial "responsive-img.html" (dict "img" $cover "alt" $alt "loading" $loading "sizes" "(min-width: 768px) 720px, 100vw" "priority" $.IsSingle "photo" true) }}
   {{- else }}
     <img loading="{{ $loading }}" src="{{ .Params.cover.image | absURL }}" alt="{{ $alt }}">
   {{- end }}

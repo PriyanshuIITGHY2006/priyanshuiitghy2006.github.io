@@ -262,3 +262,7 @@ a.gl-card .gl-meta { padding-top: 14px; }
 
 /* Wide equations scroll on their own instead of widening the page on phones. */
 .katex-display { overflow-x: auto; overflow-y: hidden; padding: 2px 0; }
+
+/* Images carry width and height so the page doesn't jump while they load;
+   height:auto keeps their shape when the column is narrower than the image. */
+.post-content img, .entry-cover img { height: auto; max-width: 100%; }
