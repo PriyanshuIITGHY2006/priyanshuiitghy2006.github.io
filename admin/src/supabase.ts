@@ -16,7 +16,7 @@ export interface DBSiteImage {
   src: string;
   date: string | null;
   description: string | null;
-  kind: "gallery" | "blog-cover";
+  kind: "gallery" | "blog-cover" | "post-media";
   sort_order: number;
 }
 

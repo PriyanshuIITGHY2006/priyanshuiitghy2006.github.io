@@ -159,3 +159,15 @@ td.empty { color: var(--muted); text-align: center; padding: 1rem; }
 .help-example { background: var(--code); padding: 0.5rem; border-radius: 6px; white-space: pre-wrap; margin: 0.3rem 0; }
 .latex-out { min-height: 20rem; margin-top: 0.6rem; }
 .progress { margin-top: 0.6rem; font-size: 0.9rem; }
+.pane-head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.pv-media { margin: 0.8rem 0; text-align: center; }
+.pv-media video, .pv-media audio, .pv-media img { max-width: 100%; border-radius: 6px; }
+.pv-media figcaption { font-size: 0.85rem; color: var(--muted); }
+.pv-intext { vertical-align: middle; }
+.preview mark { background: rgba(255, 200, 60, 0.4); color: inherit; border-radius: 3px; padding: 0 2px; }
+.preview ins { text-decoration-color: #2ea043; text-decoration-thickness: 2px; }
+.preview dt { font-weight: 600; }
+.pv-callout-tip { border-color: #2ea043; }
+.pv-callout-important { border-color: #8957e5; }
+.pv-callout-caution { border-color: var(--err); }
+pre.pv-mermaid { background: none; text-align: center; }

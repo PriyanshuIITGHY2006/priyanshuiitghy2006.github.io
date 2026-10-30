@@ -13,7 +13,8 @@
     "katex": "^0.16.47",
     "marked": "^18.1.2",
     "marked-footnote": "^1.4.0",
-    "marked-katex-extension": "^5.1.13"
+    "marked-katex-extension": "^5.1.13",
+    "mermaid": "^11.17.2"
   },
   "devDependencies": {
     "@types/js-yaml": "^4.0.9",

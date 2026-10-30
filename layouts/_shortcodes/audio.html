@@ -1,0 +1,7 @@
+{{- /* An audio file, from the repo (gallery-media/clip.mp3) or a full URL. {{< audio src="..." caption="..." >}} */ -}}
+{{- $src := .Get "src" -}}
+{{- if not $src }}{{ errorf "audio needs src (%s)" .Position }}{{ end -}}
+<figure class="media">
+  <audio src="{{ cond (strings.HasPrefix $src "http") $src (relURL (strings.TrimPrefix "/" $src)) }}" controls preload="metadata"></audio>
+  {{- with .Get "caption" }}<figcaption>{{ . | markdownify }}</figcaption>{{ end }}
+</figure>

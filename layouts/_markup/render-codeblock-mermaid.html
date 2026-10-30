@@ -1,0 +1,3 @@
+{{- /* ```mermaid blocks become diagrams. Marks the page so extend_footer.html loads Mermaid only where it is used. */ -}}
+<pre class="mermaid">{{ .Inner | htmlEscape | safeHTML }}</pre>
+{{- .Page.Store.Set "hasMermaid" true -}}

@@ -1,0 +1,12 @@
+{{- /* Blockquotes, plus GitHub-style alerts: a quote starting with > [!NOTE], [!TIP], [!IMPORTANT], [!WARNING] or [!CAUTION] (optionally followed by a title) becomes a box in the same style as the callout shortcode. */ -}}
+{{- if eq .Type "alert" -}}
+{{- $type := lower .AlertType -}}
+<aside class="callout callout-{{ $type }}">
+  <strong class="callout-title">{{ .AlertTitle | default (title $type) }}</strong>
+  {{ .Text }}
+</aside>
+{{- else -}}
+<blockquote{{ with .Attributes.class }} class="{{ . }}"{{ end }}>
+  {{ .Text }}
+</blockquote>
+{{- end -}}

@@ -20,7 +20,7 @@
 import { Marked, type Token, type Tokens } from "marked";
 import markedKatex from "marked-katex-extension";
 import { findShortcodes } from "./shortcodes";
-import { normalizeMath } from "./math";
+import { preprocess, extrasExtension } from "./extras";
 
 export interface LatexPostMeta {
   slug: string;
@@ -57,7 +57,7 @@ const shortcode = {
     const sc = findShortcodes(src)[0];
     if (!sc || sc.start !== 0) return undefined;
     const raw = src.slice(0, sc.end).concat(src.slice(sc.end).match(/^[ \t]*\n?/)![0]);
-    const tok: BlockTok = { type: "x-sc", raw, name: sc.name, params: sc.params, tokens: [] };
+    const tok: BlockTok = { type: "x-sc", raw, name: sc.name, params: sc.params, inner: sc.inner, tokens: [] };
     if (sc.inner !== undefined) this.lexer.blockTokens(sc.inner, tok.tokens!);
     return tok;
   },
@@ -65,6 +65,7 @@ const shortcode = {
 
 const md = new Marked({ gfm: true });
 md.use({ extensions: [shortcode] });
+md.use(extrasExtension);
 md.use(markedKatex({ throwOnError: false, nonStandard: true }));
 
 // ─── Escaping ───────────────────────────────────────────────────────────────
@@ -172,6 +173,12 @@ function inlineOne(t: Token, c: Ctx): string {
       return g.displayMode ? `\n\\[\n${g.text.trim()}\n\\]\n` : `$${g.text.trim()}$`;
     case "html":
       return "";
+    case "mark":
+      return `\\colorbox{yellow!40}{${inline(g.tokens, c)}}`;
+    case "ins":
+      return `\\underline{${inline(g.tokens, c)}}`;
+    case "sup":
+      return `\\textsuperscript{${inline(g.tokens, c)}}`;
     default:
       return g.text ? c.text(decodeEntities(g.text)) : "";
   }
@@ -264,7 +271,30 @@ function shortcodeLatex(g: BlockTok, c: Ctx): string {
     case "repo-code":
       return `\\noindent\\textit{Code:} \\href{${c.url(`https://github.com/${p.repo}/blob/${p.ref || "HEAD"}/${p.path}`)}}{\\texttt{${c.text(p.title || p.path || "")}}}`;
     case "binviz":
+    case "x":
+    case "twitter":
+    case "tweet":
+    case "instagram":
+    case "qr":
       return online;
+    case "video":
+    case "audio":
+      return `\\noindent\\textit{${g.name === "video" ? "Video" : "Audio"}${p.caption ? `: ${c.text(p.caption)}` : ""}} \\url{${c.url(p.src ?? "")}}`;
+    case "vimeo":
+      return `\\noindent\\textit{Video:} \\url{${c.url(`https://vimeo.com/${p.id ?? p["0"] ?? ""}`)}}`;
+    case "gist":
+      return `\\noindent\\textit{Gist:} \\url{${c.url(`https://gist.github.com/${p.user ?? p["0"] ?? ""}/${p.id ?? p["1"] ?? ""}`)}}`;
+    case "figure":
+      return p.src ? imageLatex(p.src, p.caption ?? p.alt ?? "", c, false) : "";
+    case "details":
+      return box("notebox", c.text(p.summary || "Details"), blocks(g.tokens, c));
+    case "highlight":
+      return codeBlock(g.inner ?? "", p["0"], c);
+    case "ltr":
+    case "rtl":
+      return blocks(g.tokens, c);
+    case "rawhtml":
+      return "";
     default:
       c.warnings.add(`Shortcode "${g.name}" has no LaTeX form and was left out.`);
       return g.tokens?.length ? blocks(g.tokens, c) : "";
@@ -322,7 +352,14 @@ function block(t: Token, c: Ctx): string {
     case "text":
       return g.tokens ? inline(g.tokens, c) : c.text(decodeEntities(g.text));
     case "code":
+      if ((g.lang ?? "").startsWith("mermaid")) {
+        return `\\noindent\\textit{Diagram (shown in the online version):} \\url{${c.postUrl()}}`;
+      }
       return codeBlock(g.text, g.lang, c);
+    case "deflist": {
+      const items = g.items as { term: Token[]; defs: Token[][] }[];
+      return `\\begin{description}\n${items.map((it) => `\\item[${inline(it.term, c)}] ${it.defs.map((d) => inline(d, c)).join(" \\\\ ")}`).join("\n")}\n\\end{description}`;
+    }
     case "blockquote":
       return `\\begin{quotebox}\n${blocks(g.tokens, c)}\n\\end{quotebox}`;
     case "list":
@@ -434,7 +471,7 @@ const PREAMBLE = String.raw`\documentclass[11pt,a4paper]{article}
 export function blogToLatex(markdown: string, meta: LatexPostMeta): LatexExport {
   const siteOrigin = meta.siteOrigin ?? "https://priyanshudebnath.me";
   const c = new Ctx({ slug: meta.slug, siteOrigin });
-  const body = blocks(md.lexer(normalizeMath(markdown)), c);
+  const body = blocks(md.lexer(preprocess(markdown)), c);
   const author = meta.author ?? "Priyanshu Debnath";
   const url = c.postUrl();
   const dateLine = [meta.date && `Published ${c.text(meta.date)}`, meta.updated && `Updated ${c.text(meta.updated)}`]

@@ -266,3 +266,23 @@ a.gl-card .gl-meta { padding-top: 14px; }
 /* Images carry width and height so the page doesn't jump while they load;
    height:auto keeps their shape when the column is narrower than the image. */
 .post-content img, .entry-cover img { height: auto; max-width: 100%; }
+
+/* GitHub-style alerts (> [!NOTE] ...) share the callout box. */
+.callout-tip { border-left-color: #2ea043; }
+.callout-important { border-left-color: #8957e5; }
+.callout-caution { border-left-color: #cf222e; }
+
+/* ==highlight== and ++inserted++ */
+.post-content mark { background: rgba(255, 200, 60, 0.4); color: inherit; border-radius: 3px; padding: 0 2px; }
+.post-content ins { text-decoration-color: #2ea043; text-decoration-thickness: 2px; }
+
+/* video and audio shortcodes */
+.media { margin: 20px 0; text-align: center; }
+.media video, .media audio { width: 100%; border-radius: var(--radius); }
+.media video { max-height: 70vh; background: #000; }
+.media figcaption { font-size: 0.9rem; color: var(--secondary); margin-top: 6px; }
+
+/* Mermaid diagrams */
+.post-content pre.mermaid { background: none; border: 0; text-align: center; }
+.post-content dt { font-weight: 600; }
+.post-content dd { margin-inline-start: 1.5em; }

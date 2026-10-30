@@ -268,6 +268,13 @@ async function saveAchievement(el: HTMLElement, btn: HTMLButtonElement, rows: Ac
 // ── Images (Gallery page, credentials, blog covers) ────────────────────────
 // Files are committed to static/gallery-media/ through GitHub; the
 // site_images row is what the Gallery page and the pickers read.
+function mediaThumb(src: string): string {
+  if (/\.pdf$/i.test(src)) return `<span class="tag">PDF</span>`;
+  if (/\.(mp4|webm|mov|m4v|ogv)$/i.test(src)) return `<span class="tag">Video</span>`;
+  if (/\.(mp3|wav|ogg|m4a|flac)$/i.test(src)) return `<span class="tag">Audio</span>`;
+  return `<img class="thumb" src="/${esc(src)}" alt="" loading="lazy"/>`;
+}
+
 function fileName(src: string): string {
   try {
     return decodeURIComponent(src.split("/").pop() ?? src);
@@ -290,7 +297,7 @@ async function renderImages(el: HTMLElement): Promise<void> {
       <p class="note">The file is committed to GitHub and appears on the site after the next deploy (about 1-2 min).</p>
       <div id="img-status" class="status" hidden></div>
       <div class="form">
-        <label>File (image or PDF)<input type="file" id="img-file" accept="image/*,application/pdf"/></label>
+        <label>File (image, PDF, video or audio, up to 20 MB)<input type="file" id="img-file" accept="image/*,application/pdf,video/*,audio/*"/></label>
         <div class="row">
           <label>Title<input type="text" id="img-title" placeholder="Certificate title"/></label>
           <label>ID (slug)<input type="text" id="img-id" placeholder="from the file name"/></label>
@@ -301,6 +308,7 @@ async function renderImages(el: HTMLElement): Promise<void> {
             <select id="img-kind">
               <option value="gallery">Gallery and achievement credentials</option>
               <option value="blog-cover">Blog cover picker only</option>
+              <option value="post-media">Used inside posts only (videos, audio, images)</option>
             </select>
           </label>
         </div>
@@ -315,7 +323,7 @@ async function renderImages(el: HTMLElement): Promise<void> {
         <tbody>
           ${images.length ? images.map((img) => `
             <tr>
-              <td>${/\.pdf$/i.test(img.src) ? `<span class="tag">PDF</span>` : `<img class="thumb" src="/${esc(img.src)}" alt="" loading="lazy"/>`}</td>
+              <td>${mediaThumb(img.src)}</td>
               <td class="truncate"><a href="/${esc(img.src)}" target="_blank" rel="noopener">${esc(img.title)}</a><div class="note">${esc(fileName(img.src))}</div></td>
               <td>${esc(img.kind)}</td>
               <td class="nowrap">
@@ -337,6 +345,7 @@ async function renderImages(el: HTMLElement): Promise<void> {
                       <select name="kind">
                         <option value="gallery" ${img.kind === "gallery" ? "selected" : ""}>Gallery and achievement credentials</option>
                         <option value="blog-cover" ${img.kind === "blog-cover" ? "selected" : ""}>Blog cover picker only</option>
+                        <option value="post-media" ${img.kind === "post-media" ? "selected" : ""}>Used inside posts only</option>
                       </select>
                     </label>
                   </div>

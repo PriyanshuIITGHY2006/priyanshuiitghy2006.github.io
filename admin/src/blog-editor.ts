@@ -58,7 +58,7 @@ export async function renderBlogEditor(el: HTMLElement): Promise<void> {
         <div class="row">
           <label>Cover (optional)
             <span class="inline">
-              <select id="be-cover">${coverOptionsHtml(images.filter((i) => !/\.pdf$/i.test(i.src)))}</select>
+              <select id="be-cover">${coverOptionsHtml(images.filter((i) => /\.(png|jpe?g|webp|gif)$/i.test(i.src)))}</select>
               <input type="file" id="be-cover-upload" accept="image/*" hidden/>
               <button type="button" class="btn" id="be-cover-upload-btn">Upload…</button>
             </span>
@@ -78,9 +78,13 @@ export async function renderBlogEditor(el: HTMLElement): Promise<void> {
     ${renderWritingGuide()}
 
     <div class="editor-split">
-      <label class="pane">Markdown
+      <div class="pane">
+        <span class="pane-head">Markdown
+          <input type="file" id="be-insert-file" accept="image/*,video/*,audio/*,application/pdf" hidden/>
+          <button type="button" class="btn" id="be-insert-btn" title="Upload a file and insert it at the cursor">Insert file…</button>
+        </span>
         <textarea id="be-body" class="editor" spellcheck="true" placeholder="## Heading&#10;&#10;Write the post here."></textarea>
-      </label>
+      </div>
       <div class="pane">Preview
         <div class="preview" id="be-preview"></div>
       </div>
@@ -235,8 +239,46 @@ export async function renderBlogEditor(el: HTMLElement): Promise<void> {
     }
   });
 
+  // ── Insert file: upload, then put the matching snippet at the cursor ───
+  const insertInput = $<HTMLInputElement>("be-insert-file");
+  const insertBtn = $<HTMLButtonElement>("be-insert-btn");
+  insertBtn.addEventListener("click", () => insertInput.click());
+  insertInput.addEventListener("change", async () => {
+    const file = insertInput.files?.[0];
+    if (!file) return;
+    insertBtn.disabled = true;
+    insertBtn.textContent = "Uploading…";
+    try {
+      const { src } = await uploadFileToGithub(file);
+      const name = file.name.replace(/\.[^./]+$/, "");
+      const { error } = await supabase.from("site_images").upsert({
+        id: slugify(name) || `media-${Date.now()}`,
+        title: name,
+        src,
+        kind: "post-media",
+        sort_order: 0,
+      });
+      if (error) throw new Error(error.message);
+      const snippet = file.type.startsWith("video/") ? `{{< video src="${src}" caption="${name}" >}}`
+        : file.type.startsWith("audio/") ? `{{< audio src="${src}" caption="${name}" >}}`
+        : file.type === "application/pdf" ? `[${name} (PDF)](/${src})`
+        : `![${name}](${src})`;
+      const at = bodyEl.selectionStart ?? bodyEl.value.length;
+      bodyEl.setRangeText(`\n${snippet}\n`, at, bodyEl.selectionEnd ?? at, "end");
+      bodyEl.focus();
+      renderPreviewSoon();
+      status("Uploaded and inserted. The file is live after the next deploy (about 1-2 min).", true);
+    } catch (err) {
+      status(`Upload error: ${err instanceof Error ? err.message : String(err)}`, false);
+    } finally {
+      insertBtn.disabled = false;
+      insertBtn.textContent = "Insert file…";
+      insertInput.value = "";
+    }
+  });
+
   // ── Preview ────────────────────────────────────────────────────────────
-  const { renderPreview, hydrateRepoCode } = await import("./preview");
+  const { renderPreview, hydrateRepoCode, hydrateMermaid } = await import("./preview");
   let debounceId: number | undefined;
   function renderPreviewSoon(): void {
     window.clearTimeout(debounceId);
@@ -245,6 +287,7 @@ export async function renderBlogEditor(el: HTMLElement): Promise<void> {
       try {
         previewEl.innerHTML = src ? renderPreview(src) : `<p class="note">Start typing to see a preview.</p>`;
         hydrateRepoCode(previewEl);
+        hydrateMermaid(previewEl);
       } catch (err) {
         previewEl.innerHTML = `<p class="err">Preview error: ${esc(err instanceof Error ? err.message : String(err))}</p>`;
       }

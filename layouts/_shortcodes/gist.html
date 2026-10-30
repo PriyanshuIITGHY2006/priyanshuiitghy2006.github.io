@@ -1,0 +1,7 @@
+{{- /* A GitHub gist, embedded with GitHub's own script (Hugo removed its gist shortcode in 0.156). {{< gist user id >}} or {{< gist user id file.cpp >}} */ -}}
+{{- $user := .Get "user" | default (.Get 0) -}}
+{{- $id := .Get "id" | default (.Get 1) -}}
+{{- $file := .Get "file" | default (.Get 2) -}}
+{{- if or (not $user) (not $id) }}{{ errorf "gist needs a user and an id (%s)" .Position }}{{ end -}}
+<script src="https://gist.github.com/{{ $user }}/{{ $id }}.js{{ with $file }}?file={{ . }}{{ end }}"></script>
+<noscript><a href="https://gist.github.com/{{ $user }}/{{ $id }}">View the gist on GitHub</a></noscript>

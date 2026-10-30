@@ -1,0 +1,18 @@
+{{- /*
+  A video file, from the repo (gallery-media/clip.mp4) or a full URL.
+  {{< video src="gallery-media/clip.mp4" poster="gallery-media/clip.png" caption="..." >}}
+  Optional: autoplay=true (also mutes, loops and hides controls, like a GIF), loop=true, muted=true, width="480".
+*/ -}}
+{{- $src := .Get "src" -}}
+{{- if not $src }}{{ errorf "video needs src (%s)" .Position }}{{ end -}}
+{{- $url := cond (strings.HasPrefix $src "http") $src (relURL (strings.TrimPrefix "/" $src)) -}}
+{{- $auto := eq (.Get "autoplay") "true" -}}
+<figure class="media">
+  <video src="{{ $url }}"
+    {{- if $auto }} autoplay muted loop playsinline{{ else }} controls preload="metadata"{{ end }}
+    {{- if and (not $auto) (eq (.Get "loop") "true") }} loop{{ end }}
+    {{- if and (not $auto) (eq (.Get "muted") "true") }} muted{{ end }}
+    {{- with .Get "poster" }} poster="{{ cond (strings.HasPrefix . "http") . (relURL (strings.TrimPrefix "/" .)) }}"{{ end }}
+    {{- with .Get "width" }} style="max-width:{{ . }}px"{{ end }}></video>
+  {{- with .Get "caption" }}<figcaption>{{ . | markdownify }}</figcaption>{{ end }}
+</figure>

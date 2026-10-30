@@ -4,7 +4,7 @@
 
 import { supabase } from "./supabase";
 
-const MAX_UPLOAD_BYTES = 5 * 1024 * 1024; // 5MB, plenty for certificates and covers
+const MAX_UPLOAD_BYTES = 20 * 1024 * 1024; // 20MB: room for short videos; bigger files belong on YouTube
 
 export const POSTS_DIR = "content/posts";
 

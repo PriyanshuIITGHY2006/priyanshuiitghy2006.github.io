@@ -123,7 +123,20 @@ markup:
     noClasses: false
     lineNos: false
   goldmark:
+    # {.class} or {#id} on the line after a paragraph, heading or list.
+    parser:
+      attribute:
+        block: true
     extensions:
+      # ==highlight==, ++inserted++ and x^2^. Subscript is left off because
+      # it would turn ~~strikethrough~~ into subscript; use <sub>.
+      extras:
+        mark:
+          enable: true
+        insert:
+          enable: true
+        superscript:
+          enable: true
       passthrough:
         enable: true
         delimiters:
