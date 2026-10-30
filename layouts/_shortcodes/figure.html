@@ -1,0 +1,33 @@
+{{- /*
+  PaperMod's figure, with the image path resolved from the site root (gallery-media/x.png works on any page)
+  and, for files in the repo, the same resized WebP copies as other post images.
+  {{< figure src="gallery-media/x.png" caption="..." align="center" width="400" link="..." alt="..." title="..." attr="..." attrlink="..." class="..." >}}
+*/ -}}
+{{- $src := .Get "src" -}}
+{{- $alt := .Get "alt" | default ((.Get "caption") | markdownify | plainify) -}}
+{{- $res := "" -}}
+{{- if not (strings.HasPrefix $src "http") }}{{ $res = resources.Get (strings.TrimPrefix "/" $src) }}{{ end -}}
+<figure{{ if or (.Get "class") (eq (.Get "align") "center") }} class="
+  {{- if eq (.Get "align") "center" }}align-center {{ end }}{{ with .Get "class" }}{{ . }}{{ end }}"{{ end }}>
+  {{- with .Get "link" }}<a href="{{ cond (or (strings.HasPrefix . "http") (strings.HasPrefix . "/")) . (relURL .) }}"{{ with $.Get "target" }} target="{{ . }}"{{ end }}{{ with $.Get "rel" }} rel="{{ . }}"{{ end }}>{{ end -}}
+  {{- if and $res (in (slice "jpeg" "png" "webp" "gif" "bmp" "tiff") $res.MediaType.SubType) -}}
+    {{- $img := partial "responsive-img.html" (dict "img" $res "alt" $alt "sizes" (cond (isset .Params "width") (printf "%spx" (.Get "width")) "(min-width: 768px) 720px, 100vw")) -}}
+    {{- with .Get "width" }}{{ $img = replaceRE `style="[^"]*"` "" $img | replaceRE `<img ` (printf `<img style="width:%spx" ` .) }}{{ end -}}
+    {{- $img | safeHTML -}}
+  {{- else -}}
+    <img loading="lazy" src="{{ cond (strings.HasPrefix $src "http") $src (relURL (strings.TrimPrefix "/" $src)) }}" alt="{{ $alt }}"
+      {{- with .Get "width" }} width="{{ . }}"{{ end }}{{ with .Get "height" }} height="{{ . }}"{{ end }}>
+  {{- end -}}
+  {{- if .Get "link" }}</a>{{ end -}}
+  {{- if or (.Get "title") (.Get "caption") (.Get "attr") }}
+  <figcaption>
+    {{- with .Get "title" }}{{ . }}{{ end -}}
+    {{- if or (.Get "caption") (.Get "attr") }}<p>
+      {{- .Get "caption" | markdownify -}}
+      {{- with .Get "attrlink" }}<a href="{{ . }}">{{ end -}}
+      {{- .Get "attr" | markdownify -}}
+      {{- if .Get "attrlink" }}</a>{{ end }}</p>
+    {{- end }}
+  </figcaption>
+  {{- end }}
+</figure>

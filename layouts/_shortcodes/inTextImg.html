@@ -1,0 +1,3 @@
+{{- /* PaperMod's small image inside a sentence, with the path resolved from the site root. {{< inTextImg url="gallery-media/icon.png" height="16" alt="..." >}} */ -}}
+{{- $url := .Get "url" -}}
+<img class="in-text" height="{{ .Get "height" | default `15` }}" src="{{ cond (strings.HasPrefix $url "http") $url (relURL (strings.TrimPrefix "/" $url)) }}" alt="{{ .Get "alt" }}">

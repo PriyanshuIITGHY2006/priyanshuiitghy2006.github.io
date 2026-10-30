@@ -286,3 +286,6 @@ a.gl-card .gl-meta { padding-top: 14px; }
 .post-content pre.mermaid { background: none; border: 0; text-align: center; }
 .post-content dt { font-weight: 600; }
 .post-content dd { margin-inline-start: 1.5em; }
+
+/* figure shortcode: centred figures keep their set width */
+.post-content figure.align-center img { margin-inline: auto; }
