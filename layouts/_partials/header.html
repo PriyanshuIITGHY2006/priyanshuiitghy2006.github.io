@@ -3,7 +3,7 @@
         <div class="logo">
             {{- $label_text := (site.Params.label.text | default site.Title) }}
             {{- if site.Title }}
-            {{- /* "pd_" in JetBrains Mono, drawn as an inline SVG (assets/logo.svg) so no font is downloaded; it takes the text colour. The visible name stays available to screen readers. */}}
+            {{- /* "priyanshu_" in JetBrains Mono, drawn as an inline SVG (assets/logo.svg) so no font is downloaded; it takes the text colour. The visible name stays available to screen readers. */}}
             <a href="{{ "" | absLangURL }}" accesskey="h" title="{{ $label_text }} (Alt + H)">
                 {{- (resources.Get "logo.svg").Content | safeHTML -}}
                 <span class="visually-hidden">{{ $label_text }}</span>

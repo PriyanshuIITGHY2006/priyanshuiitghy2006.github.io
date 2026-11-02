@@ -290,6 +290,6 @@ a.gl-card .gl-meta { padding-top: 14px; }
 /* figure shortcode: centred figures keep their set width */
 .post-content figure.align-center img { margin-inline: auto; }
 
-/* Header logo: the "pd_" mark (layouts/_partials/header.html) */
+/* Header logo: the "priyanshu_" mark (layouts/_partials/header.html) */
 .logo a svg.logo-mark { height: 26px; width: auto; display: block; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
