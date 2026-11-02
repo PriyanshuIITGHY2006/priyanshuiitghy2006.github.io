@@ -303,6 +303,7 @@ a.gl-card .gl-meta { padding-top: 14px; }
   padding: var(--gap) 0;
   margin-bottom: 0;
 }
+.post-entry:last-of-type { border-bottom: 0; }
 .post-entry:hover,
 .post-entry:focus-within { transform: none; border-color: var(--border); }
 .post-entry:hover .entry-header h2 { text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 1px; }
