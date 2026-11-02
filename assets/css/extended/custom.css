@@ -293,3 +293,16 @@ a.gl-card .gl-meta { padding-top: 14px; }
 /* Header logo: the "priyanshu_" mark (layouts/_partials/header.html) */
 .logo a svg.logo-mark { height: 26px; width: auto; display: block; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Post list: borderless entries separated by a hairline, no card box */
+.post-entry {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  padding: var(--gap) 0;
+  margin-bottom: 0;
+}
+.post-entry:hover,
+.post-entry:focus-within { transform: none; border-color: var(--border); }
+.post-entry:hover .entry-header h2 { text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 1px; }
