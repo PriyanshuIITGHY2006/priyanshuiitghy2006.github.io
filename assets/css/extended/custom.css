@@ -307,3 +307,30 @@ a.gl-card .gl-meta { padding-top: 14px; }
 .post-entry:hover,
 .post-entry:focus-within { transform: none; border-color: var(--border); }
 .post-entry:hover .entry-header h2 { text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 1px; }
+
+/* Colour palette: "Paper" (light) and "Espresso" (dark) */
+:root {
+  --theme: #f6f3ec;
+  --entry: #f6f3ec;
+  --primary: #25221e;
+  --secondary: #6e685e;
+  --tertiary: #e3ddd0;
+  --content: #2b2824;
+  --code-bg: #ece7dc;
+  --border: #e3ddd0;
+  --accent: #9a3412;
+}
+:root[data-theme="dark"] {
+  --theme: #1b1816;
+  --entry: #1b1816;
+  --primary: #ece6df;
+  --secondary: #a39a90;
+  --tertiary: #3a342f;
+  --content: #d9d2ca;
+  --code-bg: #2a2522;
+  --code-block-bg: #24201d;
+  --border: #2e2925;
+  --accent: #e0a458;
+}
+.list, [data-theme="dark"] .list { background: var(--theme); }
+.post-entry:hover .entry-header h2 { color: var(--accent); }
