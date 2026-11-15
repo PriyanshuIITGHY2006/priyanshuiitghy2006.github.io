@@ -395,6 +395,13 @@ async function reveal(id) {
   ingest(r);
   const c = r.crumbs;
   await Promise.all(c.slice(1, -1).map((x) => loadDir(x.id)));
+  if (r.file && !N[id]) N[id] = Object.assign({ kids: null, open: false }, r.file, { parent: c.length > 1 ? c[c.length - 2].id : ROOT });
+  for (let i = 1; i < c.length; i++) {
+    const p = N[c[i - 1].id];
+    const n = N[c[i].id];
+    if (!p || !n || !p.kids) continue;
+    if (!p.kids.includes(n.id)) { n.parent = p.id; if (!S.admin) n.vis = 'public'; p.kids.push(n.id); }
+  }
   c.forEach((x) => { if (N[x.id] && N[x.id].folder) N[x.id].open = true; });
   S.sel = id;
 }
