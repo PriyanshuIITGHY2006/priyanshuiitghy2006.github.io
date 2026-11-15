@@ -66,6 +66,24 @@ select{background:var(--theme)}
 .pmenu{position:absolute;z-index:15;top:calc(100% + 6px);left:0;min-width:190px;padding:5px;background:var(--theme);border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 10px 30px rgba(0,0,0,.2)}
 .acts .pmenu button{display:block;width:100%;text-align:left;border:0;border-radius:5px;padding:7px 9px;font-size:13px}
 .acts .pmenu button:hover{background:var(--code-bg)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:8px;padding:14px 16px}
+.tile{aspect-ratio:1;padding:0;border:1px solid var(--border);border-radius:6px;overflow:hidden;background:var(--code-bg);display:flex;align-items:center;justify-content:center}
+.tile:hover{border-color:var(--accent)}
+.tile img{width:100%;height:100%;object-fit:cover;display:block}
+.tname{font:11px var(--mono);color:var(--secondary);padding:6px;overflow-wrap:anywhere;white-space:normal}
+.imgv{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:14px}
+.imgv img{max-width:100%;max-height:100%;object-fit:contain;border-radius:4px}
+.xw{padding:6px 16px 16px}
+.xh{margin-top:14px;padding-bottom:6px;border-bottom:1px solid var(--border);font:600 13px var(--sans);color:var(--primary)}
+.xe{padding:10px 0;color:var(--secondary);font-size:13px}
+.xr{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border)}
+.xn{flex:1;min-width:0;font:13px var(--mono);color:var(--primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.xn i{font-style:normal;color:var(--secondary)}
+.xm{flex:0 0 auto;font-size:12px;color:var(--secondary)}
+.xr button{padding:3px 8px;font-size:12px}
+#sh label{display:block;font-size:12px;color:var(--secondary)}
+#sh label input,#sh label select{display:block;width:100%;margin:4px 0 12px;font:14px var(--mono);padding:8px 10px;border:1px solid var(--border);border-radius:6px;background:var(--code-bg);color:var(--primary)}
+#chb{flex-wrap:wrap}
 .hint{padding:10px 14px;color:var(--secondary);font:12px var(--sans)}
 .sort{padding:4px 6px;font-size:12px}
 #mv{width:min(460px,calc(100vw - 32px))}
@@ -138,6 +156,7 @@ dialog input:focus{border-color:var(--accent)}
     <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
     <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
   </button>
+  <button id="expo" hidden>Shared</button>
   <button id="lock">Unlock</button>
 </header>
 <div class="wrap">
@@ -149,6 +168,7 @@ dialog input:focus{border-color:var(--accent)}
       <button class="pri" id="pick">Upload files</button>
       <button id="pickd">Upload folder</button>
       <button id="mk">New folder</button>
+      <button id="fromurl">From link</button>
       <select id="vis" title="Visibility for new uploads and folders">
         <option value="private">Private</option>
         <option value="public">Public</option>
@@ -165,6 +185,8 @@ dialog input:focus{border-color:var(--accent)}
 <div id="drop">Drop to upload</div>
 <div id="ups"></div>
 <dialog id="dlg"><form method="dialog"><h3 id="dt"></h3><p id="dm"></p><input id="di" autocomplete="off"><div class="dbtn"><button type="button" id="dno">Cancel</button><button value="ok" class="pri" id="dok">OK</button></div></form></dialog>
+<dialog id="ch"><h3 id="cht"></h3><p id="chm"></p><div class="dbtn" id="chb"></div></dialog>
+<dialog id="sh"><form method="dialog" id="shf"><h3 id="sht"></h3><label>Link name<input id="shn" placeholder="optional, for example resume" autocomplete="off" spellcheck="false" maxlength="24"></label><label>Expires<select id="she"><option value="0">Never</option><option value="1">In 1 hour</option><option value="24">In 1 day</option><option value="168">In 7 days</option><option value="720">In 30 days</option></select></label><label>Password<input id="shp" placeholder="optional" autocomplete="off" spellcheck="false"></label><div class="dbtn"><button type="button" id="shno">Cancel</button><button value="ok" class="pri">Create link</button></div></form></dialog>
 <dialog id="mv"><h3 id="mvt"></h3><input id="mvq" placeholder="filter folders" autocomplete="off" spellcheck="false"><div id="mvl"></div><div class="dbtn"><button type="button" id="mvno">Cancel</button></div></dialog>
 <div id="toast"></div>
 <script>
@@ -172,7 +194,7 @@ const API = 'https://script.google.com/macros/s/AKfycbzpSqGeQG6RijCoW5dYNLSiBVq5
 const CHUNK = 16 * 1024 * 1024;
 const $ = (id) => document.getElementById(id);
 const N = {};
-const S = { sel: null, admin: false, q: '', rows: [], shown: null, tok: null, tokAt: 0, v: 1, multi: new Set(), anchor: null, found: null, searching: false, drag: null, sorts: {} };
+const S = { sel: null, admin: false, q: '', rows: [], shown: null, tok: null, tokAt: 0, v: 1, multi: new Set(), anchor: null, found: null, searching: false, drag: null, sorts: {}, share: null, spw: '', rootName: 'dump', view: null, exp: null };
 try { S.sorts = JSON.parse(localStorage.getItem('dump_sort') || '{}') || {}; } catch (e) { S.sorts = {}; }
 let ROOT = null;
 const pw = () => { try { return localStorage.getItem('dump_pw') || ''; } catch (e) { return ''; } };
@@ -186,7 +208,7 @@ async function api(a, o) {
   const r = await fetch(API, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify(Object.assign({ a, pw: pw() }, o || {}))
+    body: JSON.stringify(Object.assign({ a, pw: pw() }, S.share ? { s: S.share, spw: S.spw } : {}, o || {}))
   });
   const j = await r.json();
   if (j.error) throw new Error(j.error);
@@ -239,7 +261,7 @@ function size(n) {
   return (i ? n.toFixed(n < 10 ? 1 : 0) : n) + u[i];
 }
 
-const linkOf = (id) => location.origin + location.pathname + (id && id !== ROOT ? '#' + id : '');
+const linkOf = (id) => location.origin + location.pathname + (S.share ? '#' + S.share : id && id !== ROOT ? '#' + id : '');
 const dlOf = (id) => 'https://drive.google.com/uc?export=download&id=' + id;
 
 function pathOf(id) {
@@ -253,7 +275,7 @@ function ingest(r) {
   S.admin = r.admin;
   S.v = r.v || 1;
   const c = r.crumbs;
-  if (!ROOT) ROOT = c[0].id;
+  if (!ROOT) { ROOT = c[0].id; S.rootName = c[0].name || 'dump'; }
   c.forEach((x, i) => {
     if (r.file && i === c.length - 1) return;
     if (!N[x.id]) N[x.id] = { id: x.id, name: x.name, folder: true, vis: i ? 'private' : 'public', parent: i ? c[i - 1].id : null, kids: null, open: !i };
@@ -288,6 +310,7 @@ function walk(onlyOpen) {
 }
 
 function onRow(e, id) {
+  if (S.view) { S.view = null; S.shown = null; }
   if (S.admin && (e.ctrlKey || e.metaKey)) {
     if (!S.multi.size && S.sel && S.sel !== ROOT && S.sel !== id && N[S.sel]) S.multi.add(S.sel);
     if (S.multi.has(id)) S.multi.delete(id); else S.multi.add(id);
@@ -432,15 +455,16 @@ function renderMulti() {
 }
 
 function renderPreview() {
+  if (S.view === 'exposed') { renderExposed(); return; }
   if (S.multi.size) { renderMulti(); return; }
   const n = N[S.sel] || N[ROOT];
   if (!n) return;
   const p = pathOf(n.id);
   const P = $('ppath');
   P.textContent = '';
-  P.append('dump/' + p.slice(0, -1).map((x) => x + '/').join(''));
+  P.append(S.rootName + '/' + p.slice(0, -1).map((x) => x + '/').join(''));
   if (p.length) P.append(el('strong', '', p[p.length - 1] + (n.folder ? '/' : '')));
-  P.title = 'dump/' + p.join('/');
+  P.title = S.rootName + '/' + p.join('/');
   const M = $('pmeta');
   M.textContent = '';
   const bits = [];
@@ -453,6 +477,7 @@ function renderPreview() {
   if (n.folder && n.kids && n.kids.length > 1) A.append(sortSelect(n.id));
   A.append(copyMenu(n));
   if (!n.folder) { const a = el('a', 'btn', 'Download'); a.href = dlOf(n.id); a.target = '_blank'; a.rel = 'noopener'; A.append(a); }
+  else if (n.id !== '~' && n.kids && n.kids.length) A.append(btn('Download zip', () => zipDl(n)));
   if (S.admin && n.id !== ROOT) {
     A.append(btn(n.vis === 'public' ? 'Make private' : 'Make public', () => visItems([n.id], n.vis === 'public' ? 'private' : 'public')));
     A.append(btn('Move', () => moveVia([n.id])));
@@ -466,24 +491,35 @@ function renderPreview() {
   S.shown = key;
   B.textContent = '';
   if (!n.folder) {
-    const f = el('iframe');
-    f.allow = 'autoplay';
-    f.allowFullscreen = true;
-    f.src = 'https://drive.google.com/file/d/' + n.id + '/preview';
-    B.append(f);
+    if (isImg(n)) {
+      const w = el('div', 'imgv');
+      w.append(imgEl(n, 1600, () => w.replaceWith(frame(n))));
+      B.append(w);
+    } else {
+      B.append(frame(n));
+    }
     return;
   }
   if (!n.kids) { B.append(el('div', 'note', 'Loading')); return; }
   if (!n.kids.length) { B.append(el('div', 'note', S.admin ? 'Empty folder. Drop files here to upload.' : 'Empty folder.')); return; }
-  B.append(listing(n.kids, mode));
+  const imgs = n.kids.filter((k) => isImg(N[k]));
+  if (imgs.length >= 3 && imgs.length * 2 >= n.kids.length) {
+    const rest = n.kids.filter((k) => !isImg(N[k]));
+    if (rest.length) B.append(listing(rest, mode));
+    B.append(grid(imgs));
+  } else {
+    B.append(listing(n.kids, mode));
+  }
 }
 
 function render() {
   document.body.classList.toggle('admin', S.admin);
   $('lock').textContent = S.admin ? 'Lock' : 'Unlock';
+  $('expo').hidden = !S.admin;
+  if (!ROOT) { ['ppath', 'pmeta', 'acts', 'pbody', 'into'].forEach((i) => { $(i).textContent = ''; }); $('count').textContent = ''; return; }
   const d = N[curDir()];
   $('into').textContent = 'Uploads go to ';
-  $('into').append(el('span', '', 'dump/' + (d ? pathOf(d.id).map((x) => x + '/').join('') : '')));
+  $('into').append(el('span', '', S.rootName + '/' + (d ? pathOf(d.id).map((x) => x + '/').join('') : '')));
   renderTree();
   renderPreview();
 }
@@ -498,7 +534,8 @@ async function pick(id, toggle) {
   if (!n) return;
   const was = S.sel === id;
   S.sel = id;
-  history.replaceState(null, '', id === ROOT ? location.pathname : '#' + id);
+  if (S.view) { S.view = null; S.shown = null; }
+  if (!S.share) history.replaceState(null, '', id === ROOT ? location.pathname : '#' + id);
   const par = N[n.parent];
   if (id !== ROOT && (!par || !par.kids || !par.kids.includes(id))) {
     render();
@@ -534,25 +571,90 @@ async function reveal(id) {
   S.sel = id;
 }
 
+async function openShare(slug) {
+  S.share = slug;
+  try { S.spw = sessionStorage.getItem('dump_spw_' + slug) || ''; } catch (e) { S.spw = ''; }
+  for (;;) {
+    let r;
+    try {
+      r = await api('list');
+    } catch (e) {
+      if (e.message === 'Password required' || e.message === 'Wrong link password') {
+        if (e.message === 'Wrong link password') toast('Wrong password');
+        const p = await ask('This link needs a password', { type: 'password', ok: 'Open' });
+        if (!p) { S.share = null; throw new Error('A password is needed to open this link.'); }
+        S.spw = p;
+        try { sessionStorage.setItem('dump_spw_' + slug, p); } catch (x) {}
+        continue;
+      }
+      S.share = null;
+      throw new Error(e.message === 'Link expired' ? 'This link has expired.' : e.message === 'Link not found' ? 'This link does not exist.' : e.message);
+    }
+    if (r.file && r.crumbs.length === 1) {
+      S.admin = false;
+      S.v = r.v || 1;
+      ROOT = '~';
+      S.rootName = 'shared';
+      N[ROOT] = { id: ROOT, name: 'shared', folder: true, vis: 'public', parent: null, kids: [r.file.id], open: true };
+      N[r.file.id] = Object.assign({ kids: null, open: false }, r.file, { parent: ROOT });
+      S.sel = r.file.id;
+    } else {
+      ingest(r);
+      S.sel = ROOT;
+    }
+    return;
+  }
+}
+
 async function init() {
-  const id = location.hash.slice(1);
-  Object.keys(N).forEach((k) => delete N[k]);
-  ROOT = null;
+  let h = location.hash.slice(1);
+  try { h = decodeURIComponent(h); } catch (e) {}
+  const slug = h && h.length <= 24 ? h.toLowerCase() : '';
+  const id = slug ? '' : h;
+  const wipe = () => { Object.keys(N).forEach((k) => delete N[k]); ROOT = null; };
+  wipe();
+  S.sel = null;
   S.shown = null;
   S.multi.clear();
   S.found = null;
   S.searching = false;
+  S.share = null;
+  S.spw = '';
+  S.view = null;
+  S.rootName = 'dump';
   try {
+    const NONE = 'This link does not exist.';
+    const viaShare = async () => {
+      wipe();
+      S.sel = null;
+      try { await openShare(slug); return true; }
+      catch (e) { if (e.message !== NONE) throw e; wipe(); return false; }
+    };
+    if (slug && !pw() && (await viaShare())) { render(); return; }
     await loadDir('');
     S.sel = ROOT;
-    if (id && id !== ROOT) {
-      try { await reveal(id); }
-      catch (e) { toast(e.message === 'Not found' ? 'That item is private or no longer exists' : e.message); history.replaceState(null, '', location.pathname); }
+    if (slug && !S.admin && pw()) {
+      if (await viaShare()) { render(); return; }
+      await loadDir('');
+      S.sel = ROOT;
+    }
+    let target = id;
+    if (slug && S.admin) {
+      try { const r = await api('list', { s: slug }); target = r.crumbs[r.crumbs.length - 1].id; }
+      catch (e) { target = h; }
+    } else if (slug) {
+      target = h;
+    }
+    if (target && target !== ROOT) {
+      try { await reveal(target); }
+      catch (e) { toast(e.message === 'Not found' ? (slug ? 'That link does not exist, or the item is private' : 'That item is private or no longer exists') : e.message); history.replaceState(null, '', location.pathname); }
     }
     render();
   } catch (e) {
+    S.sel = null;
+    render();
     $('tree').textContent = '';
-    $('tree').append(el('div', 'note', 'Could not load: ' + e.message));
+    $('tree').append(el('div', 'note', /^(This link|A password)/.test(e.message) ? e.message : 'Could not load: ' + e.message));
   }
 }
 
@@ -585,6 +687,7 @@ function copyMenu(n) {
   add('Link on this site', 'site');
   add('Google Drive link', 'drive');
   if (!n.folder) add('Direct download link', 'download');
+  if (S.admin && n.id !== ROOT) m.append(btn('Create share link', () => { d.open = false; shareVia(n); }));
   d.append(m);
   return d;
 }
@@ -726,10 +829,10 @@ function chooseDir(ids) {
       const t = $('mvq').value.toLowerCase().split(/\s+/).filter(Boolean);
       const L = $('mvl');
       L.textContent = '';
-      const show = opts.filter((o) => t.every((x) => ('dump/' + o.path).toLowerCase().includes(x)));
+      const show = opts.filter((o) => t.every((x) => (S.rootName + '/' + o.path).toLowerCase().includes(x)));
       if (!show.length) L.append(el('div', 'note', opts.length ? 'No folder matches' : 'No other folder to move to'));
       show.forEach((o) => {
-        const b = el('button', 'mvo', 'dump/' + o.path);
+        const b = el('button', 'mvo', S.rootName + '/' + o.path);
         b.type = 'button';
         b.onclick = () => { chosen = o.id; d.close(); };
         L.append(b);
@@ -786,10 +889,341 @@ async function mkdir() {
   } catch (e) { toast(e.message); }
 }
 
-const U = { jobs: [], active: 0, names: {}, raf: 0, auto: 0, rt: 0 };
+const U = { jobs: [], active: 0, names: {}, live: {}, raf: 0, auto: 0, rt: 0 };
 const JUNK = /^(\.DS_Store|Thumbs\.db|desktop\.ini|\._.*)$/i;
 const UPLOAD_URL = 'https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id';
 const pending = () => U.jobs.some((j) => j.state === 'wait' || j.state === 'run');
+
+const IMG = /\.(png|jpe?g|gif|webp|avif|bmp|svg|heic)$/i;
+const isImg = (n) => !n.folder && (/^image\//.test(n.mime || '') || IMG.test(n.name));
+
+function imgEl(n, px, onfail) {
+  const im = el('img');
+  const alt = 'https://drive.google.com/thumbnail?id=' + n.id + '&sz=w' + px;
+  let step = n.thumb ? 0 : 1;
+  im.alt = n.name;
+  im.loading = 'lazy';
+  im.referrerPolicy = 'no-referrer';
+  im.onerror = () => {
+    if (step === 0) { step = 1; im.src = alt; }
+    else { im.onerror = null; onfail(im); }
+  };
+  im.src = n.thumb ? n.thumb.replace(/=s\d+$/, '=s' + px) : alt;
+  return im;
+}
+
+function grid(ids) {
+  const G = el('div', 'grid');
+  ids.forEach((k) => {
+    const c = N[k];
+    const t = el('button', 'tile');
+    t.type = 'button';
+    t.title = c.name;
+    t.append(imgEl(c, 320, (im) => im.replaceWith(el('span', 'tname', c.name))));
+    t.onclick = () => { S.multi.clear(); pick(c.id, false); };
+    G.append(t);
+  });
+  return G;
+}
+
+function frame(n) {
+  const f = el('iframe');
+  f.allow = 'autoplay';
+  f.allowFullscreen = true;
+  f.src = 'https://drive.google.com/file/d/' + n.id + '/preview';
+  return f;
+}
+
+function choose(title, msg, opts) {
+  return new Promise((res) => {
+    const d = $('ch');
+    let v = null;
+    $('cht').textContent = title;
+    $('chm').textContent = msg;
+    $('chm').hidden = !msg;
+    const B = $('chb');
+    B.textContent = '';
+    opts.forEach((o, i) => {
+      const b = el('button', i === opts.length - 1 ? 'pri' : '', o[1]);
+      b.type = 'button';
+      b.onclick = () => { v = o[0]; d.close(); };
+      B.append(b);
+    });
+    d.onclose = () => res(v);
+    d.showModal();
+  });
+}
+
+function zipWriter() {
+  const T = new Uint32Array(256);
+  for (let i = 0; i < 256; i++) {
+    let c = i;
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1;
+    T[i] = c >>> 0;
+  }
+  const crc = (u) => {
+    let c = 0xFFFFFFFF;
+    for (let i = 0; i < u.length; i++) c = T[(c ^ u[i]) & 255] ^ (c >>> 8);
+    return (c ^ 0xFFFFFFFF) >>> 0;
+  };
+  const enc = new TextEncoder();
+  const parts = [];
+  const cen = [];
+  let off = 0;
+  let count = 0;
+  return {
+    add(name, data, mod) {
+      const nb = enc.encode(name);
+      const c = crc(data);
+      const t = new Date(mod || Date.now());
+      const time = (t.getHours() << 11) | (t.getMinutes() << 5) | (t.getSeconds() >> 1);
+      const date = ((Math.max(1980, t.getFullYear()) - 1980) << 9) | ((t.getMonth() + 1) << 5) | t.getDate();
+      const h = new DataView(new ArrayBuffer(30));
+      h.setUint32(0, 0x04034b50, true);
+      h.setUint16(4, 20, true);
+      h.setUint16(6, 0x0800, true);
+      h.setUint16(10, time, true);
+      h.setUint16(12, date, true);
+      h.setUint32(14, c, true);
+      h.setUint32(18, data.length, true);
+      h.setUint32(22, data.length, true);
+      h.setUint16(26, nb.length, true);
+      parts.push(new Blob([h.buffer, nb, data]));
+      const e = new DataView(new ArrayBuffer(46));
+      e.setUint32(0, 0x02014b50, true);
+      e.setUint16(4, 20, true);
+      e.setUint16(6, 20, true);
+      e.setUint16(8, 0x0800, true);
+      e.setUint16(12, time, true);
+      e.setUint16(14, date, true);
+      e.setUint32(16, c, true);
+      e.setUint32(20, data.length, true);
+      e.setUint32(24, data.length, true);
+      e.setUint16(28, nb.length, true);
+      e.setUint32(42, off, true);
+      cen.push(e.buffer, nb);
+      off += 30 + nb.length + data.length;
+      count++;
+    },
+    finish() {
+      let cs = 0;
+      cen.forEach((x) => { cs += x.byteLength; });
+      const e = new DataView(new ArrayBuffer(22));
+      e.setUint32(0, 0x06054b50, true);
+      e.setUint16(8, count, true);
+      e.setUint16(10, count, true);
+      e.setUint32(12, cs, true);
+      e.setUint32(16, off, true);
+      return new Blob(parts.concat(cen, [e.buffer]), { type: 'application/zip' });
+    }
+  };
+}
+
+function saveBlob(url, name) {
+  const a = el('a');
+  a.href = url;
+  if (name) a.download = name;
+  a.rel = 'noopener';
+  document.body.append(a);
+  a.click();
+  a.remove();
+}
+
+async function clientZip(n) {
+  toast('Listing files', true);
+  const list = [];
+  const used = new Set();
+  try {
+    await (async function rec(id, path) {
+      if (!N[id].kids) await loadDir(id === ROOT ? '' : id);
+      for (const k of N[id].kids.slice()) {
+        const c = N[k];
+        if (c.folder) { await rec(k, path + c.name + '/'); continue; }
+        if (/^application\/vnd\.google-apps/.test(c.mime || '')) continue;
+        let name = path + c.name;
+        for (let i = 1; used.has(name); i++) name = path + c.name.replace(/(\.[^.]*)?$/, ' (' + i + ')$1');
+        used.add(name);
+        list.push({ id: k, name, size: c.size || 0, mod: c.modified });
+      }
+    })(n.id, '');
+    if (!list.length) { toast('No files to zip in this folder'); return; }
+    if (list.reduce((a, x) => a + x.size, 0) > 2 * 1024 * 1024 * 1024 || list.length > 20000) { toast('Too large to zip in the browser (limit 2 GB)'); return; }
+    const z = zipWriter();
+    let done = 0;
+    for (const f of list) {
+      toast('Zipping ' + ++done + ' of ' + list.length, true);
+      const r = await fetch('https://www.googleapis.com/drive/v3/files/' + f.id + '?alt=media', { headers: { Authorization: 'Bearer ' + (await token()) } });
+      if (!r.ok) throw new Error('Could not read ' + f.name + ' (' + r.status + ')');
+      z.add(f.name, new Uint8Array(await r.arrayBuffer()), f.mod);
+    }
+    const url = URL.createObjectURL(z.finish());
+    saveBlob(url, (n.id === ROOT ? S.rootName : n.name) + '.zip');
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    toast(list.length + (list.length === 1 ? ' file zipped' : ' files zipped'));
+  } catch (e) {
+    toast(e.message);
+  }
+}
+
+async function zipDl(n) {
+  if (S.v < 3) { toast(NEEDS); return; }
+  if (S.admin) { await clientZip(n); return; }
+  toast('Preparing zip', true);
+  try {
+    const r = await api('zip', n.id === ROOT && S.share ? {} : { id: n.id });
+    saveBlob(r.url);
+    toast(r.files + (r.files === 1 ? ' file zipped' : ' files zipped') + ', download starting');
+  } catch (e) {
+    toast(e.message);
+  }
+}
+
+async function saveUrl() {
+  if (S.v < 3) { toast(NEEDS); return; }
+  const dir = curDir();
+  const url = await ask('Save from a link', { msg: 'Paste a direct link to a file, up to 50 MB. It is saved into ' + S.rootName + '/' + pathOf(dir).map((x) => x + '/').join(''), ok: 'Save' });
+  if (!url) return;
+  toast('Fetching', true);
+  try {
+    const r = await api('fetch', { id: dir, url, vis: $('vis').value });
+    const it = r.item;
+    N[it.id] = Object.assign({ kids: null, open: false }, it, { parent: dir });
+    const d = N[dir];
+    if (d && d.kids && !d.kids.includes(it.id)) { d.kids.push(it.id); sortKids(dir); }
+    if (d) d.open = true;
+    S.multi.clear();
+    S.view = null;
+    S.sel = it.id;
+    S.shown = null;
+    history.replaceState(null, '', '#' + it.id);
+    render();
+    toast('Saved ' + it.name);
+  } catch (e) {
+    toast(e.message);
+  }
+}
+
+function shareUrl(slug) {
+  return location.origin + location.pathname + '#' + slug;
+}
+
+async function clip(text, okMsg) {
+  try { await navigator.clipboard.writeText(text); toast(okMsg); }
+  catch (e) { ask('Copy this link', { value: text }); }
+}
+
+function shareForm(n) {
+  return new Promise((res) => {
+    const d = $('sh');
+    let ok = false;
+    $('sht').textContent = 'Share "' + n.name + '"';
+    $('shf').onsubmit = () => { ok = true; };
+    d.onclose = () => res(ok ? { slug: $('shn').value.trim(), hours: Number($('she').value), spw: $('shp').value } : null);
+    d.showModal();
+    $('shn').focus();
+  });
+}
+
+async function shareVia(n) {
+  if (S.v < 3) { toast(NEEDS); return; }
+  $('shn').value = '';
+  $('she').value = '0';
+  $('shp').value = '';
+  for (;;) {
+    const f = await shareForm(n);
+    if (!f) return;
+    toast('Creating link', true);
+    try {
+      const r = await api('share', { id: n.id, slug: f.slug, hours: f.hours, spw: f.spw });
+      untoast();
+      await clip(shareUrl(r.slug), 'Share link copied');
+      return;
+    } catch (e) {
+      toast(e.message);
+    }
+  }
+}
+
+async function openExposed() {
+  if (S.v < 3) { toast(NEEDS); return; }
+  S.view = 'exposed';
+  S.exp = null;
+  S.multi.clear();
+  S.shown = null;
+  render();
+  try { S.exp = await api('exposed'); }
+  catch (e) { toast(e.message); S.view = null; }
+  S.shown = null;
+  render();
+}
+
+async function privatize(ids) {
+  const failed = [];
+  for (let i = 0; i < ids.length; i += 15) {
+    if (ids.length > 1) toast('Updating ' + Math.min(i + 15, ids.length) + ' of ' + ids.length, true);
+    try {
+      const r = await api('vis', { ids: ids.slice(i, i + 15), vis: 'private' });
+      r.done.forEach((id) => { if (N[id]) N[id].vis = 'private'; });
+      failed.push.apply(failed, r.failed);
+    } catch (e) { failed.push({ error: e.message }); }
+  }
+  untoast();
+  if (failed.length) toast(failed.length + ' failed: ' + failed[0].error);
+  await openExposed();
+}
+
+function when(ms) {
+  return new Date(ms).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+}
+
+function renderExposed() {
+  const P = $('ppath');
+  P.textContent = '';
+  P.append(el('strong', '', 'Shared and public'));
+  P.title = '';
+  const x = S.exp;
+  $('pmeta').textContent = x ? x.links.length + (x.links.length === 1 ? ' share link' : ' share links') + ' · ' + x.items.length + (x.items.length === 1 ? ' public item' : ' public items') : 'loading';
+  const A = $('acts');
+  A.textContent = '';
+  if (x && x.items.length > 1) A.append(btn('Make all private', async () => {
+    const ok = await ask('Make all private', { msg: 'Make all ' + x.items.length + ' public items private? Share links keep working.', input: false, ok: 'Make private' });
+    if (ok) privatize(x.items.map((i) => i.id));
+  }));
+  A.append(btn('Close', () => { S.view = null; S.shown = null; render(); }));
+  const B = $('pbody');
+  if (S.shown === 'exposed') return;
+  S.shown = 'exposed';
+  B.textContent = '';
+  if (!x) { B.append(el('div', 'note', 'Loading')); return; }
+  const W = el('div', 'xw');
+  const row = (name, dim, meta, acts) => {
+    const r = el('div', 'xr');
+    const n = el('span', 'xn');
+    if (dim) n.append(el('i', '', dim));
+    n.append(name);
+    n.title = (dim || '') + name;
+    r.append(n, el('span', 'xm', meta));
+    acts.forEach((a) => r.append(a));
+    W.append(r);
+  };
+  W.append(el('div', 'xh', 'Share links'));
+  if (!x.links.length) W.append(el('div', 'xe', 'No share links.'));
+  x.links.forEach((l) => {
+    const meta = [l.gone ? 'item deleted' : (l.exp ? 'expires ' + when(l.exp) : 'no expiry')];
+    if (l.pw) meta.push('password');
+    row((l.gone ? '' : l.path + l.name + (l.folder ? '/' : '')), '#' + l.slug + '  ', meta.join(' · '), [
+      btn('Copy', () => clip(shareUrl(l.slug), 'Share link copied')),
+      btn('Revoke', async () => { toast('Revoking', true); try { await api('unshare', { slug: l.slug }); untoast(); } catch (e) { toast(e.message); } openExposed(); }, 'bad')
+    ]);
+  });
+  W.append(el('div', 'xh', 'Public items'));
+  if (!x.items.length) W.append(el('div', 'xe', 'Nothing is public.'));
+  x.items.forEach((i) => {
+    const meta = i.why === 'drive' ? 'shared in Drive, not marked here' : i.site ? 'visible on the site' : i.folder ? 'hidden, a folder above is private' : 'Drive link only';
+    row(i.name + (i.folder ? '/' : ''), i.path, meta, [btn('Make private', () => privatize([i.id]))]);
+  });
+  B.append(W);
+}
 
 async function token(force) {
   if (force || !S.tok || Date.now() - S.tokAt > 40 * 60 * 1000) {
@@ -823,7 +1257,9 @@ async function startSession(j, pid) {
     const t = await token(a > 0);
     const h = { Authorization: 'Bearer ' + t, 'Content-Type': 'application/json; charset=UTF-8', 'X-Upload-Content-Length': String(j.file.size) };
     if (j.file.type) h['X-Upload-Content-Type'] = j.file.type;
-    const r = await fetch(UPLOAD_URL, { method: 'POST', headers: h, body: JSON.stringify({ name: j.name, parents: [pid], description: j.vis }) });
+    const r = j.replaceId
+      ? await fetch('https://www.googleapis.com/upload/drive/v3/files/' + j.replaceId + '?uploadType=resumable&fields=id', { method: 'PATCH', headers: h, body: '{}' })
+      : await fetch(UPLOAD_URL, { method: 'POST', headers: h, body: JSON.stringify({ name: j.name, parents: [pid], description: j.vis }) });
     if (r.status === 401 && !a) continue;
     if (!r.ok) throw new Error(await gerr(r, 'Could not start upload (' + r.status + ')'));
     const u = r.headers.get('Location');
@@ -890,7 +1326,7 @@ async function upload(j, pid) {
     throw new Error(r.status === 403 ? 'Drive refused the upload (storage or rate limit)' : 'Upload failed (' + r.status + ')');
   }
   j.sent = total;
-  if (j.vis === 'public') await makePublic(done.id);
+  if (j.vis === 'public' && !j.replaceId) await makePublic(done.id);
   return done.id;
 }
 
@@ -938,7 +1374,7 @@ function ensureDir(target, path, vis, memo) {
 
 function uniq(name, pid) {
   const used = new Set(N[pid].kids.map((k) => N[k].name));
-  (U.names[pid] || []).forEach((x) => used.add(x));
+  (U.live[pid] || []).forEach((x) => used.add(x));
   let out = name;
   if (used.has(out)) {
     const d = name.lastIndexOf('.');
@@ -947,7 +1383,7 @@ function uniq(name, pid) {
     let i = 1;
     do { out = b + ' (' + i++ + ')' + x; } while (used.has(out));
   }
-  (U.names[pid] || (U.names[pid] = new Set())).add(out);
+  (U.live[pid] || (U.live[pid] = new Set())).add(out);
   return out;
 }
 
@@ -963,17 +1399,40 @@ async function run(j) {
   draw();
   try {
     const pid = await ensureDir(j.target, j.path, j.vis, j.memo);
+    j.pid = pid;
     if (j.state === 'cancel') throw new Error('Cancelled');
-    if (!j.name) j.name = uniq(j.file.name, pid);
+    if (!j.name) {
+      const ex = N[pid].kids.map((k) => N[k]).find((c) => !c.folder && c.name === j.file.name);
+      const taken = U.live[pid] && U.live[pid].has(j.file.name);
+      let c = 'keep';
+      if (ex && !taken) {
+        if (!j.batch.dup) {
+          j.batch.dup = choose('"' + j.file.name + '" already exists', j.batch.n > 1 ? 'Your choice applies to every duplicate in this upload.' : 'Replace keeps the same link and visibility.', [['skip', 'Skip'], ['keep', 'Keep both'], ['replace', 'Replace']]).then((v) => v || 'keep');
+        }
+        c = await j.batch.dup;
+      }
+      if (j.state === 'cancel') throw new Error('Cancelled');
+      if (c === 'skip') { j.state = 'cancel'; throw new Error('Skipped'); }
+      if (c === 'replace') { j.replaceId = ex.id; j.name = j.file.name; (U.live[pid] || (U.live[pid] = new Set())).add(j.name); }
+      else j.name = uniq(j.file.name, pid);
+    }
     const id = await upload(j, pid);
-    N[id] = { id, name: j.name, folder: false, mime: j.file.type, size: j.file.size, modified: new Date().toISOString(), vis: j.vis, parent: pid, kids: null, open: false };
-    N[pid].kids.push(id);
+    if (j.replaceId && N[j.replaceId]) {
+      N[j.replaceId].size = j.file.size;
+      N[j.replaceId].modified = new Date().toISOString();
+      delete N[j.replaceId].thumb;
+      if (S.sel === j.replaceId) S.shown = null;
+    } else {
+      N[id] = { id, name: j.name, folder: false, mime: j.file.type, size: j.file.size, modified: new Date().toISOString(), vis: j.vis, parent: pid, kids: null, open: false };
+      N[pid].kids.push(id);
+    }
     sortKids(pid);
     j.state = 'done';
   } catch (e) {
     if (j.state !== 'cancel') { j.state = 'err'; j.err = (e && e.message) || String(e); }
   }
   j.xhr = null;
+  if (j.pid && j.name && U.live[j.pid]) U.live[j.pid].delete(j.name);
   U.active--;
   U.jobs = U.jobs.filter((x) => x.state !== 'cancel');
   draw();
@@ -1061,12 +1520,14 @@ function addFiles(list, dirs, target) {
   if (!N[target] || !N[target].folder) target = ROOT;
   const vis = $('vis').value;
   const memo = {};
+  const batchInfo = { dup: null, n: 0 };
   let skipped = 0;
   let added = 0;
   list.forEach((x) => {
     if (JUNK.test(x.file.name)) { skipped++; return; }
-    U.jobs.push({ file: x.file, path: x.path, target, vis, memo, sent: 0, state: 'wait', url: null, name: null });
+    U.jobs.push({ file: x.file, path: x.path, target, vis, memo, batch: batchInfo, sent: 0, state: 'wait', url: null, name: null });
     added++;
+    batchInfo.n = added;
   });
   let chain = Promise.resolve();
   (dirs || []).forEach((p) => { chain = chain.then(() => ensureDir(target, p, vis, memo)).then(softRender, () => {}); });
@@ -1155,6 +1616,9 @@ $('dir').onchange = (e) => {
 $('mk').onclick = mkdir;
 $('q').oninput = (e) => { S.q = e.target.value.trim(); S.found = null; S.searching = false; S.multi.clear(); render(); };
 $('mvno').onclick = () => $('mv').close();
+$('shno').onclick = () => $('sh').close();
+$('expo').onclick = openExposed;
+$('fromurl').onclick = saveUrl;
 document.addEventListener('click', (e) => { document.querySelectorAll('details.pop[open]').forEach((d) => { if (!d.contains(e.target)) d.open = false; }); });
 document.addEventListener('paste', (e) => {
   if (!S.admin || $('dlg').open) return;
@@ -1164,7 +1628,7 @@ document.addEventListener('paste', (e) => {
   addFiles(fs.map((f) => ({ file: f, path: [] })), [], curDir());
 });
 document.addEventListener('keydown', (e) => {
-  if ($('dlg').open || $('mv').open) return;
+  if ($('dlg').open || $('mv').open || $('ch').open || $('sh').open) return;
   const inQ = document.activeElement === $('q');
   if (document.activeElement && /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName) && !inQ) return;
   if (e.ctrlKey || e.metaKey || e.altKey) return;
@@ -1180,9 +1644,17 @@ document.addEventListener('keydown', (e) => {
     S.multi.clear();
     S.anchor = S.rows[j];
     pick(S.rows[j], false);
-  } else if (e.key === 'ArrowLeft' && !inQ && N[S.sel] && S.sel !== ROOT) {
+  } else if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && !inQ && !S.view && !S.multi.size && N[S.sel] && S.sel !== ROOT) {
     const n = N[S.sel];
-    if (n.folder && n.open) { n.open = false; render(); } else pick(n.parent, false);
+    if (!n.folder) {
+      const sib = ((N[n.parent] && N[n.parent].kids) || []).filter((k) => N[k] && !N[k].folder);
+      const to = sib[sib.indexOf(n.id) + (e.key === 'ArrowRight' ? 1 : -1)];
+      if (to) { e.preventDefault(); pick(to, false); }
+    } else if (e.key === 'ArrowLeft') {
+      if (n.open) { n.open = false; render(); } else pick(n.parent, false);
+    } else if (!n.open) {
+      pick(n.id, false);
+    }
   }
 });
 let depth = 0;
@@ -1209,7 +1681,7 @@ window.addEventListener('dragover', (e) => {
   if (!S.admin) return;
   const t = rowDir(e);
   if (t.row !== hot) { cool(); hot = t.row; if (hot) hot.classList.add('drop'); }
-  $('drop').textContent = 'Drop to upload to dump/' + pathOf(t.dir).map((x) => x + '/').join('');
+  $('drop').textContent = 'Drop to upload to ' + S.rootName + '/' + pathOf(t.dir).map((x) => x + '/').join('');
 });
 window.addEventListener('drop', (e) => {
   if (S.drag) {
