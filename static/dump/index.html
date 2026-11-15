@@ -58,6 +58,14 @@ select{background:var(--theme)}
 .dot{flex:0 0 6px;width:6px;height:6px;border-radius:50%;background:var(--accent)}
 .row{user-select:none;-webkit-user-select:none}
 .row.msel{background:var(--code-bg);border-left-color:var(--secondary);color:var(--primary)}
+.pop{position:relative}
+.pop summary{list-style:none;font:13px var(--sans);color:var(--primary);border:1px solid var(--border);border-radius:6px;padding:4px 9px;font-size:12px;cursor:pointer;white-space:nowrap;line-height:1.4}
+.pop summary::-webkit-details-marker{display:none}
+.pop summary::after{content:"";display:inline-block;margin-left:6px;border:4px solid transparent;border-top-color:var(--secondary);border-bottom:0;vertical-align:middle}
+.pop summary:hover,.pop[open] summary{border-color:var(--secondary)}
+.pmenu{position:absolute;z-index:15;top:calc(100% + 6px);left:0;min-width:190px;padding:5px;background:var(--theme);border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 10px 30px rgba(0,0,0,.2)}
+.acts .pmenu button{display:block;width:100%;text-align:left;border:0;border-radius:5px;padding:7px 9px;font-size:13px}
+.acts .pmenu button:hover{background:var(--code-bg)}
 .hint{padding:10px 14px;color:var(--secondary);font:12px var(--sans)}
 .sort{padding:4px 6px;font-size:12px}
 #mv{width:min(460px,calc(100vw - 32px))}
@@ -443,7 +451,7 @@ function renderPreview() {
   const A = $('acts');
   A.textContent = '';
   if (n.folder && n.kids && n.kids.length > 1) A.append(sortSelect(n.id));
-  A.append(btn('Copy link', () => copy(n.id)));
+  A.append(copyMenu(n));
   if (!n.folder) { const a = el('a', 'btn', 'Download'); a.href = dlOf(n.id); a.target = '_blank'; a.rel = 'noopener'; A.append(a); }
   if (S.admin && n.id !== ROOT) {
     A.append(btn(n.vis === 'public' ? 'Make private' : 'Make public', () => visItems([n.id], n.vis === 'public' ? 'private' : 'public')));
@@ -548,9 +556,37 @@ async function init() {
   }
 }
 
-async function copy(id) {
-  try { await navigator.clipboard.writeText(linkOf(id)); toast('Link copied'); }
-  catch (e) { ask('Copy this link', { value: linkOf(id) }); }
+function urlOf(n, kind) {
+  if (kind === 'drive') return n.folder ? 'https://drive.google.com/drive/folders/' + n.id : 'https://drive.google.com/file/d/' + n.id + '/view';
+  if (kind === 'download') return dlOf(n.id);
+  return linkOf(n.id);
+}
+
+async function copy(id, kind) {
+  const n = N[id];
+  if (!n) return;
+  const url = urlOf(n, kind);
+  const label = kind === 'drive' ? 'Drive link' : kind === 'download' ? 'Download link' : 'Site link';
+  let note = '';
+  if (S.admin && id !== ROOT) {
+    if (n.folder && kind === 'drive') note = ', only you can open it';
+    else if (n.vis !== 'public') note = ', private so only you can open it';
+  }
+  try { await navigator.clipboard.writeText(url); toast(label + ' copied' + note); }
+  catch (e) { ask('Copy this link', { value: url }); }
+}
+
+function copyMenu(n) {
+  if (n.folder && !S.admin) return btn('Copy link', () => copy(n.id));
+  const d = el('details', 'pop');
+  d.append(el('summary', '', 'Copy link'));
+  const m = el('div', 'pmenu');
+  const add = (t, kind) => m.append(btn(t, () => { d.open = false; copy(n.id, kind); }));
+  add('Link on this site', 'site');
+  add('Google Drive link', 'drive');
+  if (!n.folder) add('Direct download link', 'download');
+  d.append(m);
+  return d;
 }
 
 async function rename(n) {
@@ -1119,6 +1155,7 @@ $('dir').onchange = (e) => {
 $('mk').onclick = mkdir;
 $('q').oninput = (e) => { S.q = e.target.value.trim(); S.found = null; S.searching = false; S.multi.clear(); render(); };
 $('mvno').onclick = () => $('mv').close();
+document.addEventListener('click', (e) => { document.querySelectorAll('details.pop[open]').forEach((d) => { if (!d.contains(e.target)) d.open = false; }); });
 document.addEventListener('paste', (e) => {
   if (!S.admin || $('dlg').open) return;
   const fs = e.clipboardData ? Array.from(e.clipboardData.files || []) : [];
