@@ -56,6 +56,14 @@ select{background:var(--theme)}
 .sz{color:var(--secondary);font-size:11.5px;font-weight:400}
 .lock{flex:0 0 auto;font:10px var(--sans);letter-spacing:.04em;text-transform:uppercase;color:var(--secondary);border:1px solid var(--border);border-radius:4px;padding:1px 5px;font-weight:400}
 .dot{flex:0 0 6px;width:6px;height:6px;border-radius:50%;background:var(--accent)}
+.row{user-select:none;-webkit-user-select:none}
+.row.msel{background:var(--code-bg);border-left-color:var(--secondary);color:var(--primary)}
+.hint{padding:10px 14px;color:var(--secondary);font:12px var(--sans)}
+.sort{padding:4px 6px;font-size:12px}
+#mv{width:min(460px,calc(100vw - 32px))}
+#mvl{max-height:min(46vh,360px);overflow:auto;margin:0 -6px 12px}
+.mvo{display:block;width:100%;text-align:left;border:0;border-radius:5px;padding:6px 8px;font:13px var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mvo:hover,.mvo:focus-visible{background:var(--code-bg);border:0;outline:0}
 .note{padding:28px 16px;text-align:center;color:var(--secondary);font:14px var(--sans)}
 #bar{display:none;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 14px;border-top:1px solid var(--border)}
 body.admin #bar{display:flex}
@@ -149,13 +157,15 @@ dialog input:focus{border-color:var(--accent)}
 <div id="drop">Drop to upload</div>
 <div id="ups"></div>
 <dialog id="dlg"><form method="dialog"><h3 id="dt"></h3><p id="dm"></p><input id="di" autocomplete="off"><div class="dbtn"><button type="button" id="dno">Cancel</button><button value="ok" class="pri" id="dok">OK</button></div></form></dialog>
+<dialog id="mv"><h3 id="mvt"></h3><input id="mvq" placeholder="filter folders" autocomplete="off" spellcheck="false"><div id="mvl"></div><div class="dbtn"><button type="button" id="mvno">Cancel</button></div></dialog>
 <div id="toast"></div>
 <script>
 const API = 'https://script.google.com/macros/s/AKfycbwm_yKrKMsbZZ4a0T39XJJY2CXq9HRNsGoTCJipW3YrsFWMzWFqOZ11CY0a6D6kGfAPSg/exec';
 const CHUNK = 16 * 1024 * 1024;
 const $ = (id) => document.getElementById(id);
 const N = {};
-const S = { sel: null, admin: false, q: '', rows: [], shown: null, tok: null, tokAt: 0 };
+const S = { sel: null, admin: false, q: '', rows: [], shown: null, tok: null, tokAt: 0, v: 1, multi: new Set(), anchor: null, found: null, searching: false, drag: null, sorts: {} };
+try { S.sorts = JSON.parse(localStorage.getItem('dump_sort') || '{}') || {}; } catch (e) { S.sorts = {}; }
 let ROOT = null;
 const pw = () => { try { return localStorage.getItem('dump_pw') || ''; } catch (e) { return ''; } };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -175,11 +185,16 @@ async function api(a, o) {
   return j;
 }
 
-function toast(t) {
+function toast(t, stick) {
   $('toast').textContent = t;
   $('toast').classList.add('on');
   clearTimeout(toast.t);
-  toast.t = setTimeout(() => $('toast').classList.remove('on'), 1800);
+  if (!stick) toast.t = setTimeout(() => $('toast').classList.remove('on'), 2600);
+}
+
+function untoast() {
+  clearTimeout(toast.t);
+  $('toast').classList.remove('on');
 }
 
 function el(tag, cls, text) {
@@ -228,6 +243,7 @@ function pathOf(id) {
 
 function ingest(r) {
   S.admin = r.admin;
+  S.v = r.v || 1;
   const c = r.crumbs;
   if (!ROOT) ROOT = c[0].id;
   c.forEach((x, i) => {
@@ -241,6 +257,7 @@ function ingest(r) {
     Object.assign(o, it, { parent: self });
     return it.id;
   });
+  sortKids(self);
 }
 
 async function loadDir(id) {
@@ -262,39 +279,74 @@ function walk(onlyOpen) {
   return out;
 }
 
+function onRow(e, id) {
+  if (S.admin && (e.ctrlKey || e.metaKey)) {
+    if (!S.multi.size && S.sel && S.sel !== ROOT && S.sel !== id && N[S.sel]) S.multi.add(S.sel);
+    if (S.multi.has(id)) S.multi.delete(id); else S.multi.add(id);
+    S.anchor = id;
+    render();
+    return;
+  }
+  if (S.admin && e.shiftKey) {
+    const a = S.rows.indexOf(S.anchor || S.sel);
+    const b = S.rows.indexOf(id);
+    if (a >= 0 && b >= 0) {
+      S.multi = new Set(S.rows.slice(Math.min(a, b), Math.max(a, b) + 1));
+      render();
+      return;
+    }
+  }
+  S.multi.clear();
+  S.anchor = id;
+  pick(id, true);
+}
+
 function renderTree() {
   const T = $('tree');
   const all = walk(false);
   let rows;
-  if (S.q) {
+  if (S.found) {
+    rows = S.found.filter((id) => N[id]).map((id) => ({ n: N[id], depth: 0, path: (N[id].spath || '') + N[id].name, dir: N[id].spath || '' }));
+  } else if (S.q) {
     const t = S.q.toLowerCase().split(/\s+/).filter(Boolean);
     rows = all.filter((r) => t.every((x) => r.path.toLowerCase().includes(x)));
   } else {
     rows = walk(true);
   }
+  const flat = !!(S.q || S.found);
   S.rows = rows.map((r) => r.n.id);
-  $('count').textContent = rows.length + '/' + all.length;
+  $('count').textContent = S.found ? rows.length + ' found' : rows.length + '/' + all.length;
   T.textContent = '';
-  if (!rows.length) {
-    T.append(el('div', 'note', S.q ? 'No match' : S.admin ? 'Empty. Drop files here to upload.' : 'Nothing here yet.'));
-    return;
+  if (!rows.length && !S.searching) {
+    T.append(el('div', 'note', S.found ? 'No results in any folder' : S.q ? 'No match in open folders' : S.admin ? 'Empty. Drop files here to upload.' : 'Nothing here yet.'));
   }
   rows.forEach((r) => {
     const n = r.n;
-    const row = el('div', 'row' + (n.folder ? ' dir' : '') + (n.open && !S.q ? ' open' : '') + (n.id === S.sel ? ' sel' : ''));
+    const row = el('div', 'row' + (n.folder ? ' dir' : '') + (n.open && !flat ? ' open' : '') + (n.id === S.sel && !S.multi.size ? ' sel' : '') + (S.multi.has(n.id) ? ' msel' : ''));
     row.dataset.id = n.id;
-    if (!S.q) row.style.paddingLeft = 11 + r.depth * 18 + 'px';
-    row.append(el('span', 'caret', n.folder && !S.q ? '▸' : ''));
+    if (!flat) row.style.paddingLeft = 11 + r.depth * 18 + 'px';
+    row.append(el('span', 'caret', n.folder && !flat ? '▸' : ''));
     row.insertAdjacentHTML('beforeend', n.folder ? ICON.dir : ICON.file);
     const nm = el('span', 'nm');
-    if (S.q) { nm.append(el('i', '', r.dir)); nm.append(n.name + (n.folder ? '/' : '')); }
+    if (flat) { nm.append(el('i', '', r.dir)); nm.append(n.name + (n.folder ? '/' : '')); }
     else nm.textContent = n.name;
     nm.title = r.path;
     row.append(nm);
     if (S.admin && n.vis === 'public') { const d = el('span', 'dot'); d.title = 'Public'; row.append(d); }
-    row.onclick = () => pick(n.id, true);
+    row.onclick = (e) => onRow(e, n.id);
+    if (S.admin) {
+      row.draggable = true;
+      row.ondragstart = (e) => {
+        S.drag = S.multi.has(n.id) ? Array.from(S.multi) : [n.id];
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', S.drag.length > 1 ? S.drag.length + ' items' : n.name);
+      };
+      row.ondragend = () => { S.drag = null; cool(); };
+    }
     T.append(row);
   });
+  if (S.searching) T.append(el('div', 'hint', 'Searching every folder'));
+  else if (S.q && !S.found) T.append(el('div', 'hint', 'Press Enter to search every folder, including inside files'));
   const s = T.querySelector('.sel');
   if (s) s.scrollIntoView({ block: 'nearest' });
 }
@@ -305,7 +357,74 @@ function btn(t, fn, cls) {
   return b;
 }
 
+const SORTS = [['name', 'Name'], ['new', 'Newest'], ['old', 'Oldest'], ['big', 'Largest'], ['small', 'Smallest']];
+
+function sortSelect(id) {
+  const s = el('select', 'sort');
+  s.title = 'Sort this folder';
+  SORTS.forEach((o) => { const x = el('option', '', o[1]); x.value = o[0]; s.append(x); });
+  s.value = S.sorts[id] || 'name';
+  s.onchange = () => {
+    if (s.value === 'name') delete S.sorts[id]; else S.sorts[id] = s.value;
+    try { localStorage.setItem('dump_sort', JSON.stringify(S.sorts)); } catch (e) {}
+    sortKids(id);
+    render();
+  };
+  return s;
+}
+
+function fmtDate(d) {
+  return d ? new Date(d).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+}
+
+function listing(ids, mode) {
+  const L = el('div', 'ls');
+  ids.forEach((k, i) => {
+    const c = N[k];
+    L.append(el('span', 't', i === ids.length - 1 ? '└── ' : '├── '));
+    const a = el('a', c.folder ? 'd' : '', c.name + (c.folder ? '/' : ''));
+    a.onclick = () => { S.multi.clear(); pick(c.id, false); };
+    L.append(a);
+    let m = '';
+    if (!c.folder && (mode === 'big' || mode === 'small')) m = size(c.size) || '0B';
+    if (mode === 'new' || mode === 'old') m = fmtDate(c.modified);
+    if (m) L.append(el('span', 'm', '   ' + m));
+    L.append('\n');
+  });
+  return L;
+}
+
+function renderMulti() {
+  const ids = Array.from(S.multi).filter((id) => N[id]);
+  const P = $('ppath');
+  P.textContent = '';
+  P.append(el('strong', '', ids.length + ' selected'));
+  P.title = '';
+  const dirs = ids.filter((id) => N[id].folder).length;
+  const files = ids.length - dirs;
+  const bytes = ids.reduce((a, id) => a + (N[id].folder ? 0 : N[id].size || 0), 0);
+  const bits = [];
+  if (files) bits.push(files + (files === 1 ? ' file' : ' files'));
+  if (dirs) bits.push(dirs + (dirs === 1 ? ' folder' : ' folders'));
+  if (bytes) bits.push(size(bytes));
+  $('pmeta').textContent = bits.join(' · ');
+  const A = $('acts');
+  A.textContent = '';
+  A.append(btn('Move', () => moveVia(ids)));
+  A.append(btn('Make public', () => visItems(ids, 'public')));
+  A.append(btn('Make private', () => visItems(ids, 'private')));
+  A.append(btn('Delete', () => trashItems(ids), 'bad'));
+  A.append(btn('Clear', () => { S.multi.clear(); render(); }));
+  const B = $('pbody');
+  const key = 'multi:' + ids.join(',');
+  if (S.shown === key) return;
+  S.shown = key;
+  B.textContent = '';
+  B.append(listing(ids, 'name'));
+}
+
 function renderPreview() {
+  if (S.multi.size) { renderMulti(); return; }
   const n = N[S.sel] || N[ROOT];
   if (!n) return;
   const p = pathOf(n.id);
@@ -318,20 +437,23 @@ function renderPreview() {
   M.textContent = '';
   const bits = [];
   if (n.folder) bits.push(n.kids ? n.kids.length + (n.kids.length === 1 ? ' item' : ' items') : 'loading');
-  else { if (n.size) bits.push(size(n.size)); if (n.modified) bits.push(new Date(n.modified).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })); }
+  else { if (n.size) bits.push(size(n.size)); if (n.modified) bits.push(fmtDate(n.modified)); }
   M.append(bits.join(' · '));
   if (S.admin && n.id !== ROOT) { M.append(' · '); M.append(el('span', n.vis === 'public' ? 'pub' : '', n.vis)); }
   const A = $('acts');
   A.textContent = '';
+  if (n.folder && n.kids && n.kids.length > 1) A.append(sortSelect(n.id));
   A.append(btn('Copy link', () => copy(n.id)));
   if (!n.folder) { const a = el('a', 'btn', 'Download'); a.href = dlOf(n.id); a.target = '_blank'; a.rel = 'noopener'; A.append(a); }
   if (S.admin && n.id !== ROOT) {
-    A.append(btn(n.vis === 'public' ? 'Make private' : 'Make public', () => setVis(n)));
+    A.append(btn(n.vis === 'public' ? 'Make private' : 'Make public', () => visItems([n.id], n.vis === 'public' ? 'private' : 'public')));
+    A.append(btn('Move', () => moveVia([n.id])));
     A.append(btn('Rename', () => rename(n)));
-    A.append(btn('Delete', () => trash(n), 'bad'));
+    A.append(btn('Delete', () => trashItems([n.id]), 'bad'));
   }
   const B = $('pbody');
-  const key = n.id + (n.folder ? ':' + (n.kids ? n.kids.map((k) => N[k].name + N[k].vis).join('|') : '') + S.admin : '');
+  const mode = S.sorts[n.id] || 'name';
+  const key = n.id + (n.folder ? ':' + mode + ':' + (n.kids ? n.kids.map((k) => N[k].name + N[k].vis).join('|') : '') + S.admin : '');
   if (S.shown === key) return;
   S.shown = key;
   B.textContent = '';
@@ -345,16 +467,7 @@ function renderPreview() {
   }
   if (!n.kids) { B.append(el('div', 'note', 'Loading')); return; }
   if (!n.kids.length) { B.append(el('div', 'note', S.admin ? 'Empty folder. Drop files here to upload.' : 'Empty folder.')); return; }
-  const L = el('div', 'ls');
-  n.kids.forEach((k, i) => {
-    const c = N[k];
-    L.append(el('span', 't', (i === n.kids.length - 1 ? '└── ' : '├── ')));
-    const a = el('a', c.folder ? 'd' : '', c.name + (c.folder ? '/' : ''));
-    a.onclick = () => pick(c.id, false);
-    L.append(a);
-    L.append('\n');
-  });
-  B.append(L);
+  B.append(listing(n.kids, mode));
 }
 
 function render() {
@@ -378,6 +491,13 @@ async function pick(id, toggle) {
   const was = S.sel === id;
   S.sel = id;
   history.replaceState(null, '', id === ROOT ? location.pathname : '#' + id);
+  const par = N[n.parent];
+  if (id !== ROOT && (!par || !par.kids || !par.kids.includes(id))) {
+    render();
+    try { await reveal(id); } catch (e) { toast(e.message); }
+    if (S.sel === id) render();
+    return;
+  }
   if (n.folder) {
     n.open = toggle && was ? !n.open : true;
     let p = N[n.parent];
@@ -411,6 +531,9 @@ async function init() {
   Object.keys(N).forEach((k) => delete N[k]);
   ROOT = null;
   S.shown = null;
+  S.multi.clear();
+  S.found = null;
+  S.searching = false;
   try {
     await loadDir('');
     S.sel = ROOT;
@@ -430,30 +553,189 @@ async function copy(id) {
   catch (e) { ask('Copy this link', { value: linkOf(id) }); }
 }
 
-async function setVis(n) {
-  const vis = n.vis === 'public' ? 'private' : 'public';
-  try { await api('vis', { id: n.id, vis }); n.vis = vis; render(); toast('Now ' + vis); }
-  catch (e) { toast(e.message); }
-}
-
 async function rename(n) {
   const name = await ask('Rename', { value: n.name, ok: 'Rename' });
   if (!name || name === n.name) return;
-  try { await api('rename', { id: n.id, name }); n.name = name; render(); }
+  try { await api('rename', { id: n.id, name }); n.name = name; sortKids(n.parent); S.shown = null; render(); }
   catch (e) { toast(e.message); }
 }
 
-async function trash(n) {
-  const ok = await ask('Delete', { msg: 'Move "' + n.name + '" to your Drive trash?', input: false, ok: 'Delete' });
+const NEEDS = 'Update and redeploy the Apps Script to use this';
+
+function isUnder(id, anc) {
+  let x = id;
+  for (let i = 0; i < 40 && x; i++) {
+    if (x === anc) return true;
+    x = N[x] ? N[x].parent : null;
+  }
+  return false;
+}
+
+function topLevel(ids) {
+  const set = new Set(ids);
+  return ids.filter((id) => {
+    let p = N[id] ? N[id].parent : null;
+    for (let i = 0; i < 40 && p; i++) {
+      if (set.has(p)) return false;
+      p = N[p] ? N[p].parent : null;
+    }
+    return true;
+  });
+}
+
+async function batch(a, ids, extra, label) {
+  const done = [];
+  const failed = [];
+  const step = S.v >= 2 ? 15 : 1;
+  for (let i = 0; i < ids.length; i += step) {
+    const part = ids.slice(i, i + step);
+    if (ids.length > 1) toast(label + ' ' + Math.min(i + step, ids.length) + ' of ' + ids.length, true);
+    try {
+      if (S.v >= 2) {
+        const r = await api(a, Object.assign({ ids: part }, extra));
+        done.push.apply(done, r.done);
+        failed.push.apply(failed, r.failed);
+      } else {
+        await api(a, Object.assign({ id: part[0] }, extra));
+        done.push(part[0]);
+      }
+    } catch (e) {
+      part.forEach((id) => failed.push({ id, error: e.message }));
+    }
+  }
+  untoast();
+  return { done, failed };
+}
+
+function report(r, verb) {
+  if (r.failed.length) toast((r.done.length ? r.done.length + ' ' + verb + ', ' : '') + r.failed.length + ' failed: ' + r.failed[0].error);
+  else toast(r.done.length + (r.done.length === 1 ? ' item ' : ' items ') + verb);
+}
+
+function detach(id) {
+  const p = N[N[id].parent];
+  if (p && p.kids) p.kids = p.kids.filter((k) => k !== id);
+}
+
+async function visItems(ids, vis) {
+  ids = ids.filter((id) => N[id] && id !== ROOT && N[id].vis !== vis);
+  if (!ids.length) { toast('Already ' + vis); return; }
+  const r = await batch('vis', ids, { vis }, 'Updating');
+  r.done.forEach((id) => { if (N[id]) N[id].vis = vis; });
+  S.shown = null;
+  render();
+  if (r.failed.length) report(r, 'updated'); else toast(ids.length === 1 ? 'Now ' + vis : r.done.length + ' items now ' + vis);
+}
+
+async function trashItems(ids) {
+  ids = topLevel(ids.filter((id) => N[id] && id !== ROOT));
+  if (!ids.length) return;
+  const ok = await ask('Delete', { msg: ids.length === 1 ? 'Move "' + N[ids[0]].name + '" to your Drive trash?' : 'Move ' + ids.length + ' items to your Drive trash?', input: false, ok: 'Delete' });
   if (!ok) return;
+  const r = await batch('trash', ids, {}, 'Deleting');
+  let next = null;
+  r.done.forEach((id) => {
+    if (!N[id]) return;
+    if (S.sel && isUnder(S.sel, id)) next = N[id].parent;
+    detach(id);
+    if (S.found) S.found = S.found.filter((x) => !isUnder(x, id));
+  });
+  if (next || (S.sel && !N[S.sel])) S.sel = N[next] ? next : ROOT;
+  r.done.forEach((id) => { delete N[id]; });
+  S.multi.clear();
+  S.shown = null;
+  history.replaceState(null, '', S.sel === ROOT ? location.pathname : '#' + S.sel);
+  render();
+  report(r, 'deleted');
+}
+
+async function moveItems(ids, to) {
+  if (S.v < 2) { toast(NEEDS); return; }
+  ids = topLevel(ids.filter((id) => N[id] && id !== ROOT));
+  const bad = ids.filter((id) => N[id].folder && isUnder(to, id));
+  ids = ids.filter((id) => N[id].parent !== to && !bad.includes(id));
+  if (!ids.length) { toast(bad.length ? 'A folder cannot be moved into itself' : 'Already in that folder'); return; }
+  const r = await batch('move', ids, { to }, 'Moving');
+  r.done.forEach((id) => {
+    if (!N[id]) return;
+    detach(id);
+    N[id].parent = to;
+    const t = N[to];
+    if (t && t.kids && !t.kids.includes(id)) t.kids.push(id);
+  });
+  if (N[to] && N[to].kids) { sortKids(to); N[to].open = true; }
+  if (S.found) S.found = null;
+  S.multi.clear();
+  S.shown = null;
+  render();
+  report(r, 'moved');
+}
+
+function chooseDir(ids) {
+  return new Promise(async (res) => {
+    if (S.v < 2) { toast(NEEDS); res(null); return; }
+    toast('Loading folders', true);
+    let r;
+    try { r = await api('dirs'); } catch (e) { toast(e.message); res(null); return; }
+    untoast();
+    const par = {};
+    r.dirs.forEach((d) => { par[d.id] = d.parent; });
+    const moving = new Set(ids);
+    const banned = (id) => { for (let i = 0; i < 40 && id; i++) { if (moving.has(id)) return true; id = par[id]; } return false; };
+    const same = ids.every((id) => N[id] && N[id].parent === N[ids[0]].parent) ? N[ids[0]].parent : null;
+    const opts = [{ id: ROOT, path: '' }].concat(r.dirs).filter((d) => !banned(d.id) && d.id !== same);
+    const d = $('mv');
+    let chosen = null;
+    const draw = () => {
+      const t = $('mvq').value.toLowerCase().split(/\s+/).filter(Boolean);
+      const L = $('mvl');
+      L.textContent = '';
+      const show = opts.filter((o) => t.every((x) => ('dump/' + o.path).toLowerCase().includes(x)));
+      if (!show.length) L.append(el('div', 'note', opts.length ? 'No folder matches' : 'No other folder to move to'));
+      show.forEach((o) => {
+        const b = el('button', 'mvo', 'dump/' + o.path);
+        b.type = 'button';
+        b.onclick = () => { chosen = o.id; d.close(); };
+        L.append(b);
+      });
+    };
+    $('mvt').textContent = ids.length === 1 ? 'Move "' + N[ids[0]].name + '" to' : 'Move ' + ids.length + ' items to';
+    $('mvq').value = '';
+    $('mvq').oninput = draw;
+    d.onclose = () => res(chosen);
+    draw();
+    d.showModal();
+    $('mvq').focus();
+  });
+}
+
+async function moveVia(ids) {
+  const to = await chooseDir(ids);
+  if (to) await moveItems(ids, to);
+}
+
+async function searchAll() {
+  const q = S.q;
+  if (q.length < 2) { toast('Type at least 2 characters'); return; }
+  if (S.v < 2) { toast(NEEDS); return; }
+  S.searching = true;
+  S.found = null;
+  renderTree();
   try {
-    await api('trash', { id: n.id });
-    const p = n.parent;
-    S.sel = p;
-    history.replaceState(null, '', p === ROOT ? location.pathname : '#' + p);
-    await loadDir(p === ROOT ? '' : p);
-    render();
-  } catch (e) { toast(e.message); }
+    const r = await api('search', { q });
+    if (S.q !== q) return;
+    r.items.forEach((it) => {
+      const o = N[it.id] || (N[it.id] = { kids: null, open: false });
+      Object.assign(o, it);
+      o.spath = it.path || '';
+      delete o.path;
+    });
+    S.found = r.items.map((i) => i.id);
+  } catch (e) {
+    toast(e.message);
+  } finally {
+    if (S.q === q) { S.searching = false; S.multi.clear(); render(); }
+  }
 }
 
 async function mkdir() {
@@ -581,7 +863,22 @@ function kidsReady(id) {
 }
 
 function sortKids(pid) {
-  N[pid].kids.sort((a, b) => (N[b].folder ? 1 : 0) - (N[a].folder ? 1 : 0) || N[a].name.localeCompare(N[b].name, undefined, { numeric: true, sensitivity: 'base' }));
+  const d = N[pid];
+  if (!d || !d.kids) return;
+  const m = S.sorts[pid] || 'name';
+  const t = (x) => (x.modified ? Date.parse(x.modified) || 0 : 0);
+  d.kids = d.kids.filter((k) => N[k]);
+  d.kids.sort((a, b) => {
+    const A = N[a];
+    const B = N[b];
+    if (!!A.folder !== !!B.folder) return A.folder ? -1 : 1;
+    let c = 0;
+    if (m === 'new') c = t(B) - t(A);
+    else if (m === 'old') c = t(A) - t(B);
+    else if (m === 'big') c = (B.size || 0) - (A.size || 0);
+    else if (m === 'small') c = (A.size || 0) - (B.size || 0);
+    return c || A.name.localeCompare(B.name, undefined, { numeric: true, sensitivity: 'base' });
+  });
 }
 
 function ensureDir(target, path, vis, memo) {
@@ -820,7 +1117,8 @@ $('dir').onchange = (e) => {
   e.target.value = '';
 };
 $('mk').onclick = mkdir;
-$('q').oninput = (e) => { S.q = e.target.value.trim(); renderTree(); };
+$('q').oninput = (e) => { S.q = e.target.value.trim(); S.found = null; S.searching = false; S.multi.clear(); render(); };
+$('mvno').onclick = () => $('mv').close();
 document.addEventListener('paste', (e) => {
   if (!S.admin || $('dlg').open) return;
   const fs = e.clipboardData ? Array.from(e.clipboardData.files || []) : [];
@@ -829,17 +1127,21 @@ document.addEventListener('paste', (e) => {
   addFiles(fs.map((f) => ({ file: f, path: [] })), [], curDir());
 });
 document.addEventListener('keydown', (e) => {
-  if ($('dlg').open) return;
+  if ($('dlg').open || $('mv').open) return;
   const inQ = document.activeElement === $('q');
   if (document.activeElement && /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName) && !inQ) return;
   if (e.ctrlKey || e.metaKey || e.altKey) return;
   if (e.key === '/' && !inQ) { e.preventDefault(); $('q').focus(); return; }
-  if (e.key === 'Escape' && inQ) { $('q').value = ''; S.q = ''; $('q').blur(); renderTree(); return; }
+  if (e.key === 'Enter' && inQ) { e.preventDefault(); searchAll(); return; }
+  if (e.key === 'Escape' && inQ) { $('q').value = ''; S.q = ''; S.found = null; S.searching = false; S.multi.clear(); $('q').blur(); render(); return; }
+  if (e.key === 'Escape' && S.multi.size) { S.multi.clear(); render(); return; }
   const i = S.rows.indexOf(S.sel);
   if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
     if (!S.rows.length) return;
     e.preventDefault();
     const j = e.key === 'ArrowDown' ? Math.min(S.rows.length - 1, i + 1) : Math.max(0, i < 0 ? 0 : i - 1);
+    S.multi.clear();
+    S.anchor = S.rows[j];
     pick(S.rows[j], false);
   } else if (e.key === 'ArrowLeft' && !inQ && N[S.sel] && S.sel !== ROOT) {
     const n = N[S.sel];
@@ -851,8 +1153,20 @@ let hot = null;
 const hasFiles = (e) => e.dataTransfer && Array.from(e.dataTransfer.types || []).includes('Files');
 const cool = () => { if (hot) hot.classList.remove('drop'); hot = null; };
 window.addEventListener('dragenter', (e) => { if (hasFiles(e) && S.admin) { depth++; $('drop').classList.add('on'); } });
-window.addEventListener('dragleave', () => { if (--depth <= 0) { depth = 0; $('drop').classList.remove('on'); cool(); } });
+window.addEventListener('dragleave', () => { if (S.drag) return; if (--depth <= 0) { depth = 0; $('drop').classList.remove('on'); cool(); } });
+function moveTarget(e) {
+  const row = e.target && e.target.closest ? e.target.closest('.row') : null;
+  const n = row ? N[row.dataset.id] : null;
+  if (n) return { row: n.folder ? row : null, to: n.folder ? n.id : n.parent };
+  return { row: null, to: e.target && e.target.closest && e.target.closest('#tree') ? ROOT : null };
+}
 window.addEventListener('dragover', (e) => {
+  if (S.drag) {
+    const t = moveTarget(e);
+    if (t.to) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }
+    if (t.row !== hot) { cool(); hot = t.row; if (hot) hot.classList.add('drop'); }
+    return;
+  }
   if (!hasFiles(e)) return;
   e.preventDefault();
   if (!S.admin) return;
@@ -861,6 +1175,15 @@ window.addEventListener('dragover', (e) => {
   $('drop').textContent = 'Drop to upload to dump/' + pathOf(t.dir).map((x) => x + '/').join('');
 });
 window.addEventListener('drop', (e) => {
+  if (S.drag) {
+    e.preventDefault();
+    const t = moveTarget(e);
+    const ids = S.drag;
+    S.drag = null;
+    cool();
+    if (t.to) moveItems(ids, t.to);
+    return;
+  }
   if (!hasFiles(e)) return;
   e.preventDefault();
   depth = 0;
