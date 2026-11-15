@@ -520,6 +520,7 @@ function render() {
   const d = N[curDir()];
   $('into').textContent = 'Uploads go to ';
   $('into').append(el('span', '', S.rootName + '/' + (d ? pathOf(d.id).map((x) => x + '/').join('') : '')));
+  $('into').append(' \u00B7 drag in any mix of files and folders');
   renderTree();
   renderPreview();
 }
@@ -1622,10 +1623,11 @@ $('fromurl').onclick = saveUrl;
 document.addEventListener('click', (e) => { document.querySelectorAll('details.pop[open]').forEach((d) => { if (!d.contains(e.target)) d.open = false; }); });
 document.addEventListener('paste', (e) => {
   if (!S.admin || $('dlg').open) return;
-  const fs = e.clipboardData ? Array.from(e.clipboardData.files || []) : [];
-  if (!fs.length) return;
+  const cd = e.clipboardData;
+  if (!cd || !Array.from(cd.items || []).some((i) => i.kind === 'file')) return;
+  if (document.activeElement && /INPUT|TEXTAREA/.test(document.activeElement.tagName)) return;
   e.preventDefault();
-  addFiles(fs.map((f) => ({ file: f, path: [] })), [], curDir());
+  fromDrop(cd, curDir());
 });
 document.addEventListener('keydown', (e) => {
   if ($('dlg').open || $('mv').open || $('ch').open || $('sh').open) return;
