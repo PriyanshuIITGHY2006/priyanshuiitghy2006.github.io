@@ -79,13 +79,20 @@ body.admin #bar{display:flex}
 #drop{position:fixed;inset:12px;display:none;align-items:center;justify-content:center;border:2px dashed var(--accent);border-radius:var(--radius);background:color-mix(in srgb,var(--theme) 86%,var(--accent));font:600 18px var(--sans);color:var(--primary);z-index:30;pointer-events:none}
 #drop.on{display:flex}
 #ups{position:fixed;right:20px;bottom:20px;width:min(340px,calc(100vw - 40px));display:flex;flex-direction:column;gap:8px;z-index:20}
-.up{background:var(--theme);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;box-shadow:0 6px 22px rgba(0,0,0,.18)}
-.up div{font:13px var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--primary)}
-.up small{color:var(--secondary)}
-.up.err small{color:var(--bad)}
-.up .track{height:4px;margin-top:7px;border-radius:2px;background:var(--code-bg);overflow:hidden}
+.up{background:var(--theme);border:1px solid var(--border);border-radius:var(--radius);padding:11px 13px;box-shadow:0 6px 22px rgba(0,0,0,.18)}
+.uh{font:600 13.5px var(--sans);color:var(--primary)}
+.up small{color:var(--secondary);font-size:12px}
+.up small.e{color:var(--bad)}
+.up .track{height:4px;margin-top:8px;border-radius:2px;background:var(--code-bg);overflow:hidden}
 .up .fill{height:100%;width:0;background:var(--accent);transition:width .2s}
-.up button{margin-top:8px;padding:3px 8px;font-size:12px}
+.ub{display:flex;gap:6px;margin-top:9px}
+.ub button{padding:3px 9px;font-size:12px}
+.ul{background:var(--theme);border:1px solid var(--border);border-radius:var(--radius);padding:4px 0;max-height:210px;overflow:auto;box-shadow:0 6px 22px rgba(0,0,0,.18)}
+.ur{display:flex;gap:10px;align-items:baseline;padding:4px 13px;font:12px var(--mono);color:var(--content)}
+.ur span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ur small{flex:0 0 auto;color:var(--secondary);font:11.5px var(--sans);max-width:55%;text-align:right}
+.ur.err small{color:var(--bad)}
+.row.drop{outline:1px dashed var(--accent);outline-offset:-2px;background:var(--code-bg)}
 dialog{border:1px solid var(--border);border-radius:var(--radius);background:var(--theme);color:var(--content);padding:20px;width:min(380px,calc(100vw - 32px));box-shadow:0 12px 40px rgba(0,0,0,.3)}
 dialog::backdrop{background:rgba(0,0,0,.45)}
 dialog h3{margin:0 0 6px;font-size:17px;color:var(--primary)}
@@ -122,13 +129,15 @@ dialog input:focus{border-color:var(--accent)}
     <div id="tree"><div class="note">Loading</div></div>
     <div id="bar">
       <div id="into"></div>
-      <button class="pri" id="pick">Upload</button>
+      <button class="pri" id="pick">Upload files</button>
+      <button id="pickd">Upload folder</button>
       <button id="mk">New folder</button>
       <select id="vis" title="Visibility for new uploads and folders">
         <option value="private">Private</option>
         <option value="public">Public</option>
       </select>
       <input type="file" id="file" multiple hidden>
+      <input type="file" id="dir" webkitdirectory multiple hidden>
     </div>
   </section>
   <section class="pane">
@@ -145,7 +154,7 @@ const API = 'https://script.google.com/macros/s/AKfycbwm_yKrKMsbZZ4a0T39XJJY2CXq
 const CHUNK = 16 * 1024 * 1024;
 const $ = (id) => document.getElementById(id);
 const N = {};
-const S = { sel: null, admin: false, q: '', rows: [], shown: null, tok: null, tokAt: 0, queue: [], busy: false };
+const S = { sel: null, admin: false, q: '', rows: [], shown: null, tok: null, tokAt: 0 };
 let ROOT = null;
 const pw = () => { try { return localStorage.getItem('dump_pw') || ''; } catch (e) { return ''; } };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -456,119 +465,336 @@ async function mkdir() {
   } catch (e) { toast(e.message); }
 }
 
-async function token() {
-  if (!S.tok || Date.now() - S.tokAt > 40 * 60 * 1000) {
+const U = { jobs: [], active: 0, names: {}, raf: 0, auto: 0, rt: 0 };
+const JUNK = /^(\.DS_Store|Thumbs\.db|desktop\.ini|\._.*)$/i;
+const UPLOAD_URL = 'https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id';
+const pending = () => U.jobs.some((j) => j.state === 'wait' || j.state === 'run');
+
+async function token(force) {
+  if (force || !S.tok || Date.now() - S.tokAt > 40 * 60 * 1000) {
     S.tok = (await api('token')).token;
     S.tokAt = Date.now();
   }
   return S.tok;
 }
 
-function put(url, headers, body, onp) {
+function put(j, url, headers, body, onp) {
   return new Promise((res, rej) => {
     const x = new XMLHttpRequest();
+    j.xhr = x;
     x.open('PUT', url);
     Object.keys(headers).forEach((k) => x.setRequestHeader(k, headers[k]));
     if (onp) x.upload.onprogress = (e) => onp(e.loaded);
     x.onload = () => res({ status: x.status, range: x.getResponseHeader('Range'), text: x.responseText });
     x.onerror = () => rej(new Error('Network error'));
+    x.onabort = () => rej(new Error('Cancelled'));
     x.send(body);
   });
 }
 
-async function upload(file, parent, vis, onp) {
-  const t = await token();
-  const init = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id', {
-    method: 'POST',
-    headers: {
-      Authorization: 'Bearer ' + t,
-      'Content-Type': 'application/json; charset=UTF-8',
-      'X-Upload-Content-Type': file.type || 'application/octet-stream',
-      'X-Upload-Content-Length': String(file.size)
-    },
-    body: JSON.stringify({ name: file.name, parents: [parent], description: vis })
-  });
-  if (!init.ok) throw new Error('Could not start upload (' + init.status + ')');
-  const url = init.headers.get('Location');
-  if (!url) throw new Error('No upload session returned');
+async function gerr(r, fallback) {
+  try { const t = await r.json(); return (t.error && t.error.message) || fallback; }
+  catch (e) { return fallback; }
+}
+
+async function startSession(j, pid) {
+  for (let a = 0; a < 2; a++) {
+    const t = await token(a > 0);
+    const h = { Authorization: 'Bearer ' + t, 'Content-Type': 'application/json; charset=UTF-8', 'X-Upload-Content-Length': String(j.file.size) };
+    if (j.file.type) h['X-Upload-Content-Type'] = j.file.type;
+    const r = await fetch(UPLOAD_URL, { method: 'POST', headers: h, body: JSON.stringify({ name: j.name, parents: [pid], description: j.vis }) });
+    if (r.status === 401 && !a) continue;
+    if (!r.ok) throw new Error(await gerr(r, 'Could not start upload (' + r.status + ')'));
+    const u = r.headers.get('Location');
+    if (!u) throw new Error('No upload session returned');
+    return u;
+  }
+}
+
+async function makePublic(id) {
+  try {
+    const r = await fetch('https://www.googleapis.com/drive/v3/files/' + id + '/permissions', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + (await token()), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role: 'reader', type: 'anyone' })
+    });
+    if (r.ok) return;
+  } catch (e) {}
+  await api('vis', { id, vis: 'public' });
+}
+
+async function upload(j, pid) {
+  const file = j.file;
   const total = file.size;
   const next = (r, fallback) => (r.range ? Number(r.range.split('-')[1]) + 1 : fallback);
+  const stop = () => { if (j.state === 'cancel') throw new Error('Cancelled'); };
   let off = 0;
   let fails = 0;
   let done = null;
-  if (!total) {
-    const r = await put(url, {}, new Blob([]));
+  const probe = async () => {
+    const p = await put(j, j.url, { 'Content-Range': 'bytes */' + total }, new Blob([]));
+    if (p.status === 200 || p.status === 201) done = JSON.parse(p.text);
+    else if (p.status === 308) off = next(p, 0);
+    else if (p.status === 404 || p.status === 410) j.url = null;
+  };
+  if (j.url && total) { try { await probe(); } catch (e) { stop(); } }
+  if (!j.url) { j.url = await startSession(j, pid); off = 0; }
+  stop();
+  if (!total && !done) {
+    const r = await put(j, j.url, {}, new Blob([]));
     if (r.status >= 300) throw new Error('Upload failed (' + r.status + ')');
     done = JSON.parse(r.text);
   }
   while (!done) {
+    stop();
     const end = Math.min(off + CHUNK, total);
     let r;
     try {
-      r = await put(url, { 'Content-Range': 'bytes ' + off + '-' + (end - 1) + '/' + total }, file.slice(off, end), (n) => onp(off + n, total));
+      r = await put(j, j.url, { 'Content-Range': 'bytes ' + off + '-' + (end - 1) + '/' + total }, file.slice(off, end), (n) => { j.sent = off + n; draw(); });
     } catch (e) {
+      stop();
       r = { status: 503 };
     }
     if (r.status === 200 || r.status === 201) { done = JSON.parse(r.text); break; }
-    if (r.status === 308) { off = next(r, end); fails = 0; onp(off, total); continue; }
+    if (r.status === 308) { off = next(r, end); fails = 0; j.sent = off; draw(); continue; }
     if (r.status >= 500 || r.status === 429) {
-      if (++fails > 10) throw new Error('Upload kept failing');
+      if (++fails > 10) throw new Error(navigator.onLine === false ? 'You are offline' : 'Upload kept failing');
       await sleep(Math.min(30000, 1500 * fails));
-      try {
-        const p = await put(url, { 'Content-Range': 'bytes */' + total }, new Blob([]));
-        if (p.status === 200 || p.status === 201) { done = JSON.parse(p.text); break; }
-        if (p.status === 308) off = next(p, 0);
-      } catch (e) {}
+      stop();
+      try { await probe(); } catch (e) { stop(); }
+      if (!j.url) throw new Error('Upload session expired');
       continue;
     }
-    throw new Error('Upload failed (' + r.status + ')');
+    j.url = null;
+    throw new Error(r.status === 403 ? 'Drive refused the upload (storage or rate limit)' : 'Upload failed (' + r.status + ')');
   }
-  onp(total, total);
-  if (vis === 'public') await api('vis', { id: done.id, vis });
+  j.sent = total;
+  if (j.vis === 'public') await makePublic(done.id);
   return done.id;
 }
 
-function enqueue(files) {
-  if (!S.admin) { toast('Unlock first'); return; }
-  const parent = curDir();
-  const vis = $('vis').value;
-  Array.from(files).forEach((file) => {
-    const box = el('div', 'up');
-    const st = el('small', '', 'Waiting · ' + vis);
-    const track = el('div', 'track');
-    const fill = el('div', 'fill');
-    track.append(fill);
-    box.append(el('div', '', file.name), st, track);
-    $('ups').append(box);
-    S.queue.push({ file, parent, vis, box, st, fill });
-  });
+function kidsReady(id) {
+  return N[id].kids ? Promise.resolve() : loadDir(id === ROOT ? '' : id);
+}
+
+function sortKids(pid) {
+  N[pid].kids.sort((a, b) => (N[b].folder ? 1 : 0) - (N[a].folder ? 1 : 0) || N[a].name.localeCompare(N[b].name, undefined, { numeric: true, sensitivity: 'base' }));
+}
+
+function ensureDir(target, path, vis, memo) {
+  if (!path.length) return kidsReady(target).then(() => target);
+  const key = path.join('/');
+  if (!memo[key]) {
+    memo[key] = ensureDir(target, path.slice(0, -1), vis, memo).then(async (pid) => {
+      const name = path[path.length - 1];
+      const ex = N[pid].kids.map((k) => N[k]).find((c) => c.folder && c.name === name);
+      N[pid].open = true;
+      if (ex) { await kidsReady(ex.id); ex.open = true; return ex.id; }
+      const r = await api('mkdir', { id: pid, name, vis });
+      N[r.id] = { id: r.id, name, folder: true, vis, parent: pid, kids: [], open: false, size: 0, modified: new Date().toISOString() };
+      N[pid].kids.push(r.id);
+      sortKids(pid);
+      return r.id;
+    }).catch((e) => { delete memo[key]; throw e; });
+  }
+  return memo[key];
+}
+
+function uniq(name, pid) {
+  const used = new Set(N[pid].kids.map((k) => N[k].name));
+  (U.names[pid] || []).forEach((x) => used.add(x));
+  let out = name;
+  if (used.has(out)) {
+    const d = name.lastIndexOf('.');
+    const b = d > 0 ? name.slice(0, d) : name;
+    const x = d > 0 ? name.slice(d) : '';
+    let i = 1;
+    do { out = b + ' (' + i++ + ')' + x; } while (used.has(out));
+  }
+  (U.names[pid] || (U.names[pid] = new Set())).add(out);
+  return out;
+}
+
+function softRender() {
+  if (U.rt) return;
+  U.rt = setTimeout(() => { U.rt = 0; render(); }, 350);
+}
+
+async function run(j) {
+  j.state = 'run';
+  j.err = null;
+  U.active++;
+  draw();
+  try {
+    const pid = await ensureDir(j.target, j.path, j.vis, j.memo);
+    if (j.state === 'cancel') throw new Error('Cancelled');
+    if (!j.name) j.name = uniq(j.file.name, pid);
+    const id = await upload(j, pid);
+    N[id] = { id, name: j.name, folder: false, mime: j.file.type, size: j.file.size, modified: new Date().toISOString(), vis: j.vis, parent: pid, kids: null, open: false };
+    N[pid].kids.push(id);
+    sortKids(pid);
+    j.state = 'done';
+  } catch (e) {
+    if (j.state !== 'cancel') { j.state = 'err'; j.err = (e && e.message) || String(e); }
+  }
+  j.xhr = null;
+  U.active--;
+  U.jobs = U.jobs.filter((x) => x.state !== 'cancel');
+  draw();
+  softRender();
   pump();
 }
 
-async function pump() {
-  if (S.busy) return;
-  S.busy = true;
-  while (S.queue.length) {
-    const j = S.queue.shift();
-    try {
-      await upload(j.file, j.parent, j.vis, (n, t) => {
-        j.fill.style.width = (t ? (n / t) * 100 : 100) + '%';
-        j.st.textContent = size(n) + ' of ' + size(t) + ' · ' + j.vis;
-      });
-      j.st.textContent = 'Done · ' + j.vis;
-      setTimeout(() => j.box.remove(), 3500);
-      try { await loadDir(j.parent === ROOT ? '' : j.parent); N[j.parent].open = true; render(); } catch (e) {}
-    } catch (e) {
-      j.box.classList.add('err');
-      j.st.textContent = e.message;
-      j.box.append(btn('Dismiss', () => j.box.remove()));
-    }
+function pump() {
+  while (U.active < 3) {
+    const j = U.jobs.find((x) => x.state === 'wait');
+    if (!j) break;
+    run(j);
   }
-  S.busy = false;
+  if (!pending() && U.jobs.length && !U.jobs.some((j) => j.state === 'err')) {
+    clearTimeout(U.auto);
+    U.auto = setTimeout(() => { if (!pending()) clearJobs(); }, 4000);
+  }
+}
+
+function clearJobs() {
+  U.jobs = [];
+  U.names = {};
+  draw();
+}
+
+function cancelAll() {
+  U.jobs.forEach((j) => {
+    if (j.state === 'run') { j.state = 'cancel'; if (j.xhr) j.xhr.abort(); }
+  });
+  U.jobs = U.jobs.filter((j) => j.state !== 'wait');
+  draw();
+}
+
+function retryFailed() {
+  U.jobs.forEach((j) => { if (j.state === 'err') { j.state = 'wait'; j.err = null; } });
+  draw();
+  pump();
+}
+
+function draw() {
+  if (U.raf) return;
+  U.raf = requestAnimationFrame(() => {
+    U.raf = 0;
+    const P = $('ups');
+    P.textContent = '';
+    if (!U.jobs.length) return;
+    const total = U.jobs.length;
+    const done = U.jobs.filter((j) => j.state === 'done').length;
+    const errs = U.jobs.filter((j) => j.state === 'err');
+    const busy = pending();
+    const bytes = U.jobs.reduce((a, j) => a + j.file.size, 0);
+    const sent = U.jobs.reduce((a, j) => a + (j.state === 'done' ? j.file.size : j.sent || 0), 0);
+    const box = el('div', 'up');
+    box.append(el('div', 'uh', busy ? 'Uploading ' + done + ' of ' + total : done + ' of ' + total + ' uploaded'));
+    const sub = [];
+    if (bytes) sub.push(size(sent) + ' of ' + size(bytes));
+    if (errs.length) sub.push(errs.length + ' failed');
+    box.append(el('small', errs.length ? 'e' : '', sub.join(' · ')));
+    const track = el('div', 'track');
+    const fill = el('div', 'fill');
+    fill.style.width = (bytes ? (sent / bytes) * 100 : total ? (done / total) * 100 : 0) + '%';
+    track.append(fill);
+    box.append(track);
+    const bs = el('div', 'ub');
+    if (busy) bs.append(btn('Cancel', cancelAll));
+    if (!busy && errs.length) bs.append(btn('Retry failed', retryFailed));
+    if (!busy) bs.append(btn('Dismiss', clearJobs));
+    box.append(bs);
+    P.append(box);
+    const list = el('div', 'ul');
+    const show = U.jobs.filter((j) => j.state === 'run').concat(errs);
+    show.slice(0, 6).forEach((j) => {
+      const r = el('div', 'ur' + (j.state === 'err' ? ' err' : ''));
+      r.append(el('span', '', (j.path.length ? j.path.join('/') + '/' : '') + (j.name || j.file.name)));
+      r.append(el('small', '', j.state === 'err' ? j.err : j.file.size ? Math.floor(((j.sent || 0) / j.file.size) * 100) + '%' : ''));
+      list.append(r);
+    });
+    if (show.length > 6) list.append(el('div', 'ur', '+ ' + (show.length - 6) + ' more'));
+    if (show.length) P.append(list);
+  });
+}
+
+function addFiles(list, dirs, target) {
+  if (!S.admin) { toast('Unlock first'); return; }
+  if (!N[target] || !N[target].folder) target = ROOT;
+  const vis = $('vis').value;
+  const memo = {};
+  let skipped = 0;
+  let added = 0;
+  list.forEach((x) => {
+    if (JUNK.test(x.file.name)) { skipped++; return; }
+    U.jobs.push({ file: x.file, path: x.path, target, vis, memo, sent: 0, state: 'wait', url: null, name: null });
+    added++;
+  });
+  let chain = Promise.resolve();
+  (dirs || []).forEach((p) => { chain = chain.then(() => ensureDir(target, p, vis, memo)).then(softRender, () => {}); });
+  if (!added && !(dirs || []).length) { toast(skipped ? 'Only system files, nothing uploaded' : 'Nothing to upload'); return; }
+  if (skipped) toast('Skipped ' + skipped + ' system file' + (skipped > 1 ? 's' : ''));
+  N[target].open = true;
+  clearTimeout(U.auto);
+  draw();
+  pump();
+}
+
+function readAll(reader) {
+  return new Promise((res) => {
+    const out = [];
+    (function more() {
+      reader.readEntries((b) => { if (!b.length) res(out); else { out.push.apply(out, b); more(); } }, () => res(out));
+    })();
+  });
+}
+
+async function crawl(entry, path, files, dirs) {
+  if (entry.isFile) {
+    try { files.push({ file: await new Promise((res, rej) => entry.file(res, rej)), path }); } catch (e) {}
+    return;
+  }
+  if (!entry.isDirectory) return;
+  const here = path.concat(entry.name);
+  dirs.push(here);
+  const kids = await readAll(entry.createReader());
+  for (const k of kids) await crawl(k, here, files, dirs);
+}
+
+async function fromDrop(dt, target) {
+  const entries = [];
+  const files = [];
+  const items = dt.items ? Array.from(dt.items) : [];
+  items.forEach((it) => {
+    if (it.kind !== 'file') return;
+    const en = it.webkitGetAsEntry ? it.webkitGetAsEntry() : null;
+    if (en) entries.push(en);
+    else { const f = it.getAsFile(); if (f) files.push({ file: f, path: [] }); }
+  });
+  if (!items.length) Array.from(dt.files || []).forEach((f) => files.push({ file: f, path: [] }));
+  const dirs = [];
+  if (entries.some((e) => e.isDirectory)) toast('Reading folder');
+  for (const en of entries) await crawl(en, [], files, dirs);
+  addFiles(files, dirs, target);
+}
+
+function rowDir(e) {
+  const row = e.target && e.target.closest ? e.target.closest('.row') : null;
+  const n = row ? N[row.dataset.id] : null;
+  return { row, dir: n ? (n.folder ? n.id : n.parent) : curDir() };
 }
 
 $('lock').onclick = async () => {
-  if (S.admin) { try { localStorage.removeItem('dump_pw'); } catch (e) {} S.tok = null; await init(); return; }
+  if (S.admin) {
+    if (pending()) { toast('Wait for uploads to finish or cancel them'); return; }
+    try { localStorage.removeItem('dump_pw'); } catch (e) {}
+    S.tok = null;
+    clearJobs();
+    await init();
+    return;
+  }
   const p = await ask('Unlock', { type: 'password', ok: 'Unlock' });
   if (!p) return;
   try { localStorage.setItem('dump_pw', p); } catch (e) {}
@@ -581,13 +807,29 @@ $('theme').onclick = () => {
   try { localStorage.setItem('pref-theme', t); } catch (e) {}
 };
 $('pick').onclick = () => $('file').click();
-$('file').onchange = (e) => { enqueue(e.target.files); e.target.value = ''; };
+$('file').onchange = (e) => { addFiles(Array.from(e.target.files).map((f) => ({ file: f, path: [] })), [], curDir()); e.target.value = ''; };
+if ('webkitdirectory' in $('dir')) $('pickd').onclick = () => $('dir').click();
+else $('pickd').hidden = true;
+$('dir').onchange = (e) => {
+  const fs = Array.from(e.target.files);
+  if (!fs.length) toast('That folder is empty');
+  else addFiles(fs.map((f) => ({ file: f, path: (f.webkitRelativePath || '').split('/').slice(0, -1) })), [], curDir());
+  e.target.value = '';
+};
 $('mk').onclick = mkdir;
 $('q').oninput = (e) => { S.q = e.target.value.trim(); renderTree(); };
+document.addEventListener('paste', (e) => {
+  if (!S.admin || $('dlg').open) return;
+  const fs = e.clipboardData ? Array.from(e.clipboardData.files || []) : [];
+  if (!fs.length) return;
+  e.preventDefault();
+  addFiles(fs.map((f) => ({ file: f, path: [] })), [], curDir());
+});
 document.addEventListener('keydown', (e) => {
   if ($('dlg').open) return;
   const inQ = document.activeElement === $('q');
   if (document.activeElement && /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName) && !inQ) return;
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
   if (e.key === '/' && !inQ) { e.preventDefault(); $('q').focus(); return; }
   if (e.key === 'Escape' && inQ) { $('q').value = ''; S.q = ''; $('q').blur(); renderTree(); return; }
   const i = S.rows.indexOf(S.sel);
@@ -602,19 +844,36 @@ document.addEventListener('keydown', (e) => {
   }
 });
 let depth = 0;
+let hot = null;
 const hasFiles = (e) => e.dataTransfer && Array.from(e.dataTransfer.types || []).includes('Files');
+const cool = () => { if (hot) hot.classList.remove('drop'); hot = null; };
 window.addEventListener('dragenter', (e) => { if (hasFiles(e) && S.admin) { depth++; $('drop').classList.add('on'); } });
-window.addEventListener('dragleave', () => { if (--depth <= 0) { depth = 0; $('drop').classList.remove('on'); } });
-window.addEventListener('dragover', (e) => { if (hasFiles(e)) e.preventDefault(); });
+window.addEventListener('dragleave', () => { if (--depth <= 0) { depth = 0; $('drop').classList.remove('on'); cool(); } });
+window.addEventListener('dragover', (e) => {
+  if (!hasFiles(e)) return;
+  e.preventDefault();
+  if (!S.admin) return;
+  const t = rowDir(e);
+  if (t.row !== hot) { cool(); hot = t.row; if (hot) hot.classList.add('drop'); }
+  $('drop').textContent = 'Drop to upload to dump/' + pathOf(t.dir).map((x) => x + '/').join('');
+});
 window.addEventListener('drop', (e) => {
   if (!hasFiles(e)) return;
   e.preventDefault();
   depth = 0;
   $('drop').classList.remove('on');
-  enqueue(e.dataTransfer.files);
+  const t = rowDir(e);
+  cool();
+  if (!S.admin) { toast('Unlock first'); return; }
+  fromDrop(e.dataTransfer, t.dir);
 });
-window.addEventListener('beforeunload', (e) => { if (S.busy) { e.preventDefault(); e.returnValue = ''; } });
-window.addEventListener('hashchange', init);
+window.addEventListener('beforeunload', (e) => { if (pending()) { e.preventDefault(); e.returnValue = ''; } });
+window.addEventListener('hashchange', () => {
+  const id = location.hash.slice(1) || ROOT;
+  if (N[id]) pick(id, false);
+  else if (pending()) toast('Finish or cancel uploads first');
+  else init();
+});
 init();
 </script>
 </body>
