@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>dump</title>
+<style>
+:root{--bg:#fafaf9;--fg:#1c1917;--mut:#78716c;--line:#e7e5e4;--card:#fff;--acc:#2563eb;--bad:#dc2626;--ok:#15803d}
+@media (prefers-color-scheme:dark){:root{--bg:#0c0a09;--fg:#f5f5f4;--mut:#a8a29e;--line:#292524;--card:#1c1917;--acc:#60a5fa;--bad:#f87171;--ok:#4ade80}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:980px;margin:0 auto;padding:24px 16px 120px}
+header{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+h1{font-size:20px;margin:0;font-weight:650;letter-spacing:-.01em}
+#crumbs{flex:1;min-width:200px;color:var(--mut);overflow-wrap:anywhere}
+#crumbs a{color:var(--mut);text-decoration:none}
+#crumbs a:hover{color:var(--fg)}
+#crumbs a:last-child{color:var(--fg);font-weight:550}
+button,select,.btn{font:inherit;font-size:13px;color:var(--fg);background:var(--card);border:1px solid var(--line);border-radius:7px;padding:5px 10px;cursor:pointer;text-decoration:none;white-space:nowrap}
+button:hover,.btn:hover{border-color:var(--mut)}
+button.pri{background:var(--acc);border-color:var(--acc);color:#fff}
+button.danger:hover{color:var(--bad);border-color:var(--bad)}
+#bar{display:none;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px;padding:10px;border:1px dashed var(--line);border-radius:10px}
+#bar.on{display:flex}
+#bar span{color:var(--mut);font-size:13px}
+#list{border:1px solid var(--line);border-radius:10px;background:var(--card);overflow:hidden}
+.row{display:flex;align-items:center;gap:10px;padding:9px 12px;border-top:1px solid var(--line)}
+.row:first-child{border-top:0}
+.tag{flex:0 0 42px;font-size:10px;font-weight:700;letter-spacing:.04em;text-align:center;padding:3px 0;border-radius:5px;background:var(--line);color:var(--mut)}
+.tag.dir{background:var(--acc);color:#fff}
+.name{flex:1;min-width:0;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.name:hover{text-decoration:underline}
+.meta{flex:0 0 auto;color:var(--mut);font-size:12px;text-align:right}
+.vis{font-size:11px;padding:1px 7px;border-radius:99px;border:1px solid var(--line);color:var(--mut)}
+.vis.public{color:var(--ok);border-color:var(--ok)}
+.acts{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}
+.acts button,.acts .btn{padding:3px 8px;font-size:12px}
+#empty,#msg{padding:36px 12px;text-align:center;color:var(--mut)}
+#drop{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(37,99,235,.16);border:3px dashed var(--acc);font-size:20px;font-weight:600;z-index:30;pointer-events:none}
+#drop.on{display:flex}
+#ups{position:fixed;right:14px;bottom:14px;width:min(360px,calc(100vw - 28px));display:flex;flex-direction:column;gap:8px;z-index:20}
+.up{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;box-shadow:0 4px 18px rgba(0,0,0,.12)}
+.up div{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.up small{color:var(--mut)}
+.up progress{width:100%;height:6px;margin-top:6px}
+.up.err small{color:var(--bad)}
+#view{position:fixed;inset:0;background:var(--bg);display:none;flex-direction:column;z-index:40}
+#view.on{display:flex}
+#vbar{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--line)}
+#vname{flex:1;min-width:0;font-weight:550;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#frame{flex:1;width:100%;border:0;background:var(--bg)}
+#toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:7px 14px;border-radius:8px;font-size:13px;opacity:0;transition:opacity .2s;z-index:50;pointer-events:none}
+#toast.on{opacity:1}
+@media (max-width:640px){.meta{display:none}.row{flex-wrap:wrap}.name{flex:1 1 60%}.acts{flex:1 1 100%;justify-content:flex-start;padding-left:52px}}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>dump</h1>
+    <div id="crumbs"></div>
+    <button id="lock">Unlock</button>
+  </header>
+  <div id="bar">
+    <button class="pri" id="pick">Upload files</button>
+    <button id="mk">New folder</button>
+    <select id="vis" title="Visibility for new uploads and folders">
+      <option value="private">Private</option>
+      <option value="public">Public</option>
+    </select>
+    <span>or drag files anywhere on this page</span>
+    <input type="file" id="file" multiple hidden>
+  </div>
+  <div id="list"><div id="msg">Loading</div></div>
+</main>
+<div id="drop">Drop to upload</div>
+<div id="ups"></div>
+<div id="view">
+  <div id="vbar">
+    <div id="vname"></div>
+    <button id="vlink">Copy link</button>
+    <a class="btn" id="vdl" target="_blank" rel="noopener">Download</a>
+    <button id="vclose">Close</button>
+  </div>
+  <iframe id="frame" allow="autoplay" allowfullscreen></iframe>
+</div>
+<div id="toast"></div>
+<script>
+const API = 'https://script.google.com/macros/s/AKfycbwm_yKrKMsbZZ4a0T39XJJY2CXq9HRNsGoTCJipW3YrsFWMzWFqOZ11CY0a6D6kGfAPSg/exec';
+const CHUNK = 16 * 1024 * 1024;
+const $ = (id) => document.getElementById(id);
+const S = { cur: '', admin: false, items: [], tok: null, tokAt: 0, queue: [], busy: false };
+const pw = () => localStorage.getItem('dump_pw') || '';
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+async function api(a, o) {
+  const r = await fetch(API, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(Object.assign({ a, pw: pw() }, o || {}))
+  });
+  const j = await r.json();
+  if (j.error) throw new Error(j.error);
+  return j;
+}
+
+function toast(t) {
+  $('toast').textContent = t;
+  $('toast').classList.add('on');
+  clearTimeout(toast.t);
+  toast.t = setTimeout(() => $('toast').classList.remove('on'), 1800);
+}
+
+function el(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+}
+
+function size(n) {
+  if (!n) return '';
+  const u = ['B', 'KB', 'MB', 'GB', 'TB'];
+  let i = 0;
+  while (n >= 1024 && i < 4) { n /= 1024; i++; }
+  return (i ? n.toFixed(n < 10 ? 2 : 1) : n) + ' ' + u[i];
+}
+
+function tag(f) {
+  if (f.folder) return 'DIR';
+  const m = /\.([a-z0-9]{1,4})$/i.exec(f.name);
+  return m ? m[1].toUpperCase() : 'FILE';
+}
+
+const linkOf = (id) => location.origin + location.pathname + '#' + id;
+const dlOf = (id) => 'https://drive.google.com/uc?export=download&id=' + id;
+
+async function copy(id) {
+  try { await navigator.clipboard.writeText(linkOf(id)); toast('Link copied'); }
+  catch (e) { prompt('Copy this link', linkOf(id)); }
+}
+
+function view(f) {
+  S.viewing = f;
+  $('vname').textContent = f.name;
+  $('vdl').href = dlOf(f.id);
+  $('frame').src = 'https://drive.google.com/file/d/' + f.id + '/preview';
+  $('view').classList.add('on');
+  history.replaceState(null, '', '#' + f.id);
+}
+
+function closeView() {
+  $('view').classList.remove('on');
+  $('frame').src = 'about:blank';
+  S.viewing = null;
+  history.replaceState(null, '', S.cur ? '#' + S.cur : location.pathname);
+}
+
+function render(r) {
+  S.admin = r.admin;
+  S.items = r.items;
+  S.cur = r.crumbs.length > 1 ? r.crumbs[r.crumbs.length - 1].id : '';
+  S.curId = r.crumbs[r.crumbs.length - 1].id;
+  $('lock').textContent = S.admin ? 'Lock' : 'Unlock';
+  $('bar').classList.toggle('on', S.admin);
+  const c = $('crumbs');
+  c.textContent = '';
+  r.crumbs.forEach((n, i) => {
+    if (i) c.append(' / ');
+    const a = el('a', '', n.name);
+    a.href = i ? '#' + n.id : '#';
+    c.append(a);
+  });
+  const L = $('list');
+  L.textContent = '';
+  if (!r.items.length) { L.append(el('div', '', S.admin ? 'Empty folder. Drop files here.' : 'Nothing here.')); L.firstChild.id = 'empty'; return; }
+  r.items.forEach((f) => {
+    const row = el('div', 'row');
+    row.append(el('span', 'tag' + (f.folder ? ' dir' : ''), tag(f)));
+    const nm = el('span', 'name', f.name);
+    nm.title = f.name;
+    nm.onclick = () => (f.folder ? (location.hash = f.id) : view(f));
+    row.append(nm);
+    if (S.admin) row.append(el('span', 'vis ' + f.vis, f.vis));
+    row.append(el('span', 'meta', [size(f.size), new Date(f.modified).toLocaleDateString()].filter(Boolean).join(' · ')));
+    const acts = el('span', 'acts');
+    const b = (t, fn, cls) => { const x = el('button', cls || '', t); x.onclick = fn; acts.append(x); };
+    b('Link', () => copy(f.id));
+    if (!f.folder) { const a = el('a', 'btn', 'Download'); a.href = dlOf(f.id); a.target = '_blank'; a.rel = 'noopener'; acts.append(a); }
+    if (S.admin) {
+      b(f.vis === 'public' ? 'Make private' : 'Make public', () => act('vis', { id: f.id, vis: f.vis === 'public' ? 'private' : 'public' }));
+      b('Rename', () => { const n = prompt('New name', f.name); if (n && n !== f.name) act('rename', { id: f.id, name: n }); });
+      b('Delete', () => { if (confirm('Move "' + f.name + '" to Drive trash?')) act('trash', { id: f.id }); }, 'danger');
+    }
+    row.append(acts);
+    L.append(row);
+  });
+}
+
+async function load() {
+  const id = location.hash.slice(1);
+  try {
+    let r = await api('list', id ? { id } : {});
+    if (r.file) {
+      const f = r.file;
+      r = await api('list', { id: r.crumbs[r.crumbs.length - 2].id });
+      render(r);
+      view(f);
+      return;
+    }
+    if ($('view').classList.contains('on')) { $('view').classList.remove('on'); $('frame').src = 'about:blank'; }
+    render(r);
+  } catch (e) {
+    $('list').textContent = '';
+    const m = el('div', '', e.message === 'Not found' ? 'Not found, or this item is private.' : 'Error: ' + e.message);
+    m.id = 'msg';
+    $('list').append(m);
+  }
+}
+
+async function act(a, o) {
+  try { await api(a, o); await load(); }
+  catch (e) { toast(e.message); }
+}
+
+async function token() {
+  if (!S.tok || Date.now() - S.tokAt > 40 * 60 * 1000) {
+    S.tok = (await api('token')).token;
+    S.tokAt = Date.now();
+  }
+  return S.tok;
+}
+
+function put(url, headers, body, onp) {
+  return new Promise((res, rej) => {
+    const x = new XMLHttpRequest();
+    x.open('PUT', url);
+    Object.keys(headers).forEach((k) => x.setRequestHeader(k, headers[k]));
+    if (onp) x.upload.onprogress = (e) => onp(e.loaded);
+    x.onload = () => res({ status: x.status, range: x.getResponseHeader('Range'), text: x.responseText });
+    x.onerror = () => rej(new Error('Network error'));
+    x.send(body);
+  });
+}
+
+async function upload(file, parent, vis, onp) {
+  const t = await token();
+  const init = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id', {
+    method: 'POST',
+    headers: {
+      Authorization: 'Bearer ' + t,
+      'Content-Type': 'application/json; charset=UTF-8',
+      'X-Upload-Content-Type': file.type || 'application/octet-stream',
+      'X-Upload-Content-Length': String(file.size)
+    },
+    body: JSON.stringify({ name: file.name, parents: [parent], description: vis })
+  });
+  if (!init.ok) throw new Error('Could not start upload (' + init.status + ')');
+  const url = init.headers.get('Location');
+  if (!url) throw new Error('No upload session returned');
+  const total = file.size;
+  const next = (r, fallback) => (r.range ? Number(r.range.split('-')[1]) + 1 : fallback);
+  let off = 0;
+  let fails = 0;
+  let done = null;
+  if (!total) {
+    const r = await put(url, {}, new Blob([]));
+    if (r.status >= 300) throw new Error('Upload failed (' + r.status + ')');
+    done = JSON.parse(r.text);
+  }
+  while (!done) {
+    const end = Math.min(off + CHUNK, total);
+    let r;
+    try {
+      r = await put(url, { 'Content-Range': 'bytes ' + off + '-' + (end - 1) + '/' + total }, file.slice(off, end), (n) => onp(off + n, total));
+    } catch (e) {
+      r = { status: 503 };
+    }
+    if (r.status === 200 || r.status === 201) { done = JSON.parse(r.text); break; }
+    if (r.status === 308) { off = next(r, end); fails = 0; onp(off, total); continue; }
+    if (r.status >= 500 || r.status === 429) {
+      if (++fails > 10) throw new Error('Upload kept failing');
+      await sleep(Math.min(30000, 1500 * fails));
+      try {
+        const p = await put(url, { 'Content-Range': 'bytes */' + total }, new Blob([]));
+        if (p.status === 200 || p.status === 201) { done = JSON.parse(p.text); break; }
+        if (p.status === 308) off = next(p, 0);
+      } catch (e) {}
+      continue;
+    }
+    throw new Error('Upload failed (' + r.status + ')');
+  }
+  onp(total, total);
+  if (vis === 'public') await api('vis', { id: done.id, vis });
+  return done.id;
+}
+
+function enqueue(files) {
+  if (!S.admin) { toast('Unlock first'); return; }
+  const parent = S.curId;
+  const vis = $('vis').value;
+  Array.from(files).forEach((file) => {
+    const box = el('div', 'up');
+    const nm = el('div', '', file.name);
+    const st = el('small', '', 'Waiting · ' + vis);
+    const pr = el('progress');
+    pr.max = 1; pr.value = 0;
+    box.append(nm, st, pr);
+    $('ups').append(box);
+    S.queue.push({ file, parent, vis, box, st, pr });
+  });
+  pump();
+}
+
+async function pump() {
+  if (S.busy) return;
+  S.busy = true;
+  while (S.queue.length) {
+    const j = S.queue.shift();
+    try {
+      await upload(j.file, j.parent, j.vis, (n, t) => {
+        j.pr.value = t ? n / t : 1;
+        j.st.textContent = size(n) + ' of ' + size(t) + ' · ' + j.vis;
+      });
+      j.st.textContent = 'Done · ' + j.vis;
+      setTimeout(() => j.box.remove(), 4000);
+      if (j.parent === S.curId) load();
+    } catch (e) {
+      j.box.classList.add('err');
+      j.st.textContent = e.message;
+      const x = el('button', '', 'Dismiss');
+      x.onclick = () => j.box.remove();
+      j.box.append(x);
+    }
+  }
+  S.busy = false;
+}
+
+$('lock').onclick = async () => {
+  if (S.admin) { localStorage.removeItem('dump_pw'); S.tok = null; await load(); return; }
+  const p = prompt('Password');
+  if (!p) return;
+  localStorage.setItem('dump_pw', p);
+  await load();
+  if (!S.admin) { localStorage.removeItem('dump_pw'); toast('Wrong password'); }
+};
+$('pick').onclick = () => $('file').click();
+$('file').onchange = (e) => { enqueue(e.target.files); e.target.value = ''; };
+$('mk').onclick = () => { const n = prompt('Folder name'); if (n) act('mkdir', { id: S.curId, name: n, vis: $('vis').value }); };
+$('vclose').onclick = closeView;
+$('vlink').onclick = () => S.viewing && copy(S.viewing.id);
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && S.viewing) closeView(); });
+let depth = 0;
+const hasFiles = (e) => e.dataTransfer && Array.from(e.dataTransfer.types || []).includes('Files');
+window.addEventListener('dragenter', (e) => { if (hasFiles(e) && S.admin) { depth++; $('drop').classList.add('on'); } });
+window.addEventListener('dragleave', () => { if (--depth <= 0) { depth = 0; $('drop').classList.remove('on'); } });
+window.addEventListener('dragover', (e) => { if (hasFiles(e)) e.preventDefault(); });
+window.addEventListener('drop', (e) => {
+  if (!hasFiles(e)) return;
+  e.preventDefault();
+  depth = 0;
+  $('drop').classList.remove('on');
+  enqueue(e.dataTransfer.files);
+});
+window.addEventListener('beforeunload', (e) => { if (S.busy) { e.preventDefault(); e.returnValue = ''; } });
+window.addEventListener('hashchange', load);
+load();
+</script>
+</body>
+</html>
