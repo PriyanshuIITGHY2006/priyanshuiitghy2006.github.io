@@ -157,7 +157,7 @@ dialog input:focus{border-color:var(--accent)}
     <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
   </button>
   <button id="expo" hidden>Shared</button>
-  <button id="lock">Unlock</button>
+  <button id="lock" hidden>Lock</button>
 </header>
 <div class="wrap">
   <section class="pane">
@@ -514,7 +514,7 @@ function renderPreview() {
 
 function render() {
   document.body.classList.toggle('admin', S.admin);
-  $('lock').textContent = S.admin ? 'Lock' : 'Unlock';
+  $('lock').hidden = !S.admin;
   $('expo').hidden = !S.admin;
   if (!ROOT) { ['ppath', 'pmeta', 'acts', 'pbody', 'into'].forEach((i) => { $(i).textContent = ''; }); $('count').textContent = ''; return; }
   const d = N[curDir()];
@@ -1584,6 +1584,13 @@ function rowDir(e) {
   return { row, dir: n ? (n.folder ? n.id : n.parent) : curDir() };
 }
 
+async function unlock() {
+  const p = await ask('Unlock', { type: 'password', ok: 'Unlock' });
+  if (!p) return;
+  try { localStorage.setItem('dump_pw', p); } catch (e) {}
+  await init();
+  if (!S.admin) { try { localStorage.removeItem('dump_pw'); } catch (e) {} toast('Wrong password'); }
+}
 $('lock').onclick = async () => {
   if (S.admin) {
     if (pending()) { toast('Wait for uploads to finish or cancel them'); return; }
@@ -1591,13 +1598,7 @@ $('lock').onclick = async () => {
     S.tok = null;
     clearJobs();
     await init();
-    return;
   }
-  const p = await ask('Unlock', { type: 'password', ok: 'Unlock' });
-  if (!p) return;
-  try { localStorage.setItem('dump_pw', p); } catch (e) {}
-  await init();
-  if (!S.admin) { try { localStorage.removeItem('dump_pw'); } catch (e) {} toast('Wrong password'); }
 };
 $('theme').onclick = () => {
   const t = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
@@ -1635,7 +1636,12 @@ document.addEventListener('keydown', (e) => {
   if (document.activeElement && /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName) && !inQ) return;
   if (e.ctrlKey || e.metaKey || e.altKey) return;
   if (e.key === '/' && !inQ) { e.preventDefault(); $('q').focus(); return; }
-  if (e.key === 'Enter' && inQ) { e.preventDefault(); searchAll(); return; }
+  if (e.key === 'Enter' && inQ) {
+    e.preventDefault();
+    if (!S.admin && $('q').value.trim().toLowerCase() === 'sudo') { $('q').value = ''; S.q = ''; render(); $('q').blur(); unlock(); return; }
+    searchAll();
+    return;
+  }
   if (e.key === 'Escape' && inQ) { $('q').value = ''; S.q = ''; S.found = null; S.searching = false; S.multi.clear(); $('q').blur(); render(); return; }
   if (e.key === 'Escape' && S.multi.size) { S.multi.clear(); render(); return; }
   const i = S.rows.indexOf(S.sel);
