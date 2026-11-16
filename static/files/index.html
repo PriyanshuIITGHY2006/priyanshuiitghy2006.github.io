@@ -1,0 +1,1812 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>files | Priyanshu Debnath</title>
+<link rel="icon" href="/favicon.ico">
+<script>
+(function () {
+  var t = null;
+  try { t = localStorage.getItem('pref-theme'); } catch (e) {}
+  if (t !== 'dark' && t !== 'light') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  document.documentElement.dataset.theme = t;
+})();
+</script>
+<style>
+:root{--theme:#f6f3ec;--entry:#f6f3ec;--primary:#25221e;--secondary:#6e685e;--tertiary:#e3ddd0;--content:#2b2824;--code-bg:#ece7dc;--border:#e3ddd0;--accent:#9a3412;--radius:8px;--ok:#3f6212;--bad:#b91c1c;color-scheme:light;
+--sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen,Ubuntu,Cantarell,"Open Sans","Helvetica Neue",sans-serif;
+--mono:ui-monospace,"JetBrains Mono","Cascadia Code","SF Mono",Menlo,Consolas,"Liberation Mono",monospace}
+:root[data-theme="dark"]{--theme:#1b1816;--entry:#1b1816;--primary:#ece6df;--secondary:#a39a90;--tertiary:#3a342f;--content:#d9d2ca;--code-bg:#2a2522;--border:#2e2925;--accent:#e0a458;--ok:#a3e635;--bad:#f87171;color-scheme:dark}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;display:flex;flex-direction:column;background:var(--theme);color:var(--content);font:15px/1.5 var(--sans);-webkit-font-smoothing:antialiased}
+a{color:inherit}
+header{flex:0 0 auto;display:flex;align-items:center;gap:10px;height:60px;padding:0 24px;max-width:1500px;width:100%;margin:0 auto}
+.brand{font-size:22px;font-weight:700;color:var(--primary);text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.here{font:14px var(--mono);color:var(--accent)}
+.sp{flex:1}
+button,select,.btn{font:13px var(--sans);color:var(--secondary);background:none;border:0;border-radius:0;padding:4px 0;cursor:pointer;text-decoration:none;white-space:nowrap;line-height:1.4;transition:color .15s}
+button:hover,.btn:hover,select:hover{color:var(--primary)}
+:where(.acts,#bar,header,.dbtn,.ub,.xr,#chb) :is(button:not(.icon),.btn,summary){background:linear-gradient(currentColor,currentColor) left bottom/0 1px no-repeat;transition:color .15s,background-size .18s ease-out}
+:where(.acts,#bar,header,.dbtn,.ub,.xr,#chb) :is(button:not(.icon),.btn,summary):is(:hover,:focus-visible),.pop[open] summary{background-size:100% 1px;outline:0}
+.pri,.pri:hover{color:var(--accent);font-weight:600}
+.bad:hover,.bad:focus-visible{color:var(--bad)}
+select{-webkit-appearance:none;appearance:none;color:var(--primary);padding:4px 13px 4px 0;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 5'%3E%3Cpath d='M0 0h8L4 5z' fill='%238a8378'/%3E%3C/svg%3E") right center/7px no-repeat}
+select option{background:var(--theme);color:var(--primary)}
+.tsel{display:inline-flex;align-items:center;gap:6px;font:13px var(--sans);color:var(--secondary);white-space:nowrap}
+#bar .tsel{margin-left:auto}
+.icon{display:inline-flex;padding:6px;border:0}
+.icon svg{width:18px;height:18px}
+:root[data-theme="dark"] .moon,:root:not([data-theme="dark"]) .sun{display:none}
+.wrap{flex:1;min-height:0;display:grid;grid-template-columns:minmax(300px,36%) 1fr;gap:16px;padding:0 24px 24px;max-width:1500px;width:100%;margin:0 auto}
+.pane{min-height:0;min-width:0;display:flex;flex-direction:column;border:1px solid var(--border);border-radius:var(--radius);background:var(--entry);overflow:hidden}
+.prompt{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--border);font:14px var(--mono)}
+.prompt b{color:var(--accent);font-weight:700}
+.prompt input{flex:1;min-width:0;border:0;outline:0;background:transparent;color:var(--primary);font:inherit}
+.prompt input::placeholder{color:var(--secondary);opacity:.7}
+#count{color:var(--secondary);font-size:12px}
+#tree{flex:1;overflow:auto;padding:6px 0;font:13.5px/1.2 var(--mono)}
+.row{display:flex;align-items:center;gap:7px;padding:5px 14px 5px 11px;border-left:3px solid transparent;cursor:pointer;color:var(--content);white-space:nowrap}
+.row:hover{background:var(--code-bg)}
+.row.sel{background:var(--code-bg);color:var(--primary);font-weight:600}
+#tree{position:relative}
+.ind{position:absolute;left:0;top:0;width:3px;background:var(--accent);pointer-events:none;transition:transform .18s cubic-bezier(.2,.7,.3,1),height .18s}
+.row.in{animation:rin .2s ease-out both;animation-delay:var(--d,0ms)}
+@keyframes rin{from{opacity:0;transform:translateY(-5px)}}
+.caret{flex:0 0 10px;width:10px;color:var(--secondary);font-size:10px;text-align:center;transition:transform .18s ease-out}
+.row.open>.caret{transform:rotate(90deg)}
+.ico{flex:0 0 15px;width:15px;height:15px;color:var(--secondary)}
+.row.dir>.ico{color:var(--accent)}
+.nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.nm i{font-style:normal;color:var(--secondary);font-weight:400}
+.sz{color:var(--secondary);font-size:11.5px;font-weight:400}
+.lock{flex:0 0 auto;font:10px var(--sans);letter-spacing:.04em;text-transform:uppercase;color:var(--secondary);border:1px solid var(--border);border-radius:4px;padding:1px 5px;font-weight:400}
+.dot{flex:0 0 6px;width:6px;height:6px;border-radius:50%;background:var(--accent)}
+.row{user-select:none;-webkit-user-select:none}
+.row.msel{background:var(--code-bg);border-left-color:var(--secondary);color:var(--primary)}
+.pop{position:relative}
+.pop summary{list-style:none;font:13px var(--sans);color:var(--secondary);padding:4px 0;cursor:pointer;white-space:nowrap;line-height:1.4}
+.pop summary:hover,.pop[open] summary{color:var(--primary)}
+.pop[open] .pmenu{animation:pin .14s ease-out}
+@keyframes pin{from{opacity:0;transform:translateY(-4px)}}
+.pop summary::-webkit-details-marker{display:none}
+.pop summary::after{content:"";display:inline-block;margin-left:6px;border:4px solid transparent;border-top-color:var(--secondary);border-bottom:0;vertical-align:middle}
+.pmenu{position:absolute;z-index:15;top:calc(100% + 6px);left:0;min-width:190px;padding:5px;background:var(--theme);border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 10px 30px rgba(0,0,0,.2)}
+.pmenu button{display:block;width:100%;text-align:left;border:0;border-radius:5px;padding:7px 9px;font-size:13px;color:var(--primary);background:none}
+.acts .pmenu button:hover,.acts .pmenu button:focus-visible{background:var(--code-bg)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:8px;padding:14px 16px}
+.tile{aspect-ratio:1;padding:0;border:1px solid var(--border);border-radius:6px;overflow:hidden;background:var(--code-bg);display:flex;align-items:center;justify-content:center}
+.tile:hover{border-color:var(--accent)}
+.tile img{width:100%;height:100%;object-fit:cover;display:block}
+.tname{font:11px var(--mono);color:var(--secondary);padding:6px;overflow-wrap:anywhere;white-space:normal}
+.imgv{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:14px}
+.imgv img{max-width:100%;max-height:100%;object-fit:contain;border-radius:4px}
+.xw{padding:6px 16px 16px}
+.xh{margin-top:14px;padding-bottom:6px;border-bottom:1px solid var(--border);font:600 13px var(--sans);color:var(--primary)}
+.xe{padding:10px 0;color:var(--secondary);font-size:13px}
+.xr{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border)}
+.xn{flex:1;min-width:0;font:13px var(--mono);color:var(--primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.xn i{font-style:normal;color:var(--secondary)}
+.xm{flex:0 0 auto;font-size:12px;color:var(--secondary)}
+.xr button{padding:3px 0;font-size:12px;margin-left:8px}
+#sh label{display:block;font-size:12px;color:var(--secondary)}
+#sh label select{background:var(--code-bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 5'%3E%3Cpath d='M0 0h8L4 5z' fill='%238a8378'/%3E%3C/svg%3E") right 10px center/8px no-repeat}
+#sh label input,#sh label select{display:block;width:100%;margin:4px 0 12px;font:14px var(--mono);padding:8px 10px;border:1px solid var(--border);border-radius:6px;color:var(--primary)}
+#sh label input{background:var(--code-bg)}
+#chb{flex-wrap:wrap}
+.hint{padding:10px 14px;color:var(--secondary);font:12px var(--sans)}
+#mv{width:min(460px,calc(100vw - 32px))}
+#mvl{max-height:min(46vh,360px);overflow:auto;margin:0 -6px 12px}
+.mvo{display:block;width:100%;text-align:left;border:0;border-radius:5px;padding:6px 8px;font:13px var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mvo:hover,.mvo:focus-visible{background:var(--code-bg);border:0;outline:0}
+.note{padding:28px 16px;text-align:center;color:var(--secondary);font:14px var(--sans)}
+#bar{display:none;flex-wrap:wrap;column-gap:20px;row-gap:6px;align-items:center;padding:10px 14px 12px;border-top:1px solid var(--border)}
+body.admin #bar{display:flex}
+#into{flex:1 1 100%;font:12px var(--mono);color:var(--secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#into span{color:var(--primary)}
+.phead{position:relative;display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 14px;border-bottom:1px solid var(--border);min-height:49px}
+.phead.busy::after{content:"";position:absolute;left:0;bottom:-1px;width:28%;height:2px;background:var(--accent);animation:load 1s ease-in-out infinite}
+@keyframes load{from{transform:translateX(-100%)}to{transform:translateX(360%)}}
+.ptitle{flex:1 1 220px;min-width:0}
+.ppath{font:14px var(--mono);color:var(--secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ppath strong{color:var(--accent);font-weight:600}
+.pmeta{font-size:12px;color:var(--secondary)}
+.pmeta .pub{color:var(--ok)}
+.mb{display:inline-flex;flex-wrap:wrap;column-gap:16px;row-gap:2px}
+.acts{display:flex;align-items:center;column-gap:18px;row-gap:4px;flex-wrap:wrap}
+.acts .bad{margin-left:8px}
+#pbody{flex:1;min-height:0;display:flex;flex-direction:column;overflow:auto}
+#pbody iframe{flex:1;width:100%;min-height:360px;border:0;background:var(--theme)}
+.ls{padding:12px 16px;font:13.5px/1.75 var(--mono);white-space:pre}
+.ls a{text-decoration:none;color:var(--content);cursor:pointer}
+.ls a:hover{text-decoration:underline;text-underline-offset:3px}
+.ls a.d{color:var(--accent);font-weight:600}
+.ls .t{color:var(--secondary);opacity:.55}
+.ls .m{color:var(--secondary);font-size:12px}
+#drop{position:fixed;inset:12px;display:none;align-items:center;justify-content:center;border:2px dashed var(--accent);border-radius:var(--radius);background:color-mix(in srgb,var(--theme) 86%,var(--accent));font:600 18px var(--sans);color:var(--primary);z-index:30;pointer-events:none}
+#drop.on{display:flex}
+#ups{position:fixed;right:20px;bottom:20px;width:min(340px,calc(100vw - 40px));display:flex;flex-direction:column;gap:8px;z-index:20}
+.up{background:var(--theme);border:1px solid var(--border);border-radius:var(--radius);padding:11px 13px;box-shadow:0 6px 22px rgba(0,0,0,.18)}
+.uh{font:600 13.5px var(--sans);color:var(--primary)}
+.up small{color:var(--secondary);font-size:12px}
+.up small.e{color:var(--bad)}
+.up .track{height:4px;margin-top:8px;border-radius:2px;background:var(--code-bg);overflow:hidden}
+.up .fill{height:100%;width:0;background:var(--accent);transition:width .2s}
+.ub{display:flex;gap:16px;margin-top:8px}
+.ub button{padding:2px 0;font-size:12px}
+.ul{background:var(--theme);border:1px solid var(--border);border-radius:var(--radius);padding:4px 0;max-height:210px;overflow:auto;box-shadow:0 6px 22px rgba(0,0,0,.18)}
+.ur{display:flex;gap:10px;align-items:baseline;padding:4px 13px;font:12px var(--mono);color:var(--content)}
+.ur span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ur small{flex:0 0 auto;color:var(--secondary);font:11.5px var(--sans);max-width:55%;text-align:right}
+.ur.err small{color:var(--bad)}
+.row.drop{outline:1px dashed var(--accent);outline-offset:-2px;background:var(--code-bg)}
+dialog{border:1px solid var(--border);border-radius:var(--radius);background:var(--theme);color:var(--content);padding:20px;width:min(380px,calc(100vw - 32px));box-shadow:0 12px 40px rgba(0,0,0,.3)}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+dialog h3{margin:0 0 6px;font-size:17px;color:var(--primary)}
+dialog p{margin:0 0 12px;color:var(--secondary);font-size:14px;overflow-wrap:anywhere}
+dialog input{width:100%;font:14px var(--mono);padding:8px 10px;border:1px solid var(--border);border-radius:6px;background:var(--code-bg);color:var(--primary);outline:0;margin-bottom:14px}
+dialog input:focus{border-color:var(--accent)}
+.dbtn{display:flex;justify-content:flex-end;gap:22px;margin-top:4px}
+#toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:var(--primary);color:var(--theme);padding:7px 14px;border-radius:6px;font-size:13px;opacity:0;transition:opacity .2s;z-index:50;pointer-events:none}
+#toast.on{opacity:1}
+@media (max-width:820px){
+  body{height:auto;min-height:100%}
+  header{padding:0 14px}
+  .brand{font-size:17px}
+  header{gap:8px}
+  header button:not(.icon){font-size:12.5px}
+  .wrap{grid-template-columns:1fr;padding:0 14px 90px;gap:12px}
+  #tree{max-height:44vh}
+  #pbody iframe{min-height:70vh}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <a class="brand" href="/">Priyanshu Debnath</a>
+  <span class="here">/files</span>
+  <span class="sp"></span>
+  <button class="icon" id="theme" title="Switch theme" aria-label="Switch theme">
+    <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+  </button>
+  <button id="expo" hidden>Shared</button>
+  <button id="lock" hidden>Lock</button>
+</header>
+<div class="wrap">
+  <section class="pane">
+    <div class="prompt"><b>&#10095;</b><input id="q" placeholder="filter" autocomplete="off" spellcheck="false"><span id="count"></span></div>
+    <div id="tree"><div class="note">Loading</div></div>
+    <div id="bar">
+      <div id="into"></div>
+      <button class="pri" id="pick">Upload files</button>
+      <button id="pickd">Upload folder</button>
+      <button id="mk">New folder</button>
+      <button id="fromurl">From link</button>
+      <label class="tsel" title="Visibility for new uploads and folders">New items<select id="vis">
+        <option value="private">Private</option>
+        <option value="public">Public</option>
+      </select></label>
+      <input type="file" id="file" multiple hidden>
+      <input type="file" id="dir" webkitdirectory multiple hidden>
+    </div>
+  </section>
+  <section class="pane">
+    <div class="phead"><div class="ptitle"><div class="ppath" id="ppath"></div><div class="pmeta" id="pmeta"></div></div><div class="acts" id="acts"></div></div>
+    <div id="pbody"></div>
+  </section>
+</div>
+<div id="drop">Drop to upload</div>
+<div id="ups"></div>
+<dialog id="dlg"><form method="dialog"><h3 id="dt"></h3><p id="dm"></p><input id="di" autocomplete="off"><div class="dbtn"><button type="button" id="dno">Cancel</button><button value="ok" class="pri" id="dok">OK</button></div></form></dialog>
+<dialog id="ch"><h3 id="cht"></h3><p id="chm"></p><div class="dbtn" id="chb"></div></dialog>
+<dialog id="sh"><form method="dialog" id="shf"><h3 id="sht"></h3><label>Link name<input id="shn" placeholder="optional, for example resume" autocomplete="off" spellcheck="false" maxlength="24"></label><label>Expires<select id="she"><option value="0">Never</option><option value="1">In 1 hour</option><option value="24">In 1 day</option><option value="168">In 7 days</option><option value="720">In 30 days</option></select></label><label>Password<input id="shp" placeholder="optional" autocomplete="off" spellcheck="false"></label><div class="dbtn"><button type="button" id="shno">Cancel</button><button value="ok" class="pri">Create link</button></div></form></dialog>
+<dialog id="mv"><h3 id="mvt"></h3><input id="mvq" placeholder="filter folders" autocomplete="off" spellcheck="false"><div id="mvl"></div><div class="dbtn"><button type="button" id="mvno">Cancel</button></div></dialog>
+<div id="toast"></div>
+<script>
+const API = 'https://script.google.com/macros/s/AKfycbxfhcwu8X6o-0g669k5aOei0zftHnblIWVoXtACWnptkCrxoGh18M3rUKKCLsBbu-AU-Q/exec';
+const CHUNK = 16 * 1024 * 1024;
+const $ = (id) => document.getElementById(id);
+const N = {};
+const S = { sel: null, admin: false, q: '', rows: [], shown: null, tok: null, tokAt: 0, v: 1, multi: new Set(), anchor: null, found: null, searching: false, drag: null, sorts: {}, share: null, spw: '', rootName: 'files', view: null, exp: null };
+try { S.sorts = JSON.parse(localStorage.getItem('dump_sort') || '{}') || {}; } catch (e) { S.sorts = {}; }
+let ROOT = null;
+const pw = () => { try { return localStorage.getItem('dump_pw') || ''; } catch (e) { return ''; } };
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const ICON = {
+  dir: '<svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8l-2-2z"/></svg>',
+  file: '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>'
+};
+
+async function api(a, o) {
+  const r = await fetch(API, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(Object.assign({ a, pw: pw() }, S.share ? { s: S.share, spw: S.spw } : {}, o || {}))
+  });
+  const j = await r.json();
+  if (j.error) throw new Error(j.error);
+  return j;
+}
+
+function toast(t, stick) {
+  $('toast').textContent = t;
+  $('toast').classList.add('on');
+  clearTimeout(toast.t);
+  if (!stick) toast.t = setTimeout(() => $('toast').classList.remove('on'), 2600);
+}
+
+function untoast() {
+  clearTimeout(toast.t);
+  $('toast').classList.remove('on');
+}
+
+function el(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+}
+
+function ask(title, o) {
+  o = o || {};
+  return new Promise((res) => {
+    const d = $('dlg');
+    $('dt').textContent = title;
+    $('dm').textContent = o.msg || '';
+    $('dm').hidden = !o.msg;
+    $('di').hidden = o.input === false;
+    $('di').type = o.type || 'text';
+    $('di').value = o.value || '';
+    $('dok').textContent = o.ok || 'OK';
+    d.returnValue = '';
+    d.onclose = () => res(d.returnValue === 'ok' ? (o.input === false ? true : $('di').value.trim()) : null);
+    d.showModal();
+    if (o.input !== false) { $('di').focus(); $('di').select(); }
+  });
+}
+$('dno').onclick = () => $('dlg').close('no');
+
+function size(n) {
+  if (!n) return '';
+  const u = ['B', 'K', 'M', 'G', 'T'];
+  let i = 0;
+  while (n >= 1024 && i < 4) { n /= 1024; i++; }
+  return (i ? n.toFixed(n < 10 ? 1 : 0) : n) + u[i];
+}
+
+const linkOf = (id) => location.origin + location.pathname + (S.share ? '#' + S.share : id && id !== ROOT ? '#' + id : '');
+const dlOf = (id) => 'https://drive.google.com/uc?export=download&id=' + id;
+
+function pathOf(id) {
+  const p = [];
+  let n = N[id];
+  while (n && n.id !== ROOT) { p.unshift(n.name); n = N[n.parent]; }
+  return p;
+}
+
+function ingest(r) {
+  S.admin = r.admin;
+  S.v = r.v || 1;
+  const c = r.crumbs;
+  if (!ROOT) { ROOT = c[0].id; S.rootName = S.share ? c[0].name || 'shared' : 'files'; }
+  c.forEach((x, i) => {
+    if (r.file && i === c.length - 1) return;
+    if (!N[x.id]) N[x.id] = { id: x.id, name: x.name, folder: true, vis: i ? 'private' : 'public', parent: i ? c[i - 1].id : null, kids: null, open: !i };
+  });
+  if (r.file) return;
+  const self = c[c.length - 1].id;
+  N[self].kids = r.items.map((it) => {
+    const o = N[it.id] || (N[it.id] = { kids: null, open: false });
+    Object.assign(o, it, { parent: self });
+    return it.id;
+  });
+  sortKids(self);
+}
+
+async function loadDir(id) {
+  ingest(await api('list', id ? { id } : {}));
+}
+
+function walk(onlyOpen) {
+  const out = [];
+  (function rec(id, depth, path) {
+    const n = N[id];
+    if (!n || !n.kids) return;
+    n.kids.forEach((k) => {
+      const c = N[k];
+      const p = path + c.name + (c.folder ? '/' : '');
+      out.push({ n: c, depth, path: p, dir: path });
+      if (c.folder && (!onlyOpen || c.open)) rec(k, depth + 1, p);
+    });
+  })(ROOT, 0, '');
+  return out;
+}
+
+function onRow(e, id) {
+  if (S.view) { S.view = null; S.shown = null; }
+  if (S.admin && (e.ctrlKey || e.metaKey)) {
+    if (!S.multi.size && S.sel && S.sel !== ROOT && S.sel !== id && N[S.sel]) S.multi.add(S.sel);
+    if (S.multi.has(id)) S.multi.delete(id); else S.multi.add(id);
+    S.anchor = id;
+    render();
+    return;
+  }
+  if (S.admin && e.shiftKey) {
+    const a = S.rows.indexOf(S.anchor || S.sel);
+    const b = S.rows.indexOf(id);
+    if (a >= 0 && b >= 0) {
+      S.multi = new Set(S.rows.slice(Math.min(a, b), Math.max(a, b) + 1));
+      render();
+      return;
+    }
+  }
+  S.multi.clear();
+  S.anchor = id;
+  pick(id, true);
+}
+
+const TREE = { ids: null, open: new Set(), y: null, h: 0 };
+const motion = () => !matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function renderTree() {
+  const T = $('tree');
+  const all = walk(false);
+  let rows;
+  if (S.found) {
+    rows = S.found.filter((id) => N[id]).map((id) => ({ n: N[id], depth: 0, path: (N[id].spath || '') + N[id].name, dir: N[id].spath || '' }));
+  } else if (S.q) {
+    const t = S.q.toLowerCase().split(/\s+/).filter(Boolean);
+    rows = all.filter((r) => t.every((x) => r.path.toLowerCase().includes(x)));
+  } else {
+    rows = walk(true);
+  }
+  const flat = !!(S.q || S.found);
+  S.rows = rows.map((r) => r.n.id);
+  $('count').textContent = S.found ? rows.length + ' found' : rows.length + '/' + all.length;
+  const ids = new Set(S.rows);
+  const prev = !flat && T.dataset.flat === '0' ? TREE.ids : null;
+  const was = TREE.open;
+  TREE.ids = ids;
+  TREE.open = new Set(rows.filter((r) => r.n.folder && r.n.open).map((r) => r.n.id));
+  T.dataset.flat = flat ? '1' : '0';
+  const flips = [];
+  const tops = {};
+  if (prev && motion()) T.querySelectorAll('.row').forEach((r) => { tops[r.dataset.id] = r.offsetTop; });
+  let fresh = 0;
+  T.textContent = '';
+  const ind = el('div', 'ind');
+  T.append(ind);
+  if (!rows.length && !S.searching) {
+    T.append(el('div', 'note', S.found ? 'No results in any folder' : S.q ? 'No match in open folders' : S.admin ? 'Empty. Drop files here to upload.' : 'Nothing here yet.'));
+  }
+  rows.forEach((r) => {
+    const n = r.n;
+    const open = n.open && !flat;
+    const before = prev && n.folder && prev.has(n.id) ? was.has(n.id) : open;
+    const row = el('div', 'row' + (n.folder ? ' dir' : '') + (before ? ' open' : '') + (n.id === S.sel && !S.multi.size ? ' sel' : '') + (S.multi.has(n.id) ? ' msel' : ''));
+    if (before !== open) flips.push(row);
+    if (prev && !prev.has(n.id) && motion()) { row.classList.add('in'); row.style.setProperty('--d', Math.min(fresh++, 12) * 16 + 'ms'); }
+    row.dataset.id = n.id;
+    if (!flat) row.style.paddingLeft = 11 + r.depth * 18 + 'px';
+    row.append(el('span', 'caret', n.folder && !flat ? '▸' : ''));
+    row.insertAdjacentHTML('beforeend', n.folder ? ICON.dir : ICON.file);
+    const nm = el('span', 'nm');
+    if (flat) { nm.append(el('i', '', r.dir)); nm.append(n.name + (n.folder ? '/' : '')); }
+    else nm.textContent = n.name;
+    nm.title = r.path;
+    row.append(nm);
+    if (S.admin && n.vis === 'public') { const d = el('span', 'dot'); d.title = 'Public'; row.append(d); }
+    row.onclick = (e) => onRow(e, n.id);
+    if (S.admin) {
+      row.draggable = true;
+      row.ondragstart = (e) => {
+        S.drag = S.multi.has(n.id) ? Array.from(S.multi) : [n.id];
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', S.drag.length > 1 ? S.drag.length + ' items' : n.name);
+      };
+      row.ondragend = () => { S.drag = null; cool(); };
+    }
+    T.append(row);
+  });
+  if (S.searching) T.append(el('div', 'hint', 'Searching every folder'));
+  else if (S.q && !S.found) T.append(el('div', 'hint', 'Press Enter to search every folder, including inside files'));
+  const s = T.querySelector('.sel');
+  if (flips.length) { void T.offsetHeight; flips.forEach((r) => r.classList.toggle('open')); }
+  T.querySelectorAll('.row').forEach((r) => {
+    const t = tops[r.dataset.id];
+    if (t != null && t !== r.offsetTop) r.animate([{ transform: 'translateY(' + (t - r.offsetTop) + 'px)' }, { transform: 'none' }], { duration: 200, easing: 'cubic-bezier(.2,.7,.3,1)' });
+  });
+  if (s) {
+    const y = s.offsetTop;
+    const h = s.offsetHeight;
+    if (TREE.y != null && motion()) {
+      ind.style.transform = 'translateY(' + TREE.y + 'px)';
+      ind.style.height = TREE.h + 'px';
+      void ind.offsetHeight;
+    }
+    ind.style.transform = 'translateY(' + y + 'px)';
+    ind.style.height = h + 'px';
+    TREE.y = y;
+    TREE.h = h;
+    s.scrollIntoView({ block: 'nearest' });
+  } else {
+    ind.hidden = true;
+    TREE.y = null;
+  }
+}
+
+function btn(t, fn, cls) {
+  const b = el('button', cls || '', t);
+  b.onclick = fn;
+  return b;
+}
+
+const SORTS = [['name', 'Name'], ['new', 'Newest'], ['old', 'Oldest'], ['big', 'Largest'], ['small', 'Smallest']];
+
+let MEAS = null;
+function fit(s) {
+  if (!MEAS) { MEAS = document.createElement('canvas').getContext('2d'); MEAS.font = '13px ' + getComputedStyle(document.documentElement).getPropertyValue('--sans'); }
+  const o = s.options[s.selectedIndex];
+  s.style.width = Math.ceil(MEAS.measureText(o ? o.text : '').width) + 16 + 'px';
+}
+
+function sortSelect(id) {
+  const s = el('select', 'sort');
+  const w = el('label', 'tsel', 'Sort');
+  w.title = 'Sort this folder';
+  w.append(s);
+  SORTS.forEach((o) => { const x = el('option', '', o[1]); x.value = o[0]; s.append(x); });
+  s.value = S.sorts[id] || 'name';
+  fit(s);
+  s.onchange = () => {
+    if (s.value === 'name') delete S.sorts[id]; else S.sorts[id] = s.value;
+    try { localStorage.setItem('dump_sort', JSON.stringify(S.sorts)); } catch (e) {}
+    sortKids(id);
+    render();
+  };
+  return w;
+}
+
+function fmtDate(d) {
+  return d ? new Date(d).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+}
+
+function listing(ids, mode) {
+  const L = el('div', 'ls');
+  ids.forEach((k, i) => {
+    const c = N[k];
+    L.append(el('span', 't', i === ids.length - 1 ? '└── ' : '├── '));
+    const a = el('a', c.folder ? 'd' : '', c.name + (c.folder ? '/' : ''));
+    a.onclick = () => { S.multi.clear(); pick(c.id, false); };
+    L.append(a);
+    let m = '';
+    if (!c.folder && (mode === 'big' || mode === 'small')) m = size(c.size) || '0B';
+    if (mode === 'new' || mode === 'old') m = fmtDate(c.modified);
+    if (m) L.append(el('span', 'm', '   ' + m));
+    L.append('\n');
+  });
+  return L;
+}
+
+function renderMulti() {
+  const ids = Array.from(S.multi).filter((id) => N[id]);
+  const P = $('ppath');
+  P.textContent = '';
+  P.append(el('strong', '', ids.length + ' selected'));
+  P.title = '';
+  const dirs = ids.filter((id) => N[id].folder).length;
+  const files = ids.length - dirs;
+  const bytes = ids.reduce((a, id) => a + (N[id].folder ? 0 : N[id].size || 0), 0);
+  const bits = [];
+  if (files) bits.push(files + (files === 1 ? ' file' : ' files'));
+  if (dirs) bits.push(dirs + (dirs === 1 ? ' folder' : ' folders'));
+  if (bytes) bits.push(size(bytes));
+  $('pmeta').textContent = '';
+  $('pmeta').append(mb(bits));
+  const A = $('acts');
+  A.textContent = '';
+  A.append(btn('Move', () => moveVia(ids)));
+  A.append(btn('Make public', () => visItems(ids, 'public')));
+  A.append(btn('Make private', () => visItems(ids, 'private')));
+  A.append(btn('Delete', () => trashItems(ids), 'bad'));
+  A.append(btn('Clear', () => { S.multi.clear(); render(); }));
+  const B = $('pbody');
+  const key = 'multi:' + ids.join(',');
+  if (S.shown === key) return;
+  S.shown = key;
+  B.textContent = '';
+  B.append(listing(ids, 'name'));
+}
+
+function mb(a) {
+  const s = el('span', 'mb');
+  a.forEach((t) => s.append(typeof t === 'string' ? el('span', '', t) : t));
+  return s;
+}
+
+function renderPreview() {
+  if (S.view === 'exposed') { renderExposed(); return; }
+  if (S.multi.size) { renderMulti(); return; }
+  const n = N[S.sel] || N[ROOT];
+  if (!n) return;
+  const p = pathOf(n.id);
+  const P = $('ppath');
+  P.textContent = '';
+  P.append(S.rootName + '/' + p.slice(0, -1).map((x) => x + '/').join(''));
+  if (p.length) P.append(el('strong', '', p[p.length - 1] + (n.folder ? '/' : '')));
+  P.title = S.rootName + '/' + p.join('/');
+  const M = $('pmeta');
+  M.textContent = '';
+  const bits = [];
+  if (n.folder) { if (n.kids) bits.push(n.kids.length + (n.kids.length === 1 ? ' item' : ' items')); else S.busy = true; }
+  else { if (n.size) bits.push(size(n.size)); if (n.modified) bits.push(fmtDate(n.modified)); }
+  if (S.admin && n.id !== ROOT) bits.push(el('span', n.vis === 'public' ? 'pub' : '', n.vis));
+  M.append(mb(bits));
+  const A = $('acts');
+  A.textContent = '';
+  if (n.folder && n.kids && n.kids.length > 1) A.append(sortSelect(n.id));
+  A.append(copyMenu(n));
+  if (!n.folder) { const a = el('a', 'btn pri', 'Download'); a.href = dlOf(n.id); a.target = '_blank'; a.rel = 'noopener'; A.append(a); }
+  else if (n.id !== '~' && n.kids && n.kids.length) A.append(btn('Download zip', () => zipDl(n)));
+  if (S.admin && n.id !== ROOT) {
+    A.append(btn(n.vis === 'public' ? 'Make private' : 'Make public', () => visItems([n.id], n.vis === 'public' ? 'private' : 'public')));
+    A.append(btn('Move', () => moveVia([n.id])));
+    A.append(btn('Rename', () => rename(n)));
+    A.append(btn('Delete', () => trashItems([n.id]), 'bad'));
+  }
+  const B = $('pbody');
+  const mode = S.sorts[n.id] || 'name';
+  const key = n.id + (n.folder ? ':' + mode + ':' + (n.kids ? n.kids.map((k) => N[k].name + N[k].vis).join('|') : '') + S.admin : '');
+  if (S.shown === key) return;
+  S.shown = key;
+  B.textContent = '';
+  if (!n.folder) {
+    if (isImg(n)) {
+      const w = el('div', 'imgv');
+      w.append(imgEl(n, 1600, () => w.replaceWith(frame(n))));
+      B.append(w);
+    } else {
+      B.append(frame(n));
+    }
+    return;
+  }
+  if (!n.kids) return;
+  if (!n.kids.length) { B.append(el('div', 'note', S.admin ? 'Empty folder. Drop files here to upload.' : 'Empty folder.')); return; }
+  const imgs = n.kids.filter((k) => isImg(N[k]));
+  if (imgs.length >= 3 && imgs.length * 2 >= n.kids.length) {
+    const rest = n.kids.filter((k) => !isImg(N[k]));
+    if (rest.length) B.append(listing(rest, mode));
+    B.append(grid(imgs));
+  } else {
+    B.append(listing(n.kids, mode));
+  }
+}
+
+function render() {
+  document.body.classList.toggle('admin', S.admin);
+  $('lock').hidden = !S.admin;
+  $('expo').hidden = !S.admin;
+  if (!ROOT) { ['ppath', 'pmeta', 'acts', 'pbody', 'into'].forEach((i) => { $(i).textContent = ''; }); $('count').textContent = ''; return; }
+  const d = N[curDir()];
+  $('into').textContent = 'Uploads go to ';
+  $('into').append(el('span', '', S.rootName + '/' + (d ? pathOf(d.id).map((x) => x + '/').join('') : '')));
+  renderTree();
+  const was = S.shown;
+  S.busy = false;
+  renderPreview();
+  document.querySelector('.phead').classList.toggle('busy', !!S.busy);
+  if (S.shown !== was && was !== undefined && motion()) {
+    const f = [{ opacity: 0, transform: 'translateY(4px)' }, { opacity: 1, transform: 'none' }];
+    $('pbody').animate(f, { duration: 180, easing: 'ease-out' });
+    document.querySelector('.ptitle').animate(f, { duration: 140, easing: 'ease-out' });
+  }
+}
+
+function curDir() {
+  const n = N[S.sel];
+  return n ? (n.folder ? n.id : n.parent) : ROOT;
+}
+
+async function pick(id, toggle) {
+  const n = N[id];
+  if (!n) return;
+  const was = S.sel === id;
+  S.sel = id;
+  if (S.view) { S.view = null; S.shown = null; }
+  if (!S.share) history.replaceState(null, '', id === ROOT ? location.pathname : '#' + id);
+  const par = N[n.parent];
+  if (id !== ROOT && (!par || !par.kids || !par.kids.includes(id))) {
+    render();
+    try { await reveal(id); } catch (e) { toast(e.message); }
+    if (S.sel === id) render();
+    return;
+  }
+  if (n.folder) {
+    n.open = toggle && was ? !n.open : true;
+    let p = N[n.parent];
+    while (p) { p.open = true; p = N[p.parent]; }
+  }
+  render();
+  if (n.folder && !n.kids) {
+    try { await loadDir(id); } catch (e) { toast(e.message); }
+    render();
+  }
+}
+
+async function reveal(id) {
+  const r = await api('list', { id });
+  ingest(r);
+  const c = r.crumbs;
+  await Promise.all(c.slice(1, -1).map((x) => loadDir(x.id)));
+  if (r.file && !N[id]) N[id] = Object.assign({ kids: null, open: false }, r.file, { parent: c.length > 1 ? c[c.length - 2].id : ROOT });
+  for (let i = 1; i < c.length; i++) {
+    const p = N[c[i - 1].id];
+    const n = N[c[i].id];
+    if (!p || !n || !p.kids) continue;
+    if (!p.kids.includes(n.id)) { n.parent = p.id; if (!S.admin) n.vis = 'public'; p.kids.push(n.id); }
+  }
+  c.forEach((x) => { if (N[x.id] && N[x.id].folder) N[x.id].open = true; });
+  S.sel = id;
+}
+
+async function openShare(slug) {
+  S.share = slug;
+  try { S.spw = sessionStorage.getItem('dump_spw_' + slug) || ''; } catch (e) { S.spw = ''; }
+  for (;;) {
+    let r;
+    try {
+      r = await api('list');
+    } catch (e) {
+      if (e.message === 'Password required' || e.message === 'Wrong link password') {
+        if (e.message === 'Wrong link password') toast('Wrong password');
+        const p = await ask('This link needs a password', { type: 'password', ok: 'Open' });
+        if (!p) { S.share = null; throw new Error('A password is needed to open this link.'); }
+        S.spw = p;
+        try { sessionStorage.setItem('dump_spw_' + slug, p); } catch (x) {}
+        continue;
+      }
+      S.share = null;
+      throw new Error(e.message === 'Link expired' ? 'This link has expired.' : e.message === 'Link not found' ? 'This link does not exist.' : e.message);
+    }
+    if (r.file && r.crumbs.length === 1) {
+      S.admin = false;
+      S.v = r.v || 1;
+      ROOT = '~';
+      S.rootName = 'shared';
+      N[ROOT] = { id: ROOT, name: 'shared', folder: true, vis: 'public', parent: null, kids: [r.file.id], open: true };
+      N[r.file.id] = Object.assign({ kids: null, open: false }, r.file, { parent: ROOT });
+      S.sel = r.file.id;
+    } else {
+      ingest(r);
+      S.sel = ROOT;
+    }
+    return;
+  }
+}
+
+async function init() {
+  let h = location.hash.slice(1);
+  try { h = decodeURIComponent(h); } catch (e) {}
+  const slug = h && h.length <= 24 ? h.toLowerCase() : '';
+  const id = slug ? '' : h;
+  const wipe = () => { Object.keys(N).forEach((k) => delete N[k]); ROOT = null; };
+  wipe();
+  S.sel = null;
+  S.shown = null;
+  S.multi.clear();
+  S.found = null;
+  S.searching = false;
+  S.share = null;
+  S.spw = '';
+  S.view = null;
+  S.rootName = 'files';
+  try {
+    const NONE = 'This link does not exist.';
+    const viaShare = async () => {
+      wipe();
+      S.sel = null;
+      try { await openShare(slug); return true; }
+      catch (e) { if (e.message !== NONE) throw e; wipe(); return false; }
+    };
+    if (slug && !pw() && (await viaShare())) { render(); return; }
+    await loadDir('');
+    S.sel = ROOT;
+    if (slug && !S.admin && pw()) {
+      if (await viaShare()) { render(); return; }
+      await loadDir('');
+      S.sel = ROOT;
+    }
+    let target = id;
+    if (slug && S.admin) {
+      try { const r = await api('list', { s: slug }); target = r.crumbs[r.crumbs.length - 1].id; }
+      catch (e) { target = h; }
+    } else if (slug) {
+      target = h;
+    }
+    if (target && target !== ROOT) {
+      try { await reveal(target); }
+      catch (e) { toast(e.message === 'Not found' ? (slug ? 'That link does not exist, or the item is private' : 'That item is private or no longer exists') : e.message); history.replaceState(null, '', location.pathname); }
+    }
+    render();
+  } catch (e) {
+    S.sel = null;
+    render();
+    $('tree').textContent = '';
+    $('tree').append(el('div', 'note', /^(This link|A password)/.test(e.message) ? e.message : 'Could not load: ' + e.message));
+  }
+}
+
+function urlOf(n, kind) {
+  if (kind === 'drive') return n.folder ? 'https://drive.google.com/drive/folders/' + n.id : 'https://drive.google.com/file/d/' + n.id + '/view';
+  if (kind === 'download') return dlOf(n.id);
+  return linkOf(n.id);
+}
+
+async function copy(id, kind) {
+  const n = N[id];
+  if (!n) return;
+  const url = urlOf(n, kind);
+  const label = kind === 'drive' ? 'Drive link' : kind === 'download' ? 'Download link' : 'Site link';
+  let note = '';
+  if (S.admin && id !== ROOT) {
+    if (n.folder && kind === 'drive') note = ', only you can open it';
+    else if (n.vis !== 'public') note = ', private so only you can open it';
+  }
+  try { await navigator.clipboard.writeText(url); toast(label + ' copied' + note); }
+  catch (e) { ask('Copy this link', { value: url }); }
+}
+
+function copyMenu(n) {
+  if (n.folder && !S.admin) return btn('Copy link', () => copy(n.id));
+  const d = el('details', 'pop');
+  d.append(el('summary', '', 'Copy link'));
+  const m = el('div', 'pmenu');
+  const add = (t, kind) => m.append(btn(t, () => { d.open = false; copy(n.id, kind); }));
+  add('Link on this site', 'site');
+  add('Google Drive link', 'drive');
+  if (!n.folder) add('Direct download link', 'download');
+  if (S.admin && n.id !== ROOT) m.append(btn('Create share link', () => { d.open = false; shareVia(n); }));
+  d.append(m);
+  return d;
+}
+
+async function rename(n) {
+  const name = await ask('Rename', { value: n.name, ok: 'Rename' });
+  if (!name || name === n.name) return;
+  try { await api('rename', { id: n.id, name }); n.name = name; sortKids(n.parent); S.shown = null; render(); }
+  catch (e) { toast(e.message); }
+}
+
+const NEEDS = 'Update and redeploy the Apps Script to use this';
+
+function isUnder(id, anc) {
+  let x = id;
+  for (let i = 0; i < 40 && x; i++) {
+    if (x === anc) return true;
+    x = N[x] ? N[x].parent : null;
+  }
+  return false;
+}
+
+function topLevel(ids) {
+  const set = new Set(ids);
+  return ids.filter((id) => {
+    let p = N[id] ? N[id].parent : null;
+    for (let i = 0; i < 40 && p; i++) {
+      if (set.has(p)) return false;
+      p = N[p] ? N[p].parent : null;
+    }
+    return true;
+  });
+}
+
+async function batch(a, ids, extra, label) {
+  const done = [];
+  const failed = [];
+  const step = S.v >= 2 ? 15 : 1;
+  for (let i = 0; i < ids.length; i += step) {
+    const part = ids.slice(i, i + step);
+    if (ids.length > 1) toast(label + ' ' + Math.min(i + step, ids.length) + ' of ' + ids.length, true);
+    try {
+      if (S.v >= 2) {
+        const r = await api(a, Object.assign({ ids: part }, extra));
+        done.push.apply(done, r.done);
+        failed.push.apply(failed, r.failed);
+      } else {
+        await api(a, Object.assign({ id: part[0] }, extra));
+        done.push(part[0]);
+      }
+    } catch (e) {
+      part.forEach((id) => failed.push({ id, error: e.message }));
+    }
+  }
+  untoast();
+  return { done, failed };
+}
+
+function report(r, verb) {
+  if (r.failed.length) toast((r.done.length ? r.done.length + ' ' + verb + ', ' : '') + r.failed.length + ' failed: ' + r.failed[0].error);
+  else toast(r.done.length + (r.done.length === 1 ? ' item ' : ' items ') + verb);
+}
+
+function detach(id) {
+  const p = N[N[id].parent];
+  if (p && p.kids) p.kids = p.kids.filter((k) => k !== id);
+}
+
+async function visItems(ids, vis) {
+  ids = ids.filter((id) => N[id] && id !== ROOT && N[id].vis !== vis);
+  if (!ids.length) { toast('Already ' + vis); return; }
+  const r = await batch('vis', ids, { vis }, 'Updating');
+  r.done.forEach((id) => { if (N[id]) N[id].vis = vis; });
+  S.shown = null;
+  render();
+  if (r.failed.length) report(r, 'updated'); else toast(ids.length === 1 ? 'Now ' + vis : r.done.length + ' items now ' + vis);
+}
+
+async function trashItems(ids) {
+  ids = topLevel(ids.filter((id) => N[id] && id !== ROOT));
+  if (!ids.length) return;
+  const ok = await ask('Delete', { msg: ids.length === 1 ? 'Move "' + N[ids[0]].name + '" to your Drive trash?' : 'Move ' + ids.length + ' items to your Drive trash?', input: false, ok: 'Delete' });
+  if (!ok) return;
+  const r = await batch('trash', ids, {}, 'Deleting');
+  let next = null;
+  r.done.forEach((id) => {
+    if (!N[id]) return;
+    if (S.sel && isUnder(S.sel, id)) next = N[id].parent;
+    detach(id);
+    if (S.found) S.found = S.found.filter((x) => !isUnder(x, id));
+  });
+  if (next || (S.sel && !N[S.sel])) S.sel = N[next] ? next : ROOT;
+  r.done.forEach((id) => { delete N[id]; });
+  S.multi.clear();
+  S.shown = null;
+  history.replaceState(null, '', S.sel === ROOT ? location.pathname : '#' + S.sel);
+  render();
+  report(r, 'deleted');
+}
+
+async function moveItems(ids, to) {
+  if (S.v < 2) { toast(NEEDS); return; }
+  ids = topLevel(ids.filter((id) => N[id] && id !== ROOT));
+  const bad = ids.filter((id) => N[id].folder && isUnder(to, id));
+  ids = ids.filter((id) => N[id].parent !== to && !bad.includes(id));
+  if (!ids.length) { toast(bad.length ? 'A folder cannot be moved into itself' : 'Already in that folder'); return; }
+  const r = await batch('move', ids, { to }, 'Moving');
+  r.done.forEach((id) => {
+    if (!N[id]) return;
+    detach(id);
+    N[id].parent = to;
+    const t = N[to];
+    if (t && t.kids && !t.kids.includes(id)) t.kids.push(id);
+  });
+  if (N[to] && N[to].kids) { sortKids(to); N[to].open = true; }
+  if (S.found) S.found = null;
+  S.multi.clear();
+  S.shown = null;
+  render();
+  report(r, 'moved');
+}
+
+function chooseDir(ids) {
+  return new Promise(async (res) => {
+    if (S.v < 2) { toast(NEEDS); res(null); return; }
+    toast('Loading folders', true);
+    let r;
+    try { r = await api('dirs'); } catch (e) { toast(e.message); res(null); return; }
+    untoast();
+    const par = {};
+    r.dirs.forEach((d) => { par[d.id] = d.parent; });
+    const moving = new Set(ids);
+    const banned = (id) => { for (let i = 0; i < 40 && id; i++) { if (moving.has(id)) return true; id = par[id]; } return false; };
+    const same = ids.every((id) => N[id] && N[id].parent === N[ids[0]].parent) ? N[ids[0]].parent : null;
+    const opts = [{ id: ROOT, path: '' }].concat(r.dirs).filter((d) => !banned(d.id) && d.id !== same);
+    const d = $('mv');
+    let chosen = null;
+    const draw = () => {
+      const t = $('mvq').value.toLowerCase().split(/\s+/).filter(Boolean);
+      const L = $('mvl');
+      L.textContent = '';
+      const show = opts.filter((o) => t.every((x) => (S.rootName + '/' + o.path).toLowerCase().includes(x)));
+      if (!show.length) L.append(el('div', 'note', opts.length ? 'No folder matches' : 'No other folder to move to'));
+      show.forEach((o) => {
+        const b = el('button', 'mvo', S.rootName + '/' + o.path);
+        b.type = 'button';
+        b.onclick = () => { chosen = o.id; d.close(); };
+        L.append(b);
+      });
+    };
+    $('mvt').textContent = ids.length === 1 ? 'Move "' + N[ids[0]].name + '" to' : 'Move ' + ids.length + ' items to';
+    $('mvq').value = '';
+    $('mvq').oninput = draw;
+    d.onclose = () => res(chosen);
+    draw();
+    d.showModal();
+    $('mvq').focus();
+  });
+}
+
+async function moveVia(ids) {
+  const to = await chooseDir(ids);
+  if (to) await moveItems(ids, to);
+}
+
+async function searchAll() {
+  const q = S.q;
+  if (q.length < 2) { toast('Type at least 2 characters'); return; }
+  if (S.v < 2) { toast(NEEDS); return; }
+  S.searching = true;
+  S.found = null;
+  renderTree();
+  try {
+    const r = await api('search', { q });
+    if (S.q !== q) return;
+    r.items.forEach((it) => {
+      const o = N[it.id] || (N[it.id] = { kids: null, open: false });
+      Object.assign(o, it);
+      o.spath = it.path || '';
+      delete o.path;
+    });
+    S.found = r.items.map((i) => i.id);
+  } catch (e) {
+    toast(e.message);
+  } finally {
+    if (S.q === q) { S.searching = false; S.multi.clear(); render(); }
+  }
+}
+
+async function mkdir() {
+  const dir = curDir();
+  const name = await ask('New folder', { ok: 'Create' });
+  if (!name) return;
+  try {
+    await api('mkdir', { id: dir, name, vis: $('vis').value });
+    await loadDir(dir === ROOT ? '' : dir);
+    N[dir].open = true;
+    render();
+  } catch (e) { toast(e.message); }
+}
+
+const U = { jobs: [], active: 0, names: {}, live: {}, raf: 0, auto: 0, rt: 0 };
+const JUNK = /^(\.DS_Store|Thumbs\.db|desktop\.ini|\._.*)$/i;
+const UPLOAD_URL = 'https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id';
+const pending = () => U.jobs.some((j) => j.state === 'wait' || j.state === 'run');
+
+const IMG = /\.(png|jpe?g|gif|webp|avif|bmp|svg|heic)$/i;
+const isImg = (n) => !n.folder && (/^image\//.test(n.mime || '') || IMG.test(n.name));
+
+function imgEl(n, px, onfail) {
+  const im = el('img');
+  const alt = 'https://drive.google.com/thumbnail?id=' + n.id + '&sz=w' + px;
+  let step = n.thumb ? 0 : 1;
+  im.alt = n.name;
+  im.loading = 'lazy';
+  im.referrerPolicy = 'no-referrer';
+  im.onerror = () => {
+    if (step === 0) { step = 1; im.src = alt; }
+    else { im.onerror = null; onfail(im); }
+  };
+  im.src = n.thumb ? n.thumb.replace(/=s\d+$/, '=s' + px) : alt;
+  return im;
+}
+
+function grid(ids) {
+  const G = el('div', 'grid');
+  ids.forEach((k) => {
+    const c = N[k];
+    const t = el('button', 'tile');
+    t.type = 'button';
+    t.title = c.name;
+    t.append(imgEl(c, 320, (im) => im.replaceWith(el('span', 'tname', c.name))));
+    t.onclick = () => { S.multi.clear(); pick(c.id, false); };
+    G.append(t);
+  });
+  return G;
+}
+
+function frame(n) {
+  const f = el('iframe');
+  f.allow = 'autoplay';
+  f.allowFullscreen = true;
+  f.src = 'https://drive.google.com/file/d/' + n.id + '/preview';
+  return f;
+}
+
+function choose(title, msg, opts) {
+  return new Promise((res) => {
+    const d = $('ch');
+    let v = null;
+    $('cht').textContent = title;
+    $('chm').textContent = msg;
+    $('chm').hidden = !msg;
+    const B = $('chb');
+    B.textContent = '';
+    opts.forEach((o, i) => {
+      const b = el('button', i === opts.length - 1 ? 'pri' : '', o[1]);
+      b.type = 'button';
+      b.onclick = () => { v = o[0]; d.close(); };
+      B.append(b);
+    });
+    d.onclose = () => res(v);
+    d.showModal();
+  });
+}
+
+function zipWriter() {
+  const T = new Uint32Array(256);
+  for (let i = 0; i < 256; i++) {
+    let c = i;
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1;
+    T[i] = c >>> 0;
+  }
+  const crc = (u) => {
+    let c = 0xFFFFFFFF;
+    for (let i = 0; i < u.length; i++) c = T[(c ^ u[i]) & 255] ^ (c >>> 8);
+    return (c ^ 0xFFFFFFFF) >>> 0;
+  };
+  const enc = new TextEncoder();
+  const parts = [];
+  const cen = [];
+  let off = 0;
+  let count = 0;
+  return {
+    add(name, data, mod) {
+      const nb = enc.encode(name);
+      const c = crc(data);
+      const t = new Date(mod || Date.now());
+      const time = (t.getHours() << 11) | (t.getMinutes() << 5) | (t.getSeconds() >> 1);
+      const date = ((Math.max(1980, t.getFullYear()) - 1980) << 9) | ((t.getMonth() + 1) << 5) | t.getDate();
+      const h = new DataView(new ArrayBuffer(30));
+      h.setUint32(0, 0x04034b50, true);
+      h.setUint16(4, 20, true);
+      h.setUint16(6, 0x0800, true);
+      h.setUint16(10, time, true);
+      h.setUint16(12, date, true);
+      h.setUint32(14, c, true);
+      h.setUint32(18, data.length, true);
+      h.setUint32(22, data.length, true);
+      h.setUint16(26, nb.length, true);
+      parts.push(new Blob([h.buffer, nb, data]));
+      const e = new DataView(new ArrayBuffer(46));
+      e.setUint32(0, 0x02014b50, true);
+      e.setUint16(4, 20, true);
+      e.setUint16(6, 20, true);
+      e.setUint16(8, 0x0800, true);
+      e.setUint16(12, time, true);
+      e.setUint16(14, date, true);
+      e.setUint32(16, c, true);
+      e.setUint32(20, data.length, true);
+      e.setUint32(24, data.length, true);
+      e.setUint16(28, nb.length, true);
+      e.setUint32(42, off, true);
+      cen.push(e.buffer, nb);
+      off += 30 + nb.length + data.length;
+      count++;
+    },
+    finish() {
+      let cs = 0;
+      cen.forEach((x) => { cs += x.byteLength; });
+      const e = new DataView(new ArrayBuffer(22));
+      e.setUint32(0, 0x06054b50, true);
+      e.setUint16(8, count, true);
+      e.setUint16(10, count, true);
+      e.setUint32(12, cs, true);
+      e.setUint32(16, off, true);
+      return new Blob(parts.concat(cen, [e.buffer]), { type: 'application/zip' });
+    }
+  };
+}
+
+function saveBlob(url, name) {
+  const a = el('a');
+  a.href = url;
+  if (name) a.download = name;
+  a.rel = 'noopener';
+  document.body.append(a);
+  a.click();
+  a.remove();
+}
+
+async function clientZip(n) {
+  toast('Listing files', true);
+  const list = [];
+  const used = new Set();
+  try {
+    await (async function rec(id, path) {
+      if (!N[id].kids) await loadDir(id === ROOT ? '' : id);
+      for (const k of N[id].kids.slice()) {
+        const c = N[k];
+        if (c.folder) { await rec(k, path + c.name + '/'); continue; }
+        if (/^application\/vnd\.google-apps/.test(c.mime || '')) continue;
+        let name = path + c.name;
+        for (let i = 1; used.has(name); i++) name = path + c.name.replace(/(\.[^.]*)?$/, ' (' + i + ')$1');
+        used.add(name);
+        list.push({ id: k, name, size: c.size || 0, mod: c.modified });
+      }
+    })(n.id, '');
+    if (!list.length) { toast('No files to zip in this folder'); return; }
+    if (list.reduce((a, x) => a + x.size, 0) > 2 * 1024 * 1024 * 1024 || list.length > 20000) { toast('Too large to zip in the browser (limit 2 GB)'); return; }
+    const z = zipWriter();
+    let done = 0;
+    for (const f of list) {
+      toast('Zipping ' + ++done + ' of ' + list.length, true);
+      const r = await fetch('https://www.googleapis.com/drive/v3/files/' + f.id + '?alt=media', { headers: { Authorization: 'Bearer ' + (await token()) } });
+      if (!r.ok) throw new Error('Could not read ' + f.name + ' (' + r.status + ')');
+      z.add(f.name, new Uint8Array(await r.arrayBuffer()), f.mod);
+    }
+    const url = URL.createObjectURL(z.finish());
+    saveBlob(url, (n.id === ROOT ? S.rootName : n.name) + '.zip');
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    toast(list.length + (list.length === 1 ? ' file zipped' : ' files zipped'));
+  } catch (e) {
+    toast(e.message);
+  }
+}
+
+async function zipDl(n) {
+  if (S.v < 3) { toast(NEEDS); return; }
+  if (S.admin) { await clientZip(n); return; }
+  toast('Preparing zip', true);
+  try {
+    const r = await api('zip', n.id === ROOT && S.share ? {} : { id: n.id });
+    saveBlob(r.url);
+    toast(r.files + (r.files === 1 ? ' file zipped' : ' files zipped') + ', download starting');
+  } catch (e) {
+    toast(e.message);
+  }
+}
+
+async function saveUrl() {
+  if (S.v < 3) { toast(NEEDS); return; }
+  const dir = curDir();
+  const url = await ask('Save from a link', { msg: 'Paste a direct link to a file, up to 50 MB. It is saved into ' + S.rootName + '/' + pathOf(dir).map((x) => x + '/').join(''), ok: 'Save' });
+  if (!url) return;
+  toast('Fetching', true);
+  try {
+    const r = await api('fetch', { id: dir, url, vis: $('vis').value });
+    const it = r.item;
+    N[it.id] = Object.assign({ kids: null, open: false }, it, { parent: dir });
+    const d = N[dir];
+    if (d && d.kids && !d.kids.includes(it.id)) { d.kids.push(it.id); sortKids(dir); }
+    if (d) d.open = true;
+    S.multi.clear();
+    S.view = null;
+    S.sel = it.id;
+    S.shown = null;
+    history.replaceState(null, '', '#' + it.id);
+    render();
+    toast('Saved ' + it.name);
+  } catch (e) {
+    toast(e.message);
+  }
+}
+
+function shareUrl(slug) {
+  return location.origin + location.pathname + '#' + slug;
+}
+
+async function clip(text, okMsg) {
+  try { await navigator.clipboard.writeText(text); toast(okMsg); }
+  catch (e) { ask('Copy this link', { value: text }); }
+}
+
+function shareForm(n) {
+  return new Promise((res) => {
+    const d = $('sh');
+    let ok = false;
+    $('sht').textContent = 'Share "' + n.name + '"';
+    $('shf').onsubmit = () => { ok = true; };
+    d.onclose = () => res(ok ? { slug: $('shn').value.trim(), hours: Number($('she').value), spw: $('shp').value } : null);
+    d.showModal();
+    $('shn').focus();
+  });
+}
+
+async function shareVia(n) {
+  if (S.v < 3) { toast(NEEDS); return; }
+  $('shn').value = '';
+  $('she').value = '0';
+  $('shp').value = '';
+  for (;;) {
+    const f = await shareForm(n);
+    if (!f) return;
+    toast('Creating link', true);
+    try {
+      const r = await api('share', { id: n.id, slug: f.slug, hours: f.hours, spw: f.spw });
+      untoast();
+      await clip(shareUrl(r.slug), 'Share link copied');
+      return;
+    } catch (e) {
+      toast(e.message);
+    }
+  }
+}
+
+async function openExposed() {
+  if (S.v < 3) { toast(NEEDS); return; }
+  S.view = 'exposed';
+  S.exp = null;
+  S.multi.clear();
+  S.shown = null;
+  render();
+  try { S.exp = await api('exposed'); }
+  catch (e) { toast(e.message); S.view = null; }
+  S.shown = null;
+  render();
+}
+
+async function privatize(ids) {
+  const failed = [];
+  for (let i = 0; i < ids.length; i += 15) {
+    if (ids.length > 1) toast('Updating ' + Math.min(i + 15, ids.length) + ' of ' + ids.length, true);
+    try {
+      const r = await api('vis', { ids: ids.slice(i, i + 15), vis: 'private' });
+      r.done.forEach((id) => { if (N[id]) N[id].vis = 'private'; });
+      failed.push.apply(failed, r.failed);
+    } catch (e) { failed.push({ error: e.message }); }
+  }
+  untoast();
+  if (failed.length) toast(failed.length + ' failed: ' + failed[0].error);
+  await openExposed();
+}
+
+function when(ms) {
+  return new Date(ms).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+}
+
+function renderExposed() {
+  const P = $('ppath');
+  P.textContent = '';
+  P.append(el('strong', '', 'Shared and public'));
+  P.title = '';
+  const x = S.exp;
+  $('pmeta').textContent = '';
+  if (x) $('pmeta').append(mb([x.links.length + (x.links.length === 1 ? ' share link' : ' share links'), x.items.length + (x.items.length === 1 ? ' public item' : ' public items')]));
+  else S.busy = true;
+  const A = $('acts');
+  A.textContent = '';
+  if (x && x.items.length > 1) A.append(btn('Make all private', async () => {
+    const ok = await ask('Make all private', { msg: 'Make all ' + x.items.length + ' public items private? Share links keep working.', input: false, ok: 'Make private' });
+    if (ok) privatize(x.items.map((i) => i.id));
+  }));
+  A.append(btn('Close', () => { S.view = null; S.shown = null; render(); }));
+  const B = $('pbody');
+  if (S.shown === 'exposed') return;
+  S.shown = 'exposed';
+  B.textContent = '';
+  if (!x) return;
+  const W = el('div', 'xw');
+  const row = (name, dim, meta, acts) => {
+    const r = el('div', 'xr');
+    const n = el('span', 'xn');
+    if (dim) n.append(el('i', '', dim));
+    n.append(name);
+    n.title = (dim || '') + name;
+    const xm = el('span', 'xm');
+    xm.append(meta);
+    r.append(n, xm);
+    acts.forEach((a) => r.append(a));
+    W.append(r);
+  };
+  W.append(el('div', 'xh', 'Share links'));
+  if (!x.links.length) W.append(el('div', 'xe', 'No share links.'));
+  x.links.forEach((l) => {
+    const meta = [l.gone ? 'item deleted' : (l.exp ? 'expires ' + when(l.exp) : 'no expiry')];
+    if (l.pw) meta.push('password');
+    row((l.gone ? '' : l.path + l.name + (l.folder ? '/' : '')), '#' + l.slug + '  ', mb(meta), [
+      btn('Copy', () => clip(shareUrl(l.slug), 'Share link copied')),
+      btn('Revoke', async () => { toast('Revoking', true); try { await api('unshare', { slug: l.slug }); untoast(); } catch (e) { toast(e.message); } openExposed(); }, 'bad')
+    ]);
+  });
+  W.append(el('div', 'xh', 'Public items'));
+  if (!x.items.length) W.append(el('div', 'xe', 'Nothing is public.'));
+  x.items.forEach((i) => {
+    const meta = i.why === 'drive' ? 'shared in Drive, not marked here' : i.site ? 'visible on the site' : i.folder ? 'hidden, a folder above is private' : 'Drive link only';
+    row(i.name + (i.folder ? '/' : ''), i.path, meta, [btn('Make private', () => privatize([i.id]))]);
+  });
+  B.append(W);
+}
+
+async function token(force) {
+  if (force || !S.tok || Date.now() - S.tokAt > 40 * 60 * 1000) {
+    S.tok = (await api('token')).token;
+    S.tokAt = Date.now();
+  }
+  return S.tok;
+}
+
+function put(j, url, headers, body, onp) {
+  return new Promise((res, rej) => {
+    const x = new XMLHttpRequest();
+    j.xhr = x;
+    x.open('PUT', url);
+    Object.keys(headers).forEach((k) => x.setRequestHeader(k, headers[k]));
+    if (onp) x.upload.onprogress = (e) => onp(e.loaded);
+    x.onload = () => res({ status: x.status, range: x.getResponseHeader('Range'), text: x.responseText });
+    x.onerror = () => rej(new Error('Network error'));
+    x.onabort = () => rej(new Error('Cancelled'));
+    x.send(body);
+  });
+}
+
+async function gerr(r, fallback) {
+  try { const t = await r.json(); return (t.error && t.error.message) || fallback; }
+  catch (e) { return fallback; }
+}
+
+async function startSession(j, pid) {
+  for (let a = 0; a < 2; a++) {
+    const t = await token(a > 0);
+    const h = { Authorization: 'Bearer ' + t, 'Content-Type': 'application/json; charset=UTF-8', 'X-Upload-Content-Length': String(j.file.size) };
+    if (j.file.type) h['X-Upload-Content-Type'] = j.file.type;
+    const r = j.replaceId
+      ? await fetch('https://www.googleapis.com/upload/drive/v3/files/' + j.replaceId + '?uploadType=resumable&fields=id', { method: 'PATCH', headers: h, body: '{}' })
+      : await fetch(UPLOAD_URL, { method: 'POST', headers: h, body: JSON.stringify({ name: j.name, parents: [pid], description: j.vis }) });
+    if (r.status === 401 && !a) continue;
+    if (!r.ok) throw new Error(await gerr(r, 'Could not start upload (' + r.status + ')'));
+    const u = r.headers.get('Location');
+    if (!u) throw new Error('No upload session returned');
+    return u;
+  }
+}
+
+async function makePublic(id) {
+  try {
+    const r = await fetch('https://www.googleapis.com/drive/v3/files/' + id + '/permissions', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + (await token()), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role: 'reader', type: 'anyone' })
+    });
+    if (r.ok) return;
+  } catch (e) {}
+  await api('vis', { id, vis: 'public' });
+}
+
+async function upload(j, pid) {
+  const file = j.file;
+  const total = file.size;
+  const next = (r, fallback) => (r.range ? Number(r.range.split('-')[1]) + 1 : fallback);
+  const stop = () => { if (j.state === 'cancel') throw new Error('Cancelled'); };
+  let off = 0;
+  let fails = 0;
+  let done = null;
+  const probe = async () => {
+    const p = await put(j, j.url, { 'Content-Range': 'bytes */' + total }, new Blob([]));
+    if (p.status === 200 || p.status === 201) done = JSON.parse(p.text);
+    else if (p.status === 308) off = next(p, 0);
+    else if (p.status === 404 || p.status === 410) j.url = null;
+  };
+  if (j.url && total) { try { await probe(); } catch (e) { stop(); } }
+  if (!j.url) { j.url = await startSession(j, pid); off = 0; }
+  stop();
+  if (!total && !done) {
+    const r = await put(j, j.url, {}, new Blob([]));
+    if (r.status >= 300) throw new Error('Upload failed (' + r.status + ')');
+    done = JSON.parse(r.text);
+  }
+  while (!done) {
+    stop();
+    const end = Math.min(off + CHUNK, total);
+    let r;
+    try {
+      r = await put(j, j.url, { 'Content-Range': 'bytes ' + off + '-' + (end - 1) + '/' + total }, file.slice(off, end), (n) => { j.sent = off + n; draw(); });
+    } catch (e) {
+      stop();
+      r = { status: 503 };
+    }
+    if (r.status === 200 || r.status === 201) { done = JSON.parse(r.text); break; }
+    if (r.status === 308) { off = next(r, end); fails = 0; j.sent = off; draw(); continue; }
+    if (r.status >= 500 || r.status === 429) {
+      if (++fails > 10) throw new Error(navigator.onLine === false ? 'You are offline' : 'Upload kept failing');
+      await sleep(Math.min(30000, 1500 * fails));
+      stop();
+      try { await probe(); } catch (e) { stop(); }
+      if (!j.url) throw new Error('Upload session expired');
+      continue;
+    }
+    j.url = null;
+    throw new Error(r.status === 403 ? 'Drive refused the upload (storage or rate limit)' : 'Upload failed (' + r.status + ')');
+  }
+  j.sent = total;
+  if (j.vis === 'public' && !j.replaceId) await makePublic(done.id);
+  return done.id;
+}
+
+function kidsReady(id) {
+  return N[id].kids ? Promise.resolve() : loadDir(id === ROOT ? '' : id);
+}
+
+function sortKids(pid) {
+  const d = N[pid];
+  if (!d || !d.kids) return;
+  const m = S.sorts[pid] || 'name';
+  const t = (x) => (x.modified ? Date.parse(x.modified) || 0 : 0);
+  d.kids = d.kids.filter((k) => N[k]);
+  d.kids.sort((a, b) => {
+    const A = N[a];
+    const B = N[b];
+    if (!!A.folder !== !!B.folder) return A.folder ? -1 : 1;
+    let c = 0;
+    if (m === 'new') c = t(B) - t(A);
+    else if (m === 'old') c = t(A) - t(B);
+    else if (m === 'big') c = (B.size || 0) - (A.size || 0);
+    else if (m === 'small') c = (A.size || 0) - (B.size || 0);
+    return c || A.name.localeCompare(B.name, undefined, { numeric: true, sensitivity: 'base' });
+  });
+}
+
+function ensureDir(target, path, vis, memo) {
+  if (!path.length) return kidsReady(target).then(() => target);
+  const key = path.join('/');
+  if (!memo[key]) {
+    memo[key] = ensureDir(target, path.slice(0, -1), vis, memo).then(async (pid) => {
+      const name = path[path.length - 1];
+      const ex = N[pid].kids.map((k) => N[k]).find((c) => c.folder && c.name === name);
+      N[pid].open = true;
+      if (ex) { await kidsReady(ex.id); ex.open = true; return ex.id; }
+      const r = await api('mkdir', { id: pid, name, vis });
+      N[r.id] = { id: r.id, name, folder: true, vis, parent: pid, kids: [], open: false, size: 0, modified: new Date().toISOString() };
+      N[pid].kids.push(r.id);
+      sortKids(pid);
+      return r.id;
+    }).catch((e) => { delete memo[key]; throw e; });
+  }
+  return memo[key];
+}
+
+function uniq(name, pid) {
+  const used = new Set(N[pid].kids.map((k) => N[k].name));
+  (U.live[pid] || []).forEach((x) => used.add(x));
+  let out = name;
+  if (used.has(out)) {
+    const d = name.lastIndexOf('.');
+    const b = d > 0 ? name.slice(0, d) : name;
+    const x = d > 0 ? name.slice(d) : '';
+    let i = 1;
+    do { out = b + ' (' + i++ + ')' + x; } while (used.has(out));
+  }
+  (U.live[pid] || (U.live[pid] = new Set())).add(out);
+  return out;
+}
+
+function softRender() {
+  if (U.rt) return;
+  U.rt = setTimeout(() => { U.rt = 0; render(); }, 350);
+}
+
+async function run(j) {
+  j.state = 'run';
+  j.err = null;
+  U.active++;
+  draw();
+  try {
+    const pid = await ensureDir(j.target, j.path, j.vis, j.memo);
+    j.pid = pid;
+    if (j.state === 'cancel') throw new Error('Cancelled');
+    if (!j.name) {
+      const ex = N[pid].kids.map((k) => N[k]).find((c) => !c.folder && c.name === j.file.name);
+      const taken = U.live[pid] && U.live[pid].has(j.file.name);
+      let c = 'keep';
+      if (ex && !taken) {
+        if (!j.batch.dup) {
+          j.batch.dup = choose('"' + j.file.name + '" already exists', j.batch.n > 1 ? 'Your choice applies to every duplicate in this upload.' : 'Replace keeps the same link and visibility.', [['skip', 'Skip'], ['keep', 'Keep both'], ['replace', 'Replace']]).then((v) => v || 'keep');
+        }
+        c = await j.batch.dup;
+      }
+      if (j.state === 'cancel') throw new Error('Cancelled');
+      if (c === 'skip') { j.state = 'cancel'; throw new Error('Skipped'); }
+      if (c === 'replace') { j.replaceId = ex.id; j.name = j.file.name; (U.live[pid] || (U.live[pid] = new Set())).add(j.name); }
+      else j.name = uniq(j.file.name, pid);
+    }
+    const id = await upload(j, pid);
+    if (j.replaceId && N[j.replaceId]) {
+      N[j.replaceId].size = j.file.size;
+      N[j.replaceId].modified = new Date().toISOString();
+      delete N[j.replaceId].thumb;
+      if (S.sel === j.replaceId) S.shown = null;
+    } else {
+      N[id] = { id, name: j.name, folder: false, mime: j.file.type, size: j.file.size, modified: new Date().toISOString(), vis: j.vis, parent: pid, kids: null, open: false };
+      N[pid].kids.push(id);
+    }
+    sortKids(pid);
+    j.state = 'done';
+  } catch (e) {
+    if (j.state !== 'cancel') { j.state = 'err'; j.err = (e && e.message) || String(e); }
+  }
+  j.xhr = null;
+  if (j.pid && j.name && U.live[j.pid]) U.live[j.pid].delete(j.name);
+  U.active--;
+  U.jobs = U.jobs.filter((x) => x.state !== 'cancel');
+  draw();
+  softRender();
+  pump();
+}
+
+function pump() {
+  while (U.active < 3) {
+    const j = U.jobs.find((x) => x.state === 'wait');
+    if (!j) break;
+    run(j);
+  }
+  if (!pending() && U.jobs.length && !U.jobs.some((j) => j.state === 'err')) {
+    clearTimeout(U.auto);
+    U.auto = setTimeout(() => { if (!pending()) clearJobs(); }, 4000);
+  }
+}
+
+function clearJobs() {
+  U.jobs = [];
+  U.names = {};
+  draw();
+}
+
+function cancelAll() {
+  U.jobs.forEach((j) => {
+    if (j.state === 'run') { j.state = 'cancel'; if (j.xhr) j.xhr.abort(); }
+  });
+  U.jobs = U.jobs.filter((j) => j.state !== 'wait');
+  draw();
+}
+
+function retryFailed() {
+  U.jobs.forEach((j) => { if (j.state === 'err') { j.state = 'wait'; j.err = null; } });
+  draw();
+  pump();
+}
+
+function draw() {
+  if (U.raf) return;
+  U.raf = requestAnimationFrame(() => {
+    U.raf = 0;
+    const P = $('ups');
+    P.textContent = '';
+    if (!U.jobs.length) return;
+    const total = U.jobs.length;
+    const done = U.jobs.filter((j) => j.state === 'done').length;
+    const errs = U.jobs.filter((j) => j.state === 'err');
+    const busy = pending();
+    const bytes = U.jobs.reduce((a, j) => a + j.file.size, 0);
+    const sent = U.jobs.reduce((a, j) => a + (j.state === 'done' ? j.file.size : j.sent || 0), 0);
+    const box = el('div', 'up');
+    box.append(el('div', 'uh', busy ? 'Uploading ' + done + ' of ' + total : done + ' of ' + total + ' uploaded'));
+    const sub = [];
+    if (bytes) sub.push(size(sent) + ' of ' + size(bytes));
+    if (errs.length) sub.push(errs.length + ' failed');
+    const sm = el('small', errs.length ? 'e' : '');
+    sm.append(mb(sub));
+    box.append(sm);
+    const track = el('div', 'track');
+    const fill = el('div', 'fill');
+    fill.style.width = (bytes ? (sent / bytes) * 100 : total ? (done / total) * 100 : 0) + '%';
+    track.append(fill);
+    box.append(track);
+    const bs = el('div', 'ub');
+    if (busy) bs.append(btn('Cancel', cancelAll));
+    if (!busy && errs.length) bs.append(btn('Retry failed', retryFailed));
+    if (!busy) bs.append(btn('Dismiss', clearJobs));
+    box.append(bs);
+    P.append(box);
+    const list = el('div', 'ul');
+    const show = U.jobs.filter((j) => j.state === 'run').concat(errs);
+    show.slice(0, 6).forEach((j) => {
+      const r = el('div', 'ur' + (j.state === 'err' ? ' err' : ''));
+      r.append(el('span', '', (j.path.length ? j.path.join('/') + '/' : '') + (j.name || j.file.name)));
+      r.append(el('small', '', j.state === 'err' ? j.err : j.file.size ? Math.floor(((j.sent || 0) / j.file.size) * 100) + '%' : ''));
+      list.append(r);
+    });
+    if (show.length > 6) list.append(el('div', 'ur', '+ ' + (show.length - 6) + ' more'));
+    if (show.length) P.append(list);
+  });
+}
+
+function addFiles(list, dirs, target) {
+  if (!S.admin) { toast('Unlock first'); return; }
+  if (!N[target] || !N[target].folder) target = ROOT;
+  const vis = $('vis').value;
+  const memo = {};
+  const batchInfo = { dup: null, n: 0 };
+  let skipped = 0;
+  let added = 0;
+  list.forEach((x) => {
+    if (JUNK.test(x.file.name)) { skipped++; return; }
+    U.jobs.push({ file: x.file, path: x.path, target, vis, memo, batch: batchInfo, sent: 0, state: 'wait', url: null, name: null });
+    added++;
+    batchInfo.n = added;
+  });
+  let chain = Promise.resolve();
+  (dirs || []).forEach((p) => { chain = chain.then(() => ensureDir(target, p, vis, memo)).then(softRender, () => {}); });
+  if (!added && !(dirs || []).length) { toast(skipped ? 'Only system files, nothing uploaded' : 'Nothing to upload'); return; }
+  if (skipped) toast('Skipped ' + skipped + ' system file' + (skipped > 1 ? 's' : ''));
+  N[target].open = true;
+  clearTimeout(U.auto);
+  draw();
+  pump();
+}
+
+function readAll(reader) {
+  return new Promise((res) => {
+    const out = [];
+    (function more() {
+      reader.readEntries((b) => { if (!b.length) res(out); else { out.push.apply(out, b); more(); } }, () => res(out));
+    })();
+  });
+}
+
+async function crawl(entry, path, files, dirs) {
+  if (entry.isFile) {
+    try { files.push({ file: await new Promise((res, rej) => entry.file(res, rej)), path }); } catch (e) {}
+    return;
+  }
+  if (!entry.isDirectory) return;
+  const here = path.concat(entry.name);
+  dirs.push(here);
+  const kids = await readAll(entry.createReader());
+  for (const k of kids) await crawl(k, here, files, dirs);
+}
+
+async function fromDrop(dt, target) {
+  const entries = [];
+  const files = [];
+  const items = dt.items ? Array.from(dt.items) : [];
+  items.forEach((it) => {
+    if (it.kind !== 'file') return;
+    const en = it.webkitGetAsEntry ? it.webkitGetAsEntry() : null;
+    if (en) entries.push(en);
+    else { const f = it.getAsFile(); if (f) files.push({ file: f, path: [] }); }
+  });
+  if (!items.length) Array.from(dt.files || []).forEach((f) => files.push({ file: f, path: [] }));
+  const dirs = [];
+  if (entries.some((e) => e.isDirectory)) toast('Reading folder');
+  for (const en of entries) await crawl(en, [], files, dirs);
+  addFiles(files, dirs, target);
+}
+
+function rowDir(e) {
+  const row = e.target && e.target.closest ? e.target.closest('.row') : null;
+  const n = row ? N[row.dataset.id] : null;
+  return { row, dir: n ? (n.folder ? n.id : n.parent) : curDir() };
+}
+
+async function unlock() {
+  const p = await ask('Unlock', { type: 'password', ok: 'Unlock' });
+  if (!p) return;
+  try { localStorage.setItem('dump_pw', p); } catch (e) {}
+  await init();
+  if (!S.admin) { try { localStorage.removeItem('dump_pw'); } catch (e) {} toast('Wrong password'); }
+}
+$('lock').onclick = async () => {
+  if (S.admin) {
+    if (pending()) { toast('Wait for uploads to finish or cancel them'); return; }
+    try { localStorage.removeItem('dump_pw'); } catch (e) {}
+    S.tok = null;
+    clearJobs();
+    await init();
+  }
+};
+$('vis').addEventListener('change', () => fit($('vis')));
+fit($('vis'));
+$('theme').onclick = () => {
+  const t = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+  document.documentElement.dataset.theme = t;
+  try { localStorage.setItem('pref-theme', t); } catch (e) {}
+};
+$('pick').onclick = () => $('file').click();
+$('file').onchange = (e) => { addFiles(Array.from(e.target.files).map((f) => ({ file: f, path: [] })), [], curDir()); e.target.value = ''; };
+if ('webkitdirectory' in $('dir')) $('pickd').onclick = () => $('dir').click();
+else $('pickd').hidden = true;
+$('dir').onchange = (e) => {
+  const fs = Array.from(e.target.files);
+  if (!fs.length) toast('That folder is empty');
+  else addFiles(fs.map((f) => ({ file: f, path: (f.webkitRelativePath || '').split('/').slice(0, -1) })), [], curDir());
+  e.target.value = '';
+};
+$('mk').onclick = mkdir;
+$('q').oninput = (e) => { S.q = e.target.value.trim(); S.found = null; S.searching = false; S.multi.clear(); render(); };
+$('mvno').onclick = () => $('mv').close();
+$('shno').onclick = () => $('sh').close();
+$('expo').onclick = openExposed;
+$('fromurl').onclick = saveUrl;
+document.addEventListener('click', (e) => { document.querySelectorAll('details.pop[open]').forEach((d) => { if (!d.contains(e.target)) d.open = false; }); });
+document.addEventListener('paste', (e) => {
+  if (!S.admin || $('dlg').open) return;
+  const cd = e.clipboardData;
+  if (!cd || !Array.from(cd.items || []).some((i) => i.kind === 'file')) return;
+  if (document.activeElement && /INPUT|TEXTAREA/.test(document.activeElement.tagName)) return;
+  e.preventDefault();
+  fromDrop(cd, curDir());
+});
+document.addEventListener('keydown', (e) => {
+  if ($('dlg').open || $('mv').open || $('ch').open || $('sh').open) return;
+  const inQ = document.activeElement === $('q');
+  if (document.activeElement && /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName) && !inQ) return;
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.key === '/' && !inQ) { e.preventDefault(); $('q').focus(); return; }
+  if (e.key === 'Enter' && inQ) {
+    e.preventDefault();
+    if (!S.admin && $('q').value.trim().toLowerCase() === 'sudo') { $('q').value = ''; S.q = ''; render(); $('q').blur(); unlock(); return; }
+    searchAll();
+    return;
+  }
+  if (e.key === 'Escape' && inQ) { $('q').value = ''; S.q = ''; S.found = null; S.searching = false; S.multi.clear(); $('q').blur(); render(); return; }
+  if (e.key === 'Escape' && S.multi.size) { S.multi.clear(); render(); return; }
+  const i = S.rows.indexOf(S.sel);
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    if (!S.rows.length) return;
+    e.preventDefault();
+    const j = e.key === 'ArrowDown' ? Math.min(S.rows.length - 1, i + 1) : Math.max(0, i < 0 ? 0 : i - 1);
+    S.multi.clear();
+    S.anchor = S.rows[j];
+    pick(S.rows[j], false);
+  } else if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && !inQ && !S.view && !S.multi.size && N[S.sel] && S.sel !== ROOT) {
+    const n = N[S.sel];
+    if (!n.folder) {
+      const sib = ((N[n.parent] && N[n.parent].kids) || []).filter((k) => N[k] && !N[k].folder);
+      const to = sib[sib.indexOf(n.id) + (e.key === 'ArrowRight' ? 1 : -1)];
+      if (to) { e.preventDefault(); pick(to, false); }
+    } else if (e.key === 'ArrowLeft') {
+      if (n.open) { n.open = false; render(); } else pick(n.parent, false);
+    } else if (!n.open) {
+      pick(n.id, false);
+    }
+  }
+});
+let depth = 0;
+let hot = null;
+const hasFiles = (e) => e.dataTransfer && Array.from(e.dataTransfer.types || []).includes('Files');
+const cool = () => { if (hot) hot.classList.remove('drop'); hot = null; };
+window.addEventListener('dragenter', (e) => { if (hasFiles(e) && S.admin) { depth++; $('drop').classList.add('on'); } });
+window.addEventListener('dragleave', () => { if (S.drag) return; if (--depth <= 0) { depth = 0; $('drop').classList.remove('on'); cool(); } });
+function moveTarget(e) {
+  const row = e.target && e.target.closest ? e.target.closest('.row') : null;
+  const n = row ? N[row.dataset.id] : null;
+  if (n) return { row: n.folder ? row : null, to: n.folder ? n.id : n.parent };
+  return { row: null, to: e.target && e.target.closest && e.target.closest('#tree') ? ROOT : null };
+}
+window.addEventListener('dragover', (e) => {
+  if (S.drag) {
+    const t = moveTarget(e);
+    if (t.to) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }
+    if (t.row !== hot) { cool(); hot = t.row; if (hot) hot.classList.add('drop'); }
+    return;
+  }
+  if (!hasFiles(e)) return;
+  e.preventDefault();
+  if (!S.admin) return;
+  const t = rowDir(e);
+  if (t.row !== hot) { cool(); hot = t.row; if (hot) hot.classList.add('drop'); }
+  $('drop').textContent = 'Drop to upload to ' + S.rootName + '/' + pathOf(t.dir).map((x) => x + '/').join('');
+});
+window.addEventListener('drop', (e) => {
+  if (S.drag) {
+    e.preventDefault();
+    const t = moveTarget(e);
+    const ids = S.drag;
+    S.drag = null;
+    cool();
+    if (t.to) moveItems(ids, t.to);
+    return;
+  }
+  if (!hasFiles(e)) return;
+  e.preventDefault();
+  depth = 0;
+  $('drop').classList.remove('on');
+  const t = rowDir(e);
+  cool();
+  if (!S.admin) { toast('Unlock first'); return; }
+  fromDrop(e.dataTransfer, t.dir);
+});
+window.addEventListener('beforeunload', (e) => { if (pending()) { e.preventDefault(); e.returnValue = ''; } });
+window.addEventListener('hashchange', () => {
+  const id = location.hash.slice(1) || ROOT;
+  if (N[id]) pick(id, false);
+  else if (pending()) toast('Finish or cancel uploads first');
+  else init();
+});
+init();
+</script>
+</body>
+</html>
