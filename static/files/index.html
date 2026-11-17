@@ -299,6 +299,7 @@ function ingest(r) {
   });
   if (r.file) return;
   const self = c[c.length - 1].id;
+  if (S.admin) N[self].drive = !!r.drive;
   N[self].kids = r.items.map((it) => {
     const o = N[it.id] || (N[it.id] = { kids: null, open: false });
     Object.assign(o, it, { parent: self });
@@ -545,6 +546,7 @@ function renderPreview() {
   if (n.folder) { if (n.kids) bits.push(n.kids.length + (n.kids.length === 1 ? ' item' : ' items')); else S.busy = true; }
   else { if (n.size) bits.push(size(n.size)); if (n.modified) bits.push(fmtDate(n.modified)); }
   if (S.admin && n.id !== ROOT) bits.push(el('span', n.vis === 'public' ? 'pub' : '', n.vis));
+  if (S.admin && n.folder && n.drive) bits.push('Drive link on');
   M.append(mb(bits));
   const A = $('acts');
   A.textContent = '';
@@ -753,11 +755,43 @@ async function copy(id, kind) {
   const label = kind === 'drive' ? 'Drive link' : kind === 'download' ? 'Download link' : 'Site link';
   let note = '';
   if (S.admin && id !== ROOT) {
-    if (n.folder && kind === 'drive') note = ', only you can open it';
+    if (n.folder && kind === 'drive') note = n.drive ? '' : ', only you can open it';
     else if (n.vis !== 'public') note = ', private so only you can open it';
   }
   try { await navigator.clipboard.writeText(url); toast(label + ' copied' + note); }
   catch (e) { ask('Copy this link', { value: url }); }
+}
+
+function driveOff(list) {
+  if (!list || !list.length) return;
+  list.forEach((c) => { if (N[c.id]) N[c.id].drive = false; });
+  S.shown = null;
+  render();
+  toast('Drive link turned off for ' + list.map((c) => c.name).join(', ') + ', a private item is now inside', true);
+  setTimeout(untoast, 6000);
+}
+
+async function driveFolder(n) {
+  if (S.v < 4) { toast(NEEDS); return; }
+  if (!n.drive) {
+    toast('Checking everything inside', true);
+    try { await api('drive', { id: n.id }); }
+    catch (e) { toast(e.message, true); setTimeout(untoast, 7000); return; }
+    n.drive = true;
+    S.shown = null;
+    render();
+  }
+  const url = urlOf(n, 'drive');
+  try { await navigator.clipboard.writeText(url); toast('Drive link copied, anyone with it can open this folder'); }
+  catch (e) { untoast(); ask('Copy this link', { value: url }); }
+}
+
+async function undrive(n) {
+  toast('Turning off', true);
+  try { await api('undrive', { id: n.id }); n.drive = false; toast('Drive link turned off'); }
+  catch (e) { toast(e.message); }
+  S.shown = null;
+  render();
 }
 
 function copyMenu(n) {
@@ -767,7 +801,10 @@ function copyMenu(n) {
   const m = el('div', 'pmenu');
   const add = (t, kind) => m.append(btn(t, () => { d.open = false; copy(n.id, kind); }));
   add('Link on this site', 'site');
-  add('Google Drive link', 'drive');
+  if (n.folder && S.admin && n.id !== ROOT && S.v >= 4) {
+    m.append(btn('Google Drive link', () => { d.open = false; driveFolder(n); }));
+    if (n.drive) m.append(btn('Turn off Drive link', () => { d.open = false; undrive(n); }));
+  } else add('Google Drive link', 'drive');
   if (!n.folder) add('Direct download link', 'download');
   if (S.admin && n.id !== ROOT) m.append(btn('Create share link', () => { d.open = false; shareVia(n); }));
   d.append(m);
@@ -807,6 +844,7 @@ function topLevel(ids) {
 async function batch(a, ids, extra, label) {
   const done = [];
   const failed = [];
+  const closed = [];
   const step = S.v >= 2 ? 15 : 1;
   for (let i = 0; i < ids.length; i += step) {
     const part = ids.slice(i, i + step);
@@ -816,6 +854,7 @@ async function batch(a, ids, extra, label) {
         const r = await api(a, Object.assign({ ids: part }, extra));
         done.push.apply(done, r.done);
         failed.push.apply(failed, r.failed);
+        (r.closed || []).forEach((c) => { if (!closed.some((x) => x.id === c.id)) closed.push(c); });
       } else {
         await api(a, Object.assign({ id: part[0] }, extra));
         done.push(part[0]);
@@ -825,7 +864,7 @@ async function batch(a, ids, extra, label) {
     }
   }
   untoast();
-  return { done, failed };
+  return { done, failed, closed };
 }
 
 function report(r, verb) {
@@ -846,6 +885,7 @@ async function visItems(ids, vis) {
   S.shown = null;
   render();
   if (r.failed.length) report(r, 'updated'); else toast(ids.length === 1 ? 'Now ' + vis : r.done.length + ' items now ' + vis);
+  driveOff(r.closed);
 }
 
 async function trashItems(ids) {
@@ -890,6 +930,7 @@ async function moveItems(ids, to) {
   S.shown = null;
   render();
   report(r, 'moved');
+  driveOff(r.closed);
 }
 
 function chooseDir(ids) {
@@ -964,14 +1005,15 @@ async function mkdir() {
   const name = await ask('New folder', { ok: 'Create' });
   if (!name) return;
   try {
-    await api('mkdir', { id: dir, name, vis: $('vis').value });
+    const r = await api('mkdir', { id: dir, name, vis: $('vis').value });
     await loadDir(dir === ROOT ? '' : dir);
     N[dir].open = true;
     render();
+    driveOff(r.closed);
   } catch (e) { toast(e.message); }
 }
 
-const U = { jobs: [], active: 0, names: {}, live: {}, raf: 0, auto: 0, rt: 0 };
+const U = { jobs: [], active: 0, names: {}, live: {}, raf: 0, auto: 0, rt: 0, priv: new Set() };
 const JUNK = /^(\.DS_Store|Thumbs\.db|desktop\.ini|\._.*)$/i;
 const UPLOAD_URL = 'https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id';
 const pending = () => U.jobs.some((j) => j.state === 'wait' || j.state === 'run');
@@ -1180,6 +1222,7 @@ async function saveUrl() {
     history.replaceState(null, '', '#' + it.id);
     render();
     toast('Saved ' + it.name);
+    driveOff(r.closed);
   } catch (e) {
     toast(e.message);
   }
@@ -1246,6 +1289,7 @@ async function privatize(ids) {
     try {
       const r = await api('vis', { ids: ids.slice(i, i + 15), vis: 'private' });
       r.done.forEach((id) => { if (N[id]) N[id].vis = 'private'; });
+      (r.closed || []).forEach((c) => { if (N[c.id]) N[c.id].drive = false; });
       failed.push.apply(failed, r.failed);
     } catch (e) { failed.push({ error: e.message }); }
   }
@@ -1306,7 +1350,10 @@ function renderExposed() {
   if (!x.items.length) W.append(el('div', 'xe', 'Nothing is public.'));
   x.items.forEach((i) => {
     const meta = i.why === 'drive' ? 'shared in Drive, not marked here' : i.site ? 'visible on the site' : i.folder ? 'hidden, a folder above is private' : 'Drive link only';
-    row(i.name + (i.folder ? '/' : ''), i.path, meta, [btn('Make private', () => privatize([i.id]))]);
+    const acts = [];
+    if (i.drive) acts.push(btn('Turn off Drive link', async () => { toast('Turning off', true); try { await api('undrive', { id: i.id }); if (N[i.id]) N[i.id].drive = false; untoast(); } catch (e) { toast(e.message); } openExposed(); }));
+    acts.push(btn('Make private', () => privatize([i.id])));
+    row(i.name + (i.folder ? '/' : ''), i.path, i.drive ? mb([meta, 'Drive link on']) : meta, acts);
   });
   B.append(W);
 }
@@ -1449,6 +1496,7 @@ function ensureDir(target, path, vis, memo) {
       N[pid].open = true;
       if (ex) { await kidsReady(ex.id); ex.open = true; return ex.id; }
       const r = await api('mkdir', { id: pid, name, vis });
+      if (r.closed && r.closed.length) setTimeout(() => driveOff(r.closed), 0);
       N[r.id] = { id: r.id, name, folder: true, vis, parent: pid, kids: [], open: false, size: 0, modified: new Date().toISOString() };
       N[pid].kids.push(r.id);
       sortKids(pid);
@@ -1513,6 +1561,7 @@ async function run(j) {
       N[pid].kids.push(id);
     }
     sortKids(pid);
+    if (j.vis !== 'public' && !j.replaceId) U.priv.add(pid);
     j.state = 'done';
   } catch (e) {
     if (j.state !== 'cancel') { j.state = 'err'; j.err = (e && e.message) || String(e); }
@@ -1531,6 +1580,11 @@ function pump() {
     const j = U.jobs.find((x) => x.state === 'wait');
     if (!j) break;
     run(j);
+  }
+  if (!pending() && U.priv.size && S.v >= 4) {
+    const ids = Array.from(U.priv).slice(0, 50);
+    U.priv.clear();
+    api('audit', { ids }).then((r) => driveOff(r.closed)).catch(() => {});
   }
   if (!pending() && U.jobs.length && !U.jobs.some((j) => j.state === 'err')) {
     clearTimeout(U.auto);
