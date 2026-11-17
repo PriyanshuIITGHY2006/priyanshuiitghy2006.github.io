@@ -546,12 +546,23 @@ function renderPreview() {
   if (n.folder) { if (n.kids) bits.push(n.kids.length + (n.kids.length === 1 ? ' item' : ' items')); else S.busy = true; }
   else { if (n.size) bits.push(size(n.size)); if (n.modified) bits.push(fmtDate(n.modified)); }
   if (S.admin && n.id !== ROOT) bits.push(el('span', n.vis === 'public' ? 'pub' : '', n.vis));
-  if (S.admin && n.folder && n.drive) bits.push('Drive link on');
+  if (S.admin && n.folder && n.drive) bits.push('shared in Drive');
   M.append(mb(bits));
   const A = $('acts');
   A.textContent = '';
   if (n.folder && n.kids && n.kids.length > 1) A.append(sortSelect(n.id));
   A.append(copyMenu(n));
+  if (n.folder && S.admin && n.id !== ROOT && S.v >= 4) {
+    if (n.drive) {
+      const d = el('details', 'pop');
+      d.append(el('summary', '', 'In Drive'));
+      const m = el('div', 'pmenu');
+      m.append(btn('Copy Drive link', () => { d.open = false; copy(n.id, 'drive'); }));
+      m.append(btn('Stop sharing in Drive', () => { d.open = false; undrive(n); }));
+      d.append(m);
+      A.append(d);
+    } else A.append(btn('Share in Drive', () => shareDrive(n)));
+  }
   if (!n.folder) { const a = el('a', 'btn pri', 'Download'); a.href = dlOf(n.id); a.target = '_blank'; a.rel = 'noopener'; A.append(a); }
   else if (n.id !== '~' && n.kids && n.kids.length) A.append(btn('Download zip', () => zipDl(n)));
   if (S.admin && n.id !== ROOT) {
@@ -767,14 +778,14 @@ function driveOff(list) {
   list.forEach((c) => { if (N[c.id]) N[c.id].drive = false; });
   S.shown = null;
   render();
-  toast('Drive link turned off for ' + list.map((c) => c.name).join(', ') + ', a private item is now inside', true);
+  toast('Stopped sharing ' + list.map((c) => c.name).join(', ') + ' in Drive, a private item is now inside', true);
   setTimeout(untoast, 6000);
 }
 
 async function driveFolder(n) {
   if (S.v < 4) { toast(NEEDS); return; }
   if (!n.drive) {
-    toast('Checking everything inside', true);
+    toast('Sharing in Drive', true);
     try { await api('drive', { id: n.id }); }
     catch (e) { toast(e.message, true); setTimeout(untoast, 7000); return; }
     n.drive = true;
@@ -782,13 +793,58 @@ async function driveFolder(n) {
     render();
   }
   const url = urlOf(n, 'drive');
-  try { await navigator.clipboard.writeText(url); toast('Drive link copied, anyone with it can open this folder'); }
+  try { await navigator.clipboard.writeText(url); toast('Shared in Drive, link copied'); }
   catch (e) { untoast(); ask('Copy this link', { value: url }); }
+}
+
+function pubAll(id) {
+  const n = N[id];
+  if (!n) return;
+  n.vis = 'public';
+  (n.kids || []).forEach(pubAll);
+}
+
+async function shareDrive(n) {
+  if (S.v < 4) { toast(NEEDS); return; }
+  toast('Checking everything inside', true);
+  let r;
+  try { r = await api('drivecheck', { id: n.id }); }
+  catch (e) { toast(e.message); return; }
+  untoast();
+  if (r.drive || (r.pub && !r.privates)) { await driveFolder(n); return; }
+  const what = [];
+  if (!r.pub) what.push('this folder is private');
+  if (r.privates) what.push(r.privates + (r.capped ? '+' : '') + (r.privates === 1 ? ' private item' : ' private items') + ' inside, like ' + r.sample.slice(0, 3).join(', '));
+  let msg = what.join(' and ');
+  msg = msg.charAt(0).toUpperCase() + msg.slice(1) + '. Drive cannot hide part of a folder, so anyone with its Drive link would see everything inside.';
+  const opts = [['', 'Cancel']];
+  if (r.site) { opts.push(['site', 'Copy site link instead']); msg += ' The site link shows only the public items.'; }
+  else if (!r.pub && r.above) { opts.push(['sitepub', 'Make folder public, copy site link']); msg += ' A site link would show only the public items.'; }
+  else msg += ' A site link would not work either, because a folder above this one is private.';
+  if (r.above) msg += ' Making everything public also shows it all on your site.';
+  opts.push(['all', 'Make everything public and share']);
+  const c = await choose('Share "' + n.name + '" in Drive', msg, opts);
+  if (c === 'site') { copy(n.id, 'site'); return; }
+  if (c === 'sitepub') { await visItems([n.id], 'public'); copy(n.id, 'site'); return; }
+  if (c !== 'all') return;
+  let total = 0;
+  try {
+    for (let i = 0; i < 40; i++) {
+      toast(total ? 'Making public, ' + total + ' done' : 'Making everything public', true);
+      const p = await api('publicize', { id: n.id });
+      total += p.done;
+      if (!p.more) break;
+    }
+  } catch (e) { toast(e.message); return; }
+  pubAll(n.id);
+  S.shown = null;
+  render();
+  await driveFolder(n);
 }
 
 async function undrive(n) {
   toast('Turning off', true);
-  try { await api('undrive', { id: n.id }); n.drive = false; toast('Drive link turned off'); }
+  try { await api('undrive', { id: n.id }); n.drive = false; toast('Stopped sharing in Drive'); }
   catch (e) { toast(e.message); }
   S.shown = null;
   render();
@@ -801,10 +857,7 @@ function copyMenu(n) {
   const m = el('div', 'pmenu');
   const add = (t, kind) => m.append(btn(t, () => { d.open = false; copy(n.id, kind); }));
   add('Link on this site', 'site');
-  if (n.folder && S.admin && n.id !== ROOT && S.v >= 4) {
-    m.append(btn('Google Drive link', () => { d.open = false; driveFolder(n); }));
-    if (n.drive) m.append(btn('Turn off Drive link', () => { d.open = false; undrive(n); }));
-  } else add('Google Drive link', 'drive');
+  if (!(n.folder && S.admin && n.id !== ROOT && S.v >= 4)) add('Google Drive link', 'drive');
   if (!n.folder) add('Direct download link', 'download');
   if (S.admin && n.id !== ROOT) m.append(btn('Create share link', () => { d.open = false; shareVia(n); }));
   d.append(m);
@@ -1351,9 +1404,9 @@ function renderExposed() {
   x.items.forEach((i) => {
     const meta = i.why === 'drive' ? 'shared in Drive, not marked here' : i.site ? 'visible on the site' : i.folder ? 'hidden, a folder above is private' : 'Drive link only';
     const acts = [];
-    if (i.drive) acts.push(btn('Turn off Drive link', async () => { toast('Turning off', true); try { await api('undrive', { id: i.id }); if (N[i.id]) N[i.id].drive = false; untoast(); } catch (e) { toast(e.message); } openExposed(); }));
+    if (i.drive) acts.push(btn('Stop sharing in Drive', async () => { toast('Turning off', true); try { await api('undrive', { id: i.id }); if (N[i.id]) N[i.id].drive = false; untoast(); } catch (e) { toast(e.message); } openExposed(); }));
     acts.push(btn('Make private', () => privatize([i.id])));
-    row(i.name + (i.folder ? '/' : ''), i.path, i.drive ? mb([meta, 'Drive link on']) : meta, acts);
+    row(i.name + (i.folder ? '/' : ''), i.path, i.drive ? mb([meta, 'shared in Drive']) : meta, acts);
   });
   B.append(W);
 }
