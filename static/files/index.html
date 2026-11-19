@@ -222,30 +222,82 @@ const ICON = {
   file: '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>'
 };
 
-const SB = 'https://vadbagtnekrjwrimvgxe.supabase.co/rest/v1/files_snapshot?id=eq.1&select=t,data';
+const SBU = 'https://vadbagtnekrjwrimvgxe.supabase.co/rest/v1/';
 const SBK = 'sb_publishable_cir6pa7E0qNeYSfQduIYJA_-x1qnRxp';
-const MUT = new Set(['trash', 'vis', 'move', 'mkdir', 'fetch', 'rename', 'publicize']);
-let SNAP = null;
+const MUT = new Set(['trash', 'vis', 'move', 'mkdir', 'fetch', 'rename', 'publicize', 'drive', 'undrive', 'audit']);
+const DK = 'files_dirty';
+const MEM = {};
+const ls = {
+  get(k) { try { return localStorage.getItem(k); } catch (e) { return k in MEM ? MEM[k] : null; } },
+  set(k, v) { try { localStorage.setItem(k, String(v)); } catch (e) { MEM[k] = String(v); } },
+  del(k) { delete MEM[k]; try { localStorage.removeItem(k); } catch (e) {} }
+};
+const SNAPS = { pub: null, pubAt: 0, adm: null, admAt: 0, admKey: '' };
 
-function snapshot() {
-  if (SNAP && Date.now() - snapshot.at > 60000) SNAP = null;
-  if (!SNAP) {
-    snapshot.at = Date.now();
-    SNAP = fetch(SB, { headers: { apikey: SBK, Accept: 'application/vnd.pgrst.object+json' } })
+function index(d, t) {
+  if (!d || !d.root || !Array.isArray(d.items)) return null;
+  const map = {};
+  const kids = {};
+  d.items.forEach((it) => { map[it.id] = it; (kids[it.p] || (kids[it.p] = [])).push(it); });
+  return { root: d.root, v: d.v || 4, t: Number(t) || 0, map, kids };
+}
+
+function pubSnap() {
+  if (SNAPS.pub && Date.now() - SNAPS.pubAt > 60000) SNAPS.pub = null;
+  if (!SNAPS.pub) {
+    SNAPS.pubAt = Date.now();
+    SNAPS.pub = fetch(SBU + 'files_snapshot?id=eq.1&select=t,data', { headers: { apikey: SBK, Accept: 'application/vnd.pgrst.object+json' } })
       .then((r) => (r.ok ? r.json() : null))
-      .then((j) => {
-        const d = j && j.data;
-        if (!d || !d.root || !Array.isArray(d.items)) return null;
-        const map = {};
-        const kids = {};
-        d.items.forEach((it) => { map[it.id] = it; (kids[it.p] || (kids[it.p] = [])).push(it); });
-        return { root: d.root, map, kids };
-      })
+      .then((j) => (j ? index(j.data, j.t) : null))
       .catch(() => null);
   }
-  return SNAP;
+  return SNAPS.pub;
 }
-if (!pw()) snapshot();
+
+function admSnap(rt) {
+  if (SNAPS.adm && (SNAPS.admKey !== rt || Date.now() - SNAPS.admAt > 60000)) SNAPS.adm = null;
+  if (!SNAPS.adm) {
+    SNAPS.admAt = Date.now();
+    SNAPS.admKey = rt;
+    SNAPS.adm = fetch(SBU + 'rpc/get_files_admin', { method: 'POST', headers: { apikey: SBK, 'Content-Type': 'application/json' }, body: JSON.stringify({ rt }) })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => (j ? index(j.data, j.t) : null))
+      .catch(() => null);
+  }
+  return SNAPS.adm;
+}
+if (!pw()) pubSnap();
+
+async function sha(t) {
+  const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t));
+  return Array.from(new Uint8Array(b)).map((x) => x.toString(16).padStart(2, '0')).join('');
+}
+
+async function readKey() {
+  const p = pw();
+  if (!p) return null;
+  let o = null;
+  try { o = JSON.parse(ls.get('dump_rt') || 'null'); } catch (e) {}
+  if (!o || !o.rt || !o.h) return null;
+  try { return o.h === (await sha('files:' + p)) ? o.rt : null; } catch (e) { return null; }
+}
+
+async function saveKey(rt) {
+  const p = pw();
+  if (!p || !rt) return;
+  try { ls.set('dump_rt', JSON.stringify({ h: await sha('files:' + p), rt })); } catch (e) {}
+}
+
+function dropKey() {
+  ls.del('dump_rt');
+  SNAPS.adm = null;
+}
+
+function markDirty() {
+  ls.set(DK, Math.max(Date.now(), Number(ls.get(DK) || 0) + 1));
+}
+
+const dirty = () => !!ls.get(DK);
 
 function plain(it) {
   const o = Object.assign({}, it);
@@ -253,14 +305,10 @@ function plain(it) {
   return o;
 }
 
-async function fromSnap(o) {
-  if (S.share || pw() || o.s) return null;
-  const s = await snapshot();
-  if (!s) return null;
-  const id = o.id || s.root;
+function buildList(s, id, admin) {
   const path = [];
   let cur = id;
-  for (let i = 0; i < 40 && cur !== s.root; i++) {
+  for (let i = 0; i < 60 && cur !== s.root; i++) {
     const it = s.map[cur];
     if (!it) return null;
     path.unshift(it);
@@ -268,25 +316,121 @@ async function fromSnap(o) {
   }
   if (cur !== s.root) return null;
   const crumbs = [{ id: s.root, name: 'files' }].concat(path.map((it) => ({ id: it.id, name: it.name })));
-  const r = { crumbs, admin: false, v: 4 };
+  const r = { crumbs, admin, v: s.v };
   const self = path[path.length - 1];
   if (self && !self.folder) { r.file = plain(self); return r; }
+  if (admin) r.drive = !!(self && self.drive);
   r.items = (s.kids[id] || []).map(plain);
   return r;
+}
+
+async function adminSnap() {
+  if (!pw() || dirty()) return null;
+  const rt = await readKey();
+  if (!rt) return null;
+  const s = await admSnap(rt);
+  return s && !dirty() ? s : null;
+}
+
+async function fromSnap(o) {
+  if (S.share || o.s) return null;
+  const admin = !!pw();
+  const s = admin ? await adminSnap() : await pubSnap();
+  if (!s) return null;
+  const r = buildList(s, o.id || s.root, admin);
+  if (r && admin) S.snapT = Math.max(S.snapT || 0, s.t);
+  return r;
+}
+
+async function dirsFromSnap() {
+  const s = await adminSnap();
+  if (!s) return null;
+  const dirs = [];
+  (function rec(pid, path) {
+    (s.kids[pid] || []).filter((it) => it.folder).sort((a, b) => a.name.localeCompare(b.name)).forEach((it) => {
+      const p = path + it.name + '/';
+      dirs.push({ id: it.id, path: p, parent: pid });
+      rec(it.id, p);
+    });
+  })(s.root, '');
+  return { dirs };
 }
 
 function snapBody() {
   return JSON.stringify({ a: 'snap', pw: pw() });
 }
 
-function queueSnap() {
-  if (!S.admin) return;
+function queueSnap(delay) {
+  if (!pw()) return;
   S.snapDue = true;
   clearTimeout(queueSnap.t);
-  queueSnap.t = setTimeout(() => {
-    S.snapDue = false;
-    fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: snapBody(), keepalive: true }).catch(() => {});
-  }, 2500);
+  queueSnap.t = setTimeout(fireSnap, delay == null ? 2500 : delay);
+}
+
+async function fireSnap() {
+  S.snapDue = false;
+  const at = Date.now();
+  let j = null;
+  try {
+    const r = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: snapBody(), keepalive: true });
+    j = await r.json();
+  } catch (e) {}
+  if (j && j.ok) { onSnapOk(at); return; }
+  if (j && j.error === 'Wrong password') { lockOut(); return; }
+  S.snapFails = (S.snapFails || 0) + 1;
+  if (S.snapFails <= 2) setTimeout(() => { if (!S.snapDue) queueSnap(0); }, 10000);
+}
+
+function onSnapOk(at) {
+  S.snapFails = 0;
+  const m = Number(ls.get(DK) || 0);
+  if (m && m < at) ls.del(DK);
+  SNAPS.adm = null;
+  SNAPS.pub = null;
+  resync();
+}
+
+function lockOut() {
+  if (!pw()) return;
+  ls.del('dump_pw');
+  dropKey();
+  S.tok = null;
+  if (pending()) return;
+  init().then(() => toast('Signed out because the password changed'));
+}
+
+function reachable(id) {
+  let n = N[id];
+  for (let i = 0; i < 80; i++) {
+    if (!n) return false;
+    if (n.id === ROOT) return true;
+    const p = N[n.parent];
+    if (!p || !p.kids || !p.kids.includes(n.id)) return false;
+    n = p;
+  }
+  return false;
+}
+
+async function resync() {
+  const calm = () => S.admin && pw() && !S.share && !dirty() && !S.inflight && !S.drag && !pending() && !document.querySelector('dialog[open]');
+  if (!calm()) return;
+  const s = await adminSnap();
+  if (!s || !calm() || s.root !== ROOT || (S.snapT && s.t <= S.snapT)) return;
+  S.snapT = s.t;
+  Object.keys(N).forEach((id) => {
+    const n = N[id];
+    if (!n.folder || !n.kids || (id !== ROOT && !s.map[id])) return;
+    const r = buildList(s, id, true);
+    if (r && !r.file) ingest(r);
+  });
+  if (S.sel && !reachable(S.sel)) {
+    let x = N[S.sel] ? N[S.sel].parent : null;
+    while (x && !reachable(x)) x = N[x] ? N[x].parent : null;
+    S.sel = x || ROOT;
+  }
+  Array.from(S.multi).forEach((id) => { if (!reachable(id)) S.multi.delete(id); });
+  S.shown = null;
+  render();
 }
 
 window.addEventListener('pagehide', () => {
@@ -297,13 +441,49 @@ window.addEventListener('pagehide', () => {
 });
 
 async function api(a, o) {
+  o = o || {};
   if (a === 'list') {
-    const hit = await fromSnap(o || {});
+    const hit = await fromSnap(o);
     if (hit) return hit;
   }
-  const j = await call(a, o);
-  if (MUT.has(a)) queueSnap();
-  return j;
+  if (a === 'dirs') {
+    const hit = await dirsFromSnap();
+    if (hit) return hit;
+  }
+  const m = MUT.has(a);
+  if (m) { markDirty(); S.inflight = (S.inflight || 0) + 1; }
+  try {
+    const j = await call(a, o);
+    if (a === 'list' && !o.s && !S.share) {
+      if (j.admin && j.rt) await saveKey(j.rt);
+      else if (!j.admin) dropKey();
+    }
+    return j;
+  } finally {
+    if (m) { S.inflight--; markDirty(); queueSnap(); }
+  }
+}
+
+const TH = new Set();
+async function thumbs(dirId) {
+  const d = N[dirId];
+  if (!S.admin || !d || !d.kids || TH.has(dirId)) return;
+  if (!d.kids.some((k) => N[k] && isImg(N[k]) && !N[k].thumb)) return;
+  TH.add(dirId);
+  try {
+    const t = await token();
+    let page = '';
+    do {
+      const q = encodeURIComponent("'" + dirId + "' in parents and trashed = false");
+      const r = await fetch('https://www.googleapis.com/drive/v3/files?q=' + q + '&fields=nextPageToken,files(id,thumbnailLink)&pageSize=1000' + (page ? '&pageToken=' + encodeURIComponent(page) : ''), { headers: { Authorization: 'Bearer ' + t } });
+      if (!r.ok) return;
+      const j = await r.json();
+      (j.files || []).forEach((f) => { if (f.thumbnailLink && N[f.id]) N[f.id].thumb = f.thumbnailLink; });
+      page = j.nextPageToken || '';
+    } while (page);
+    S.shown = null;
+    render();
+  } catch (e) {}
 }
 
 async function call(a, o) {
@@ -664,6 +844,7 @@ function renderPreview() {
   B.textContent = '';
   if (!n.folder) {
     if (isImg(n)) {
+      if (!n.thumb) thumbs(n.parent);
       const w = el('div', 'imgv');
       w.append(imgEl(n, 1600, () => w.replaceWith(frame(n))));
       B.append(w);
@@ -679,6 +860,7 @@ function renderPreview() {
     const rest = n.kids.filter((k) => !isImg(N[k]));
     if (rest.length) B.append(listing(rest, mode));
     B.append(grid(imgs));
+    thumbs(n.id);
   } else {
     B.append(listing(n.kids, mode));
   }
@@ -802,6 +984,7 @@ async function init() {
   S.spw = '';
   S.view = null;
   S.rootName = 'files';
+  S.snapT = 0;
   try {
     const NONE = 'This link does not exist.';
     const viaShare = async () => {
@@ -830,6 +1013,7 @@ async function init() {
       catch (e) { toast(e.message === 'Not found' ? (slug ? 'That link does not exist, or the item is private' : 'That item is private or no longer exists') : e.message); history.replaceState(null, '', location.pathname); }
     }
     render();
+    if (S.admin && pw()) queueSnap(0);
   } catch (e) {
     S.sel = null;
     render();
@@ -1666,6 +1850,7 @@ function softRender() {
 
 async function run(j) {
   j.state = 'run';
+  markDirty();
   j.err = null;
   U.active++;
   draw();
@@ -1701,6 +1886,7 @@ async function run(j) {
     sortKids(pid);
     if (j.vis !== 'public' && !j.replaceId) U.priv.add(pid);
     j.state = 'done';
+    markDirty();
   } catch (e) {
     if (j.state !== 'cancel') { j.state = 'err'; j.err = (e && e.message) || String(e); }
   }
@@ -1869,12 +2055,13 @@ async function unlock() {
   if (!p) return;
   try { localStorage.setItem('dump_pw', p); } catch (e) {}
   await init();
-  if (!S.admin) { try { localStorage.removeItem('dump_pw'); } catch (e) {} toast('Wrong password'); }
+  if (!S.admin) { try { localStorage.removeItem('dump_pw'); } catch (e) {} dropKey(); toast('Wrong password'); }
 }
 $('lock').onclick = async () => {
   if (S.admin) {
     if (pending()) { toast('Wait for uploads to finish or cancel them'); return; }
     try { localStorage.removeItem('dump_pw'); } catch (e) {}
+    dropKey();
     S.tok = null;
     clearJobs();
     await init();
