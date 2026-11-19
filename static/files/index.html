@@ -6,6 +6,7 @@
 <meta name="robots" content="noindex">
 <title>files | Priyanshu Debnath</title>
 <link rel="icon" href="/favicon.ico">
+<link rel="preconnect" href="https://vadbagtnekrjwrimvgxe.supabase.co" crossorigin>
 <script>
 (function () {
   var t = null;
@@ -221,7 +222,91 @@ const ICON = {
   file: '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>'
 };
 
+const SB = 'https://vadbagtnekrjwrimvgxe.supabase.co/rest/v1/files_snapshot?id=eq.1&select=t,data';
+const SBK = 'sb_publishable_cir6pa7E0qNeYSfQduIYJA_-x1qnRxp';
+const MUT = new Set(['trash', 'vis', 'move', 'mkdir', 'fetch', 'rename', 'publicize']);
+let SNAP = null;
+
+function snapshot() {
+  if (SNAP && Date.now() - snapshot.at > 60000) SNAP = null;
+  if (!SNAP) {
+    snapshot.at = Date.now();
+    SNAP = fetch(SB, { headers: { apikey: SBK, Accept: 'application/vnd.pgrst.object+json' } })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => {
+        const d = j && j.data;
+        if (!d || !d.root || !Array.isArray(d.items)) return null;
+        const map = {};
+        const kids = {};
+        d.items.forEach((it) => { map[it.id] = it; (kids[it.p] || (kids[it.p] = [])).push(it); });
+        return { root: d.root, map, kids };
+      })
+      .catch(() => null);
+  }
+  return SNAP;
+}
+if (!pw()) snapshot();
+
+function plain(it) {
+  const o = Object.assign({}, it);
+  delete o.p;
+  return o;
+}
+
+async function fromSnap(o) {
+  if (S.share || pw() || o.s) return null;
+  const s = await snapshot();
+  if (!s) return null;
+  const id = o.id || s.root;
+  const path = [];
+  let cur = id;
+  for (let i = 0; i < 40 && cur !== s.root; i++) {
+    const it = s.map[cur];
+    if (!it) return null;
+    path.unshift(it);
+    cur = it.p;
+  }
+  if (cur !== s.root) return null;
+  const crumbs = [{ id: s.root, name: 'files' }].concat(path.map((it) => ({ id: it.id, name: it.name })));
+  const r = { crumbs, admin: false, v: 4 };
+  const self = path[path.length - 1];
+  if (self && !self.folder) { r.file = plain(self); return r; }
+  r.items = (s.kids[id] || []).map(plain);
+  return r;
+}
+
+function snapBody() {
+  return JSON.stringify({ a: 'snap', pw: pw() });
+}
+
+function queueSnap() {
+  if (!S.admin) return;
+  S.snapDue = true;
+  clearTimeout(queueSnap.t);
+  queueSnap.t = setTimeout(() => {
+    S.snapDue = false;
+    fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: snapBody(), keepalive: true }).catch(() => {});
+  }, 2500);
+}
+
+window.addEventListener('pagehide', () => {
+  if (!S.snapDue) return;
+  S.snapDue = false;
+  clearTimeout(queueSnap.t);
+  try { navigator.sendBeacon(API, new Blob([snapBody()], { type: 'text/plain;charset=utf-8' })); } catch (e) {}
+});
+
 async function api(a, o) {
+  if (a === 'list') {
+    const hit = await fromSnap(o || {});
+    if (hit) return hit;
+  }
+  const j = await call(a, o);
+  if (MUT.has(a)) queueSnap();
+  return j;
+}
+
+async function call(a, o) {
   const r = await fetch(API, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -1639,6 +1724,7 @@ function pump() {
     U.priv.clear();
     api('audit', { ids }).then((r) => driveOff(r.closed)).catch(() => {});
   }
+  if (!pending() && U.jobs.some((j) => j.state === 'done')) queueSnap();
   if (!pending() && U.jobs.length && !U.jobs.some((j) => j.state === 'err')) {
     clearTimeout(U.auto);
     U.auto = setTimeout(() => { if (!pending()) clearJobs(); }, 4000);
