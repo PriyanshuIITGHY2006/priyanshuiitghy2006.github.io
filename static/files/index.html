@@ -164,76 +164,72 @@ dialog input:focus{border-color:var(--accent)}
 }
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 
+#lm{display:none;margin-left:10px}
+body.guest #lm{display:block}
+#lm summary{display:inline-flex;align-items:center;gap:2px;padding:3px 4px;border-radius:5px;color:var(--secondary)}
+#lm summary:hover,#lm[open] summary{background:var(--code-bg);color:var(--primary)}
+#lm summary svg{width:17px;height:17px;display:block}
+#lm summary::after{margin-left:4px}
+#lm .pmenu{left:auto;right:0;min-width:150px;font-family:var(--sans)}
+#lm .pmenu button{display:flex;align-items:center;gap:9px}
+#lm .pmenu button::before{content:"";width:14px;height:14px;flex:0 0 14px;background:currentColor;opacity:.75;-webkit-mask:var(--mi) center/contain no-repeat;mask:var(--mi) center/contain no-repeat}
+#lm .pmenu [data-m=tree]{--mi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='M4 5h4M4 5v14M4 12h5M4 19h5M12 5h8M13 12h7M13 19h7'/%3E%3C/svg%3E")}
+#lm .pmenu [data-m=dir]{--mi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4'%3E%3Crect x='3.5' y='3.5' width='7' height='7' rx='1.5'/%3E%3Crect x='13.5' y='3.5' width='7' height='7' rx='1.5'/%3E%3Crect x='3.5' y='13.5' width='7' height='7' rx='1.5'/%3E%3Crect x='13.5' y='13.5' width='7' height='7' rx='1.5'/%3E%3C/svg%3E")}
+#lm .pmenu button[aria-pressed=true]{color:var(--accent);font-weight:600}
+.dpath{padding:2px 14px 4px;font:12px var(--mono);color:var(--secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tig{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:2px 4px;padding:6px 10px 14px}
+.ti{display:flex;flex-direction:column;align-items:center;gap:8px;padding:10px 4px 8px;border:0;border-radius:8px;background:none;color:var(--content);cursor:pointer;min-width:0;user-select:none;-webkit-user-select:none}
+@media (hover:hover){.ti:hover{background:var(--code-bg)}}
+.ti.sel{background:color-mix(in srgb,var(--accent) 14%,transparent)}
+.ti:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.tib{position:relative;display:flex;align-items:flex-end;justify-content:center;width:64px;height:54px}
+.tib svg{width:64px;height:52px;display:block}
+.tib .fb{fill:color-mix(in srgb,var(--accent) 72%,#000)}
+.tib .fp{fill:var(--entry)}
+.tib .ff{fill:color-mix(in srgb,var(--accent) 86%,#fff)}
+.tib .fa{stroke:var(--entry)}
+.tib .pg{fill:var(--entry);stroke:var(--secondary);stroke-width:2;opacity:.9}
+.tib .pc{fill:none;stroke:var(--secondary);stroke-width:2;opacity:.9}
+.tib svg:has(.pg){width:42px;height:54px}
+.tib.pic{align-items:center}
+.tib.pic img{width:64px;height:52px;object-fit:cover;border-radius:5px;border:1px solid var(--border);display:block}
+.tix{position:absolute;left:4px;bottom:7px;padding:2px 4px;border-radius:3px;font:700 8.5px/1 var(--mono);letter-spacing:.03em;color:#fff;background:#7a7268}
+.c-pdf{background:#b4472f}.c-img{background:#4d7c4a}.c-vid{background:#6b4f9a}.c-aud{background:#a14a7a}.c-zip{background:#97691c}.c-doc{background:#2f5f9e}.c-sht{background:#2f7d64}.c-ppt{background:#b8622e}.c-code{background:#3d5a80}
+.tin{max-width:100%;font:12px/1.3 var(--mono);text-align:center;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow-wrap:anywhere}
+.ti.dir .tin{color:var(--primary)}
+.ti.sel .tin{color:var(--primary);font-weight:600}
+.ti.uprow .tin{color:var(--secondary)}
 #viewer,#vbanner{display:none}
 body.viewer .wrap,body.viewer #bar{display:none}
-body.viewer #viewer{display:block;flex:1;min-height:0;overflow:auto}
-body.viewer.as #vbanner{display:flex}
+body.viewer #viewer{display:flex;flex:1;min-height:0;width:100%;max-width:1280px;margin:0 auto;padding:0 24px 24px}
+body.as #vbanner{display:flex}
 #vbanner{align-items:center;justify-content:center;gap:14px;padding:7px 16px;background:var(--code-bg);border-bottom:1px solid var(--border);font:12px var(--mono);color:var(--secondary)}
 #vbanner a{color:var(--accent)}
-.vw{max-width:900px;margin:0 auto;padding:6px 24px 48px}
-.vcr{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 2px;min-height:22px;margin:0 0 10px;font:13px var(--mono);color:var(--secondary)}
-.vcr a{color:var(--secondary);text-decoration:none;cursor:pointer}
-.vcr a:hover{color:var(--accent)}
-.vcr i{font-style:normal;opacity:.5;padding:0 4px}
-.vp{border:1px solid var(--border);border-radius:var(--radius);background:var(--entry);overflow:hidden}
-.vh{position:relative;display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px 24px;padding:18px 20px 16px;border-bottom:1px solid var(--border)}
-.vh.busy::after{content:"";position:absolute;left:0;bottom:-1px;width:28%;height:2px;background:var(--accent);animation:load 1s ease-in-out infinite}
-.vt{flex:1 1 260px;min-width:0}
-.vn{margin:0;font:600 21px/1.3 var(--mono);color:var(--primary);overflow-wrap:anywhere}
-.vn b{color:var(--accent);font-weight:600}
-.vm{margin-top:4px;font-size:12.5px;color:var(--secondary)}
-.vh .acts{flex:0 0 auto}
-.vbar{display:flex;align-items:center;gap:12px;padding:8px 14px 8px 20px;border-bottom:1px solid var(--border);font:13px var(--mono)}
-.vbar b{color:var(--accent)}
-.vbar input{flex:1;min-width:0;border:0;outline:0;background:transparent;color:var(--primary);font:inherit}
-.vbar input::placeholder{color:var(--secondary);opacity:.7}
-.vl{padding:6px 0 10px}
-.vr{display:grid;grid-template-columns:1fr auto 108px;align-items:baseline;gap:16px;padding:6px 20px;font:13.5px var(--mono);color:var(--content);text-decoration:none;cursor:pointer}
-.vr:hover,.vr:focus-visible{background:var(--code-bg);outline:0}
-.vr span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.vr i{font-style:normal;color:var(--secondary);opacity:.55}
-.vr.d span:first-child{color:var(--accent);font-weight:600}
-.vr small{font:12px var(--mono);color:var(--secondary);text-align:right;white-space:nowrap}
-.vg{padding:4px 20px 18px}
-.vg .grid{padding:0}
-.vx{display:flex;align-items:center;justify-content:center;background:var(--code-bg);min-height:240px}
-.vx iframe{display:block;width:100%;height:min(78vh,880px);border:0;background:var(--theme)}
-.vx img{display:block;max-width:100%;max-height:78vh;object-fit:contain}
-.vs{padding:44px 24px 48px;text-align:center}
+.win{flex:1;min-width:0;min-height:0;display:flex;flex-direction:column;border:1px solid var(--border);border-radius:10px;background:var(--entry);overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.04),0 24px 48px -32px rgba(0,0,0,.35)}
+.wt{position:relative;display:flex;align-items:center;gap:4px;min-height:50px;padding:8px 10px;border-bottom:1px solid var(--border);background:var(--code-bg)}
+.wp{flex:1;min-width:0;display:flex;align-items:center;gap:1px;height:34px;margin-left:6px;padding:0 8px;border:1px solid var(--border);border-radius:7px;background:var(--entry);font:13px var(--mono);overflow-x:auto;white-space:nowrap;scrollbar-width:none}
+.wp .cur{color:var(--primary);font-weight:600;padding:3px 5px}
+.wb{flex:1;min-height:0;display:flex}
+.wb.wc{align-items:center;justify-content:center;overflow:auto}
+.wsb{display:flex;align-items:center;gap:16px;min-height:30px;padding:0 16px;border-top:1px solid var(--border);background:var(--code-bg);font:12px var(--sans);color:var(--secondary);white-space:nowrap;overflow:hidden}
+.wsb .sp{flex:1}
+.wsb a{color:var(--secondary);text-decoration:none}
+.wsb a:hover{color:var(--accent)}
+.vs{padding:40px 24px;text-align:center;width:100%}
 .vs h2{margin:0 0 6px;font:600 17px var(--mono);color:var(--primary)}
 .vs p{margin:0 auto 18px;max-width:470px;color:var(--secondary);font-size:14px}
-.vs form,.vs .vin{display:flex;align-items:center;gap:10px;max-width:380px;margin:0 auto;padding:9px 12px;border:1px solid var(--border);border-radius:6px;background:var(--code-bg);font:14px var(--mono)}
+.vs form{display:flex;align-items:center;gap:10px;max-width:380px;margin:0 auto;padding:9px 12px;border:1px solid var(--border);border-radius:7px;background:var(--code-bg);font:14px var(--mono)}
 .vs form:focus-within{border-color:var(--accent)}
 .vs form b{color:var(--accent)}
 .vs input{flex:1;min-width:0;border:0;outline:0;background:transparent;color:var(--primary);font:inherit}
 .vs .err{margin:12px 0 0;color:var(--bad);font-size:13px}
 .vs .acts{justify-content:center;margin-top:4px}
 .vlk h2{font-size:26px;color:var(--accent);margin-bottom:10px}
-.vf{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px 20px;margin-top:12px;font:12px var(--mono);color:var(--secondary)}
-.vf a{color:var(--secondary)}
-.vf a:hover{color:var(--accent)}
-#lb{position:fixed;inset:0;z-index:40;display:flex;flex-direction:column;background:#100e0d;color:#e7e1d9;touch-action:pan-y}
-#lb[hidden]{display:none}
-.lbt{display:flex;align-items:center;gap:18px;padding:12px 18px;font:13px var(--mono)}
-.lbt span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#lb button,#lb a{color:#cfc7bd;font:13px var(--sans);text-decoration:none}
-#lb button:hover,#lb a:hover{color:#fff}
-.lbm{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:0 12px 18px;position:relative}
-.lbm img{max-width:100%;max-height:100%;object-fit:contain;user-select:none;-webkit-user-drag:none}
-.lbm .nav{position:absolute;top:0;bottom:0;width:22%;border:0;background:none;font-size:28px !important;opacity:.6}
-.lbm .nav:hover{opacity:1}
-.lbm .prev{left:0;text-align:left;padding-left:18px}
-.lbm .next{right:0;text-align:right;padding-right:18px}
 @media (max-width:700px){
-.vw{padding:4px 12px 32px}
-.vh{padding:14px 14px 12px}
-.vn{font-size:18px}
-.vr{grid-template-columns:1fr auto;padding:7px 14px}
-.vr small+small{display:none}
-.vbar{padding:8px 14px}
-.vg{padding:4px 14px 14px}
-.vx iframe{height:72vh}
-.lbm .nav{display:none}
+body.viewer #viewer{padding:0}
+.win{border-radius:0;border-width:1px 0 0;box-shadow:none}
+.wt{flex-wrap:wrap;gap:4px;padding:8px}
+.wp{margin-left:2px}
 }
 </style>
 </head>
@@ -252,7 +248,7 @@ body.viewer.as #vbanner{display:flex}
 </header>
 <div class="wrap">
   <section class="pane">
-    <div class="prompt"><b>&#10095;</b><input id="q" placeholder="filter" autocomplete="off" spellcheck="false"><span id="count"></span></div>
+    <div class="prompt"><b>&#10095;</b><input id="q" placeholder="filter" autocomplete="off" spellcheck="false"><span id="count"></span><details class="pop" id="lm"><summary title="Change view" aria-label="Change view"></summary><div class="pmenu"><button type="button" data-m="tree" aria-pressed="true">Tree</button><button type="button" data-m="dir" aria-pressed="false">Icons</button></div></details></div>
     <div id="tree"><div class="note">Loading</div></div>
     <div id="bar">
       <div id="into"></div>
@@ -292,6 +288,15 @@ try { S.sorts = JSON.parse(localStorage.getItem('dump_sort') || '{}') || {}; } c
 let ROOT = null;
 const pw = () => { if (new URLSearchParams(location.search).has('as')) return ''; try { return localStorage.getItem('dump_pw') || ''; } catch (e) { return ''; } };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const VIEWI = {
+  tree: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h4M4 5v14M4 12h5M4 19h5M12 5h8M13 12h7M13 19h7"/></svg>',
+  dir: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg>'
+};
+const BIG = {
+  dir: '<svg viewBox="0 0 64 52" aria-hidden="true"><path class="fb" d="M3 8a4 4 0 0 1 4-4h15l5 5h30a4 4 0 0 1 4 4v31a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4z"/><rect class="fp" x="8" y="10" width="48" height="22" rx="2"/><path class="ff" d="M3 18a4 4 0 0 1 4-4h50a4 4 0 0 1 4 4v26a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4z"/></svg>',
+  up: '<svg viewBox="0 0 64 52" aria-hidden="true"><path class="fb" d="M3 8a4 4 0 0 1 4-4h15l5 5h30a4 4 0 0 1 4 4v31a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4z"/><rect class="fp" x="8" y="10" width="48" height="22" rx="2"/><path class="ff" d="M3 18a4 4 0 0 1 4-4h50a4 4 0 0 1 4 4v26a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4z"/><path class="fa" d="M32 40V24M25 30l7-7 7 7" fill="none" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  file: '<svg viewBox="0 0 48 60" aria-hidden="true"><path class="pg" d="M7 2h24l14 14v38a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V6a4 4 0 0 1 4-4z"/><path class="pc" d="M31 2v10a4 4 0 0 0 4 4h10"/></svg>'
+};
 const ICON = {
   dir: '<svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8l-2-2z"/></svg>',
   file: '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>'
@@ -504,6 +509,7 @@ window.addEventListener('pagehide', () => {
 
 async function api(a, o) {
   o = o || {};
+  if (a === 'list' && S.base && !o.s) return blist(o.id);
   if (a === 'list') {
     const hit = await fromSnap(o);
     if (hit) return hit;
@@ -605,7 +611,7 @@ function size(n) {
   return (i ? n.toFixed(n < 10 ? 1 : 0) : n) + u[i];
 }
 
-const linkOf = (id) => location.origin + location.pathname + (S.share ? '#' + S.share : id && id !== ROOT ? '#' + id : '');
+const linkOf = (id) => location.origin + location.pathname + (guest() ? '#' + V.token + (id && id !== ROOT && ROOT !== '~' ? '/' + id : '') : id && id !== ROOT ? '#' + id : '');
 const dlOf = (id) => 'https://drive.google.com/uc?export=download&id=' + id;
 
 function pathOf(id) {
@@ -616,10 +622,10 @@ function pathOf(id) {
 }
 
 function ingest(r) {
-  S.admin = r.admin;
+  S.admin = !!r.admin;
   S.v = r.v || 1;
   const c = r.crumbs;
-  if (!ROOT) { ROOT = c[0].id; S.rootName = S.share ? c[0].name || 'shared' : 'files'; }
+  if (!ROOT) { ROOT = c[0].id; S.rootName = S.share || S.base ? c[0].name || 'shared' : 'files'; }
   c.forEach((x, i) => {
     if (r.file && i === c.length - 1) return;
     if (!N[x.id]) N[x.id] = { id: x.id, name: x.name, folder: true, vis: i ? 'private' : 'public', parent: i ? c[i - 1].id : null, kids: null, open: !i };
@@ -680,7 +686,76 @@ function onRow(e, id) {
 const TREE = { ids: null, open: new Set(), y: null, h: 0 };
 const motion = () => !matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+const EXTC = [['pdf', /^pdf$/], ['img', /^(jpe?g|png|gif|webp|avif|bmp|svg|heic)$/], ['vid', /^(mp4|mov|mkv|webm|avi|m4v)$/], ['aud', /^(mp3|wav|m4a|flac|ogg|aac)$/], ['zip', /^(zip|rar|7z|tar|gz|tgz|xz)$/], ['doc', /^(docx?|odt|rtf|pages)$/], ['sht', /^(xlsx?|csv|ods|numbers)$/], ['ppt', /^(pptx?|odp|key)$/], ['code', /^(c|h|cpp|hpp|cc|py|js|ts|java|go|rs|v|sv|vhd|html|css|json|md|tex|sh|ipynb|m|r|sql|ya?ml)$/]];
+
+function bigIcon(n) {
+  const b = el('span', 'tib');
+  if (n.folder) { b.innerHTML = BIG.dir; return b; }
+  if (isImg(n)) {
+    b.classList.add('pic');
+    b.append(imgEl(n, 220, (im) => { b.classList.remove('pic'); im.remove(); fileGlyph(b, n); }));
+    return b;
+  }
+  fileGlyph(b, n);
+  return b;
+}
+
+function fileGlyph(b, n) {
+  b.insertAdjacentHTML('beforeend', BIG.file);
+  const m = (n.name || '').match(/\.([a-z0-9]{1,5})$/i);
+  const x = m ? m[1].toLowerCase() : '';
+  const c = (EXTC.find(([, re]) => re.test(x)) || ['txt'])[0];
+  if (/^application\/vnd\.google-apps\./.test(n.mime || '')) b.append(el('span', 'tix c-doc', 'G'));
+  else if (x) b.append(el('span', 'tix c-' + c, x.slice(0, 4).toUpperCase()));
+}
+
+function renderDir() {
+  const T = $('tree');
+  T.textContent = '';
+  T.dataset.flat = '1';
+  TREE.ids = null;
+  TREE.y = null;
+  const sel = N[S.sel] || N[ROOT];
+  const dir = sel.folder ? sel.id : sel.parent || ROOT;
+  const D = N[dir];
+  T.append(el('div', 'dpath', S.rootName + '/' + pathOf(dir).map((x) => x + '/').join('')));
+  const t = S.q.toLowerCase().split(/\s+/).filter(Boolean);
+  const all = D.kids || [];
+  const ids = all.filter((k) => N[k] && t.every((x) => N[k].name.toLowerCase().includes(x)));
+  S.rows = ids;
+  $('count').textContent = D.kids ? ids.length + '/' + all.length : '';
+  const G = el('div', 'tig');
+  if (dir !== ROOT && D.parent) {
+    const up = el('button', 'ti uprow');
+    up.type = 'button';
+    up.dataset.id = D.parent;
+    up.title = 'Up to ' + (D.parent === ROOT ? S.rootName : N[D.parent].name);
+    const ib = el('span', 'tib');
+    ib.innerHTML = BIG.up;
+    up.append(ib, el('span', 'tin', '..'));
+    up.onclick = () => pick(D.parent, false);
+    G.append(up);
+  }
+  ids.forEach((k) => {
+    const n = N[k];
+    const b = el('button', 'ti' + (n.folder ? ' dir' : '') + (k === S.sel ? ' sel' : ''));
+    b.type = 'button';
+    b.dataset.id = k;
+    b.title = n.name;
+    b.append(bigIcon(n), el('span', 'tin', n.name));
+    b.onclick = () => pick(k, false);
+    G.append(b);
+  });
+  T.append(G);
+  if (!D.kids) T.append(el('div', 'note', ''));
+  else if (!all.length) T.append(el('div', 'note', 'Empty folder.'));
+  else if (!ids.length) T.append(el('div', 'note', 'No match in this folder'));
+  const s2 = T.querySelector('.ti.sel');
+  if (s2) s2.scrollIntoView({ block: 'nearest' });
+}
+
 function renderTree() {
+  if (guest() && lmode() === 'dir') { renderDir(); return; }
   const T = $('tree');
   const all = walk(false);
   let rows;
@@ -741,7 +816,7 @@ function renderTree() {
     T.append(row);
   });
   if (S.searching) T.append(el('div', 'hint', 'Searching every folder'));
-  else if (S.q && !S.found) T.append(el('div', 'hint', 'Press Enter to search every folder, including inside files'));
+  else if (S.q && !S.found && !S.base && lmode() === 'tree') T.append(el('div', 'hint', S.share ? 'Press Enter to search inside this link' : 'Press Enter to search every folder, including inside files'));
   const s = T.querySelector('.sel');
   if (flips.length) { void T.offsetHeight; flips.forEach((r) => r.classList.toggle('open')); }
   T.querySelectorAll('.row').forEach((r) => {
@@ -874,6 +949,7 @@ function renderPreview() {
   else { if (n.size) bits.push(size(n.size)); if (n.modified) bits.push(fmtDate(n.modified)); }
   if (S.admin && n.id !== ROOT) bits.push(el('span', n.vis === 'public' ? 'pub' : '', n.vis));
   if (S.admin && n.folder && n.drive) bits.push('shared in Drive');
+  if (!S.admin && S.exp && (n.id === ROOT || ROOT === '~')) bits.push(vexp(S.exp));
   M.append(mb(bits));
   const A = $('acts');
   A.textContent = '';
@@ -929,7 +1005,7 @@ function renderPreview() {
 }
 
 function render() {
-  document.body.classList.toggle('admin', S.admin);
+  document.body.classList.toggle('admin', !!S.admin);
   $('lock').hidden = !S.admin;
   $('expo').hidden = !S.admin;
   if (!ROOT) { ['ppath', 'pmeta', 'acts', 'pbody', 'into'].forEach((i) => { $(i).textContent = ''; }); $('count').textContent = ''; return; }
@@ -959,7 +1035,8 @@ async function pick(id, toggle) {
   const was = S.sel === id;
   S.sel = id;
   if (S.view) { S.view = null; S.shown = null; }
-  if (!S.share) history.replaceState(null, '', id === ROOT ? location.pathname : '#' + id);
+  if (guest()) history.replaceState(null, '', '#' + V.token + (id === ROOT || ROOT === '~' ? '' : '/' + id));
+  else if (!S.share) history.replaceState(null, '', id === ROOT ? location.pathname : '#' + id);
   const par = N[n.parent];
   if (id !== ROOT && (!par || !par.kids || !par.kids.includes(id))) {
     render();
@@ -1008,13 +1085,15 @@ async function init() {
   S.found = null;
   S.searching = false;
   S.share = null;
+  S.base = null;
+  S.exp = 0;
   S.spw = '';
   S.view = null;
   S.admin = false;
   S.rootName = 'files';
   S.snapT = 0;
   if (!pw()) { await viewer(); return; }
-  document.body.classList.remove('viewer', 'as');
+  document.body.classList.remove('viewer', 'as', 'guest');
   try {
     try { await loadDir(''); }
     catch (e) { if (e.message !== 'Not found' && e.message !== 'Wrong password') throw e; S.admin = false; }
@@ -1046,8 +1125,9 @@ async function init() {
 }
 
 const AS = new URLSearchParams(location.search).has('as');
-const V = { token: '', slug: '', cur: '', r: null, q: '', sort: 'name', lb: null, seq: 0, ids: new Set() };
+const V = { token: '', slug: '', ids: new Set(), seq: 0 };
 const GDOC = /^application\/vnd\.google-apps\./;
+const guest = () => document.body.classList.contains('guest');
 
 async function vcall(a, o) {
   const r = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(Object.assign({ a }, o)) });
@@ -1069,70 +1149,49 @@ function vspw() {
   try { return sessionStorage.getItem('dump_spw_' + V.slug) || ''; } catch (e) { return ''; }
 }
 
-async function vfetch(cur) {
-  if (V.slug) {
-    const o = { s: V.slug, spw: vspw() };
-    if (cur && cur !== V.slug) o.id = cur;
-    return vcall('list', o);
-  }
-  const hit = await vpub(V.token, cur);
+async function blist(id) {
+  const cur = id || S.base;
+  const hit = await vpub(S.base, cur);
   if (hit) return hit;
-  const r = await vcall('list', { id: cur, base: V.token });
-  const i = r.crumbs.findIndex((c) => c.id === V.token);
+  const r = await vcall('list', { id: cur, base: S.base });
+  const i = r.crumbs.findIndex((c) => c.id === S.base);
   if (i < 0) throw new Error('Not found');
   r.crumbs = r.crumbs.slice(i);
   return r;
 }
 
-function vhash(id) {
-  const t = V.slug || V.token;
-  return '#' + t + (id && id !== V.r.crumbs[0].id ? '/' + id : '');
-}
-
-function vgo(id) {
-  const h = vhash(id);
-  if (location.hash === h) vroute();
-  else location.hash = h;
-}
-
 function vexp(ms) {
   if (!ms) return '';
   const d = ms - Date.now();
-  if (d <= 0) return 'This link has expired';
+  if (d <= 0) return 'link expired';
   const m = Math.round(d / 60000);
-  if (m < 60) return 'Link expires in ' + Math.max(m, 1) + (m === 1 ? ' minute' : ' minutes');
+  if (m < 60) return 'link expires in ' + Math.max(m, 1) + (m === 1 ? ' minute' : ' minutes');
   const h = Math.round(m / 60);
-  if (h < 48) return 'Link expires in ' + h + (h === 1 ? ' hour' : ' hours');
-  return 'Link expires on ' + fmtDate(ms);
-}
-
-function vshell() {
-  const W = $('viewer');
-  W.textContent = '';
-  const w = el('div', 'vw');
-  const cr = el('nav', 'vcr');
-  const p = el('section', 'vp');
-  const f = el('footer', 'vf');
-  w.append(cr, p, f);
-  W.append(w);
-  return { cr, p, f };
-}
-
-function vfoot(f, exp, plain) {
-  const a = el('a', '', plain ? 'priyanshudebnath.me' : 'Shared from priyanshudebnath.me');
-  a.href = '/';
-  f.append(a);
-  if (exp) f.append(el('span', '', vexp(exp)));
+  if (h < 48) return 'link expires in ' + h + (h === 1 ? ' hour' : ' hours');
+  return 'link expires on ' + fmtDate(ms);
 }
 
 function vstate(title, text, extra) {
-  const { p, f } = vshell();
+  const W = $('viewer');
+  W.textContent = '';
+  const win = el('section', 'win');
+  const t = el('div', 'wt');
+  const p = el('nav', 'wp');
+  p.append(el('span', 'cur', V.slug || 'files'));
+  t.append(p);
+  const body = el('div', 'wb wc');
   const b = el('div', 'vs');
   b.append(el('h2', '', title));
   if (text) b.append(el('p', '', text));
   if (extra) b.append(extra);
-  p.append(b);
-  vfoot(f, 0, true);
+  body.append(b);
+  const st = el('div', 'wsb');
+  st.append(el('span', 'sp'));
+  const a = el('a', '', 'priyanshudebnath.me');
+  a.href = '/';
+  st.append(a);
+  win.append(t, body, st);
+  W.append(win);
   return b;
 }
 
@@ -1182,7 +1241,7 @@ function vpass(wrong, msg) {
     e.preventDefault();
     if (!inp.value) return;
     try { sessionStorage.setItem('dump_spw_' + V.slug, inp.value); } catch (x) {}
-    vroute();
+    init();
   };
   setTimeout(() => inp.focus({ preventScroll: true }), 0);
 }
@@ -1196,281 +1255,89 @@ function verror(e) {
   if (m === 'Link not found') return vstate('This link does not exist', 'Check that you copied the whole link.');
   if (m === 'Not found') return vstate('Not available', 'This link is incomplete, or the item was removed or is no longer shared.');
   const a = el('div', 'acts');
-  a.append(btn('Try again', () => vroute(), 'pri'));
+  a.append(btn('Try again', () => init(), 'pri'));
   return vstate('Could not load', /fetch|network|json/i.test(m) ? 'Check your connection and try again.' : m, a);
 }
 
-function vsorted(items) {
-  const m = V.sort;
-  const f = (it) => (it.name || '').toLowerCase();
-  const t = (it) => Date.parse(it.modified || 0) || 0;
-  return items.slice().sort((a, b) => {
-    if (a.folder !== b.folder) return a.folder ? -1 : 1;
-    if (m === 'new') return t(b) - t(a);
-    if (m === 'old') return t(a) - t(b);
-    if (m === 'big') return (b.size || 0) - (a.size || 0);
-    if (m === 'small') return (a.size || 0) - (b.size || 0);
-    return f(a).localeCompare(f(b), undefined, { numeric: true });
-  });
-}
-
-function vrow(it, last) {
-  const a = el('a', 'vr' + (it.folder ? ' d' : ''));
-  a.href = vhash(it.id);
-  const n = el('span');
-  n.append(el('i', '', last ? '└── ' : '├── '), it.name + (it.folder ? '/' : ''));
-  a.append(n, el('small', '', it.folder ? '' : size(it.size) || ''), el('small', '', fmtDate(it.modified)));
-  return a;
-}
-
-function vbody(B, items) {
-  B.textContent = '';
-  const q = V.q.trim().toLowerCase();
-  const list = vsorted(items).filter((it) => !q || it.name.toLowerCase().includes(q));
-  if (!items.length) { B.append(el('div', 'note', 'This folder is empty.')); return; }
-  if (!list.length) { B.append(el('div', 'note', 'Nothing matches "' + V.q.trim() + '".')); return; }
-  const imgs = list.filter(isImg);
-  const useGrid = imgs.length >= 3 && imgs.length * 2 >= list.length;
-  const rest = useGrid ? list.filter((it) => !isImg(it)) : list;
-  if (rest.length) {
-    const L = el('div', 'vl');
-    rest.forEach((it, i) => L.append(vrow(it, i === rest.length - 1 && !useGrid)));
-    B.append(L);
-  }
-  if (useGrid) {
-    const g = el('div', 'vg');
-    const G = el('div', 'grid');
-    imgs.forEach((it, i) => {
-      const t = el('button', 'tile');
-      t.type = 'button';
-      t.title = it.name;
-      t.append(imgEl(it, 320, (im) => im.replaceWith(el('span', 'tname', it.name))));
-      t.onclick = () => vlb(imgs, i);
-      G.append(t);
-    });
-    g.append(G);
-    B.append(g);
-  }
-}
-
-async function vzip(id, b) {
-  if (b.disabled) return;
-  b.disabled = true;
-  toast('Preparing zip', true);
-  try {
-    const o = V.slug ? { s: V.slug, spw: vspw() } : {};
-    o.id = id;
-    const r = await vcall('zip', o);
-    saveBlob(r.url);
-    toast(r.files + (r.files === 1 ? ' file zipped' : ' files zipped') + ', download starting');
-  } catch (e) {
-    toast(e.message === 'Not found' ? 'This folder can no longer be downloaded' : e.message);
-  }
-  b.disabled = false;
-}
-
-function vrender(r) {
-  const { cr, p, f } = vshell();
-  const c = r.crumbs;
-  const self = r.file || { id: c[c.length - 1].id, name: c[c.length - 1].name, folder: true };
-  document.title = self.name + ' | Priyanshu Debnath';
-  const upto = c.length - 1;
-  c.slice(0, upto).forEach((x) => {
-    const a = el('a', '', x.name);
-    a.href = vhash(x.id);
-    cr.append(a, el('i', '', '/'));
-  });
-  if (upto) cr.prepend(el('i', '', '← '));
-  const h = el('div', 'vh');
-  const t = el('div', 'vt');
-  const nm = el('h1', 'vn', self.name);
-  if (self.folder) nm.append(el('b', '', '/'));
-  t.append(nm);
-  const bits = [];
-  const A = el('div', 'acts');
-  if (self.folder) {
-    const items = r.items || [];
-    const dirs = items.filter((it) => it.folder).length;
-    const files = items.length - dirs;
-    const bytes = items.reduce((s2, it) => s2 + (it.folder ? 0 : it.size || 0), 0);
-    if (dirs) bits.push(dirs + (dirs === 1 ? ' folder' : ' folders'));
-    if (files) bits.push(files + (files === 1 ? ' file' : ' files') + (bytes ? ', ' + size(bytes) : ''));
-    if (!items.length) bits.push('empty');
-    if (files || dirs) {
-      const z = btn('Download all', () => vzip(self.id, z), 'pri');
-      A.append(z);
-    }
-  } else {
-    const kind = GDOC.test(self.mime || '') ? 'Google ' + (self.mime.split('.').pop() || 'file') : ((self.name.match(/\.([a-z0-9]{1,6})$/i) || [])[1] || 'file').toUpperCase();
-    bits.push(kind);
-    if (self.size) bits.push(size(self.size));
-    if (self.modified) bits.push(fmtDate(self.modified));
-    const drive = 'https://drive.google.com/file/d/' + self.id + '/view';
-    if (GDOC.test(self.mime || '')) {
-      const g = el('a', 'btn pri', 'Open in Google');
-      g.href = drive;
-      g.target = '_blank';
-      g.rel = 'noopener';
-      A.append(g);
-    } else {
-      const d = el('a', 'btn pri', 'Download');
-      d.href = dlOf(self.id);
-      d.rel = 'noopener';
-      A.append(d);
-      const o = el('a', 'btn', 'Open in Drive');
-      o.href = drive;
-      o.target = '_blank';
-      o.rel = 'noopener';
-      A.append(o);
-    }
-  }
-  A.append(btn('Copy link', () => clip(location.href, 'Link copied')));
-  const M = el('div', 'vm');
-  M.append(mb(bits));
-  t.append(M);
-  h.append(t, A);
-  p.append(h);
-  if (self.folder) {
-    const items = r.items || [];
-    const B = el('div');
-    if (items.length > 1) {
-      const bar = el('div', 'vbar');
-      const q = el('input');
-      q.placeholder = 'filter';
-      q.autocomplete = 'off';
-      q.spellcheck = false;
-      q.value = V.q;
-      q.setAttribute('aria-label', 'Filter');
-      q.oninput = () => { V.q = q.value; vbody(B, items); };
-      const sel = el('select');
-      SORTS.forEach(([k, l]) => { const o = el('option', '', l); o.value = k; sel.append(o); });
-      sel.value = V.sort;
-      sel.setAttribute('aria-label', 'Sort');
-      sel.onchange = () => { V.sort = sel.value; fit(sel); vbody(B, items); };
-      bar.append(el('b', '', '❯'), q, sel);
-      p.append(bar);
-      setTimeout(() => fit(sel), 0);
-    }
-    p.append(B);
-    vbody(B, items);
-  } else {
-    const X = el('div', 'vx');
-    if (isImg(self)) X.append(imgEl(self, 1600, (im) => im.replaceWith(frame(self))));
-    else X.append(frame(self));
-    p.append(X);
-  }
-  vfoot(f, r.exp);
-  if (motion()) p.animate([{ opacity: 0, transform: 'translateY(4px)' }, { opacity: 1, transform: 'none' }], { duration: 180, easing: 'ease-out' });
-}
-
-function vlb(list, i) {
-  const L = $('lb');
-  const show = (k) => {
-    i = (k + list.length) % list.length;
-    const it = list[i];
-    L.textContent = '';
-    const top = el('div', 'lbt');
-    top.append(el('span', '', (i + 1) + ' / ' + list.length + '   ' + it.name));
-    const d = el('a', '', 'Download');
-    d.href = dlOf(it.id);
-    d.rel = 'noopener';
-    const x = el('button', '', 'Close');
-    x.type = 'button';
-    x.onclick = close;
-    top.append(d, x);
-    const m = el('div', 'lbm');
-    m.append(imgEl(it, 1600, (im) => im.replaceWith(el('span', 'tname', it.name))));
-    if (list.length > 1) {
-      const pv = el('button', 'nav prev', '‹');
-      pv.type = 'button';
-      pv.setAttribute('aria-label', 'Previous');
-      pv.onclick = () => show(i - 1);
-      const nx = el('button', 'nav next', '›');
-      nx.type = 'button';
-      nx.setAttribute('aria-label', 'Next');
-      nx.onclick = () => show(i + 1);
-      m.append(pv, nx);
-      [i - 1, i + 1].forEach((k) => {
-        const j = list[(k + list.length) % list.length];
-        const im = new Image();
-        im.referrerPolicy = 'no-referrer';
-        im.src = j.thumb ? j.thumb.replace(/=s\d+$/, '=s1600') : 'https://drive.google.com/thumbnail?id=' + j.id + '&sz=w1600';
-      });
-    }
-    L.append(top, m);
-  };
-  const key = (e) => {
-    if (e.key === 'Escape') close();
-    else if (e.key === 'ArrowLeft') show(i - 1);
-    else if (e.key === 'ArrowRight') show(i + 1);
-  };
-  let sx = null;
-  L.onpointerdown = (e) => { sx = e.clientX; };
-  L.onpointerup = (e) => {
-    if (sx == null) return;
-    const dx = e.clientX - sx;
-    sx = null;
-    if (Math.abs(dx) > 50 && list.length > 1) show(dx < 0 ? i + 1 : i - 1);
-  };
-  function close() {
-    L.hidden = true;
-    L.textContent = '';
-    document.removeEventListener('keydown', key);
-    V.lb = null;
-  }
-  V.lb = close;
-  document.addEventListener('keydown', key);
-  L.hidden = false;
-  show(i);
-}
-
-async function vroute() {
-  if (V.lb) V.lb();
+function vparse() {
   let h = location.hash.slice(1);
   try { h = decodeURIComponent(h); } catch (e) {}
   const parts = h.split('/').filter(Boolean);
   const tok = parts[0] || '';
-  if (!tok) { V.token = ''; V.slug = ''; V.r = null; vlock(); return; }
-  const slug = tok.length <= 24 && !V.ids.has(tok) ? tok.toLowerCase() : '';
-  if (tok !== V.token || slug !== V.slug) { V.q = ''; V.sort = 'name'; }
-  V.token = tok;
-  V.slug = slug;
-  const cur = parts.length > 1 ? parts[parts.length - 1] : tok;
-  if (V.cur !== cur) V.q = '';
-  V.cur = cur;
-  const seq = ++V.seq;
-  const head = document.querySelector('#viewer .vh');
-  if (head) head.classList.add('busy');
-  else {
-    const { p } = vshell();
-    const vh = el('div', 'vh busy');
-    vh.append(el('div', 'vt'));
-    p.append(vh, el('div', 'vs'));
-  }
-  try {
-    const r = await vfetch(slug && cur === tok ? '' : cur);
-    if (seq !== V.seq) return;
-    V.r = r;
-    vrender(r);
-  } catch (e) {
-    if (seq !== V.seq) return;
-    if (slug && e.message === 'Link not found' && /^[A-Za-z0-9_-]+$/.test(tok) && !V.ids.has(tok)) { V.ids.add(tok); vroute(); return; }
-    verror(e);
-  }
+  return { tok, cur: parts.length > 1 ? parts[parts.length - 1] : '' };
+}
+
+function lmode() {
+  const m = S.lm || ls.get('files_lmode') || 'tree';
+  return m === 'dir' ? 'dir' : 'tree';
+}
+
+function lmShow() {
+  const m = lmode();
+  document.querySelectorAll('#lm button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.m === m)));
+  $('lm').querySelector('summary').innerHTML = VIEWI[m];
+}
+
+function setLm(m) {
+  S.lm = m;
+  ls.set('files_lmode', m);
+  $('lm').open = false;
+  lmShow();
+  if (m === 'tree' && S.sel) { let p = N[N[S.sel] && N[S.sel].parent]; while (p) { p.open = true; p = N[p.parent]; } if (N[S.sel] && N[S.sel].folder) N[S.sel].open = true; }
+  renderTree();
 }
 
 async function viewer() {
   ['tree', 'ppath', 'pmeta', 'acts', 'pbody', 'into', 'count'].forEach((i) => { $(i).textContent = ''; });
   S.shown = null;
-  document.body.classList.add('viewer');
-  document.body.classList.toggle('as', AS);
   document.body.classList.remove('admin');
+  document.body.classList.toggle('as', AS);
   $('lock').hidden = true;
   $('expo').hidden = true;
-  V.token = '';
-  V.slug = '';
-  V.cur = '';
-  await vroute();
+  const { tok, cur } = vparse();
+  const stateMode = () => { document.body.classList.add('viewer'); document.body.classList.remove('guest'); };
+  if (!tok) { V.token = ''; V.slug = ''; stateMode(); vlock(); return; }
+  const slug = tok.length <= 24 && !V.ids.has(tok) ? tok.toLowerCase() : '';
+  V.token = tok;
+  V.slug = slug;
+  const seq = ++V.seq;
+  let r;
+  try {
+    if (slug) { S.share = slug; S.spw = vspw(); r = await api('list'); }
+    else { S.base = tok; r = await api('list', { id: tok }); }
+    if (seq !== V.seq) return;
+  } catch (e) {
+    if (seq !== V.seq) return;
+    S.share = null;
+    S.base = null;
+    if (slug && e.message === 'Link not found' && /^[A-Za-z0-9_-]+$/.test(tok)) { V.ids.add(tok); await viewer(); return; }
+    stateMode();
+    verror(e);
+    return;
+  }
+  document.body.classList.remove('viewer');
+  document.body.classList.add('guest');
+  lmShow();
+  S.exp = r.exp || 0;
+  if (r.file && r.crumbs.length === 1) {
+    S.admin = false;
+    S.v = r.v || 1;
+    ROOT = '~';
+    S.rootName = 'shared';
+    N[ROOT] = { id: ROOT, name: 'shared', folder: true, vis: 'public', parent: null, kids: [r.file.id], open: true };
+    N[r.file.id] = Object.assign({ kids: null, open: false }, r.file, { parent: ROOT });
+    S.sel = r.file.id;
+  } else {
+    ingest(r);
+    S.sel = ROOT;
+  }
+  document.title = (ROOT === '~' ? N[S.sel].name : S.rootName) + ' | Priyanshu Debnath';
+  if (cur && ROOT !== '~' && cur !== ROOT) {
+    try { await reveal(cur); }
+    catch (e) { toast(e.message === 'Not found' ? 'That item is not part of this link' : e.message); S.sel = ROOT; }
+    if (seq !== V.seq) return;
+  }
+  render();
 }
 
 function urlOf(n, kind) {
@@ -1752,6 +1619,7 @@ async function moveVia(ids) {
 
 async function searchAll() {
   const q = S.q;
+  if (S.base || (guest() && lmode() === 'dir')) return;
   if (q.length < 2) { toast('Type at least 2 characters'); return; }
   if (S.v < 2) { toast(NEEDS); return; }
   S.searching = true;
@@ -2527,10 +2395,12 @@ $('lock').onclick = async () => {
     dropKey();
     S.tok = null;
     clearJobs();
+    history.replaceState(null, '', location.pathname);
     await init();
   }
 };
 $('vis').addEventListener('change', () => fit($('vis')));
+document.querySelectorAll('#lm .pmenu button').forEach((b) => { b.onclick = () => setLm(b.dataset.m); });
 $('vexit').onclick = (e) => { e.preventDefault(); location.href = location.pathname + location.hash; };
 fit($('vis'));
 $('theme').onclick = () => {
@@ -2645,7 +2515,14 @@ window.addEventListener('drop', (e) => {
 });
 window.addEventListener('beforeunload', (e) => { if (pending()) { e.preventDefault(); e.returnValue = ''; } });
 window.addEventListener('hashchange', () => {
-  if (document.body.classList.contains('viewer')) { vroute(); return; }
+  if (document.body.classList.contains('viewer')) { init(); return; }
+  if (guest()) {
+    const { tok, cur } = vparse();
+    const id = cur || (ROOT === '~' ? S.sel : ROOT);
+    if (tok === V.token && N[id]) pick(id, false);
+    else init();
+    return;
+  }
   const id = location.hash.slice(1) || ROOT;
   if (N[id]) pick(id, false);
   else if (pending()) toast('Finish or cancel uploads first');
