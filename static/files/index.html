@@ -163,9 +163,82 @@ dialog input:focus{border-color:var(--accent)}
   #pbody iframe{min-height:70vh}
 }
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+
+#viewer,#vbanner{display:none}
+body.viewer .wrap,body.viewer #bar{display:none}
+body.viewer #viewer{display:block;flex:1;min-height:0;overflow:auto}
+body.viewer.as #vbanner{display:flex}
+#vbanner{align-items:center;justify-content:center;gap:14px;padding:7px 16px;background:var(--code-bg);border-bottom:1px solid var(--border);font:12px var(--mono);color:var(--secondary)}
+#vbanner a{color:var(--accent)}
+.vw{max-width:900px;margin:0 auto;padding:6px 24px 48px}
+.vcr{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 2px;min-height:22px;margin:0 0 10px;font:13px var(--mono);color:var(--secondary)}
+.vcr a{color:var(--secondary);text-decoration:none;cursor:pointer}
+.vcr a:hover{color:var(--accent)}
+.vcr i{font-style:normal;opacity:.5;padding:0 4px}
+.vp{border:1px solid var(--border);border-radius:var(--radius);background:var(--entry);overflow:hidden}
+.vh{position:relative;display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px 24px;padding:18px 20px 16px;border-bottom:1px solid var(--border)}
+.vh.busy::after{content:"";position:absolute;left:0;bottom:-1px;width:28%;height:2px;background:var(--accent);animation:load 1s ease-in-out infinite}
+.vt{flex:1 1 260px;min-width:0}
+.vn{margin:0;font:600 21px/1.3 var(--mono);color:var(--primary);overflow-wrap:anywhere}
+.vn b{color:var(--accent);font-weight:600}
+.vm{margin-top:4px;font-size:12.5px;color:var(--secondary)}
+.vh .acts{flex:0 0 auto}
+.vbar{display:flex;align-items:center;gap:12px;padding:8px 14px 8px 20px;border-bottom:1px solid var(--border);font:13px var(--mono)}
+.vbar b{color:var(--accent)}
+.vbar input{flex:1;min-width:0;border:0;outline:0;background:transparent;color:var(--primary);font:inherit}
+.vbar input::placeholder{color:var(--secondary);opacity:.7}
+.vl{padding:6px 0 10px}
+.vr{display:grid;grid-template-columns:1fr auto 108px;align-items:baseline;gap:16px;padding:6px 20px;font:13.5px var(--mono);color:var(--content);text-decoration:none;cursor:pointer}
+.vr:hover,.vr:focus-visible{background:var(--code-bg);outline:0}
+.vr span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vr i{font-style:normal;color:var(--secondary);opacity:.55}
+.vr.d span:first-child{color:var(--accent);font-weight:600}
+.vr small{font:12px var(--mono);color:var(--secondary);text-align:right;white-space:nowrap}
+.vg{padding:4px 20px 18px}
+.vg .grid{padding:0}
+.vx{display:flex;align-items:center;justify-content:center;background:var(--code-bg);min-height:240px}
+.vx iframe{display:block;width:100%;height:min(78vh,880px);border:0;background:var(--theme)}
+.vx img{display:block;max-width:100%;max-height:78vh;object-fit:contain}
+.vs{padding:44px 24px 48px;text-align:center}
+.vs h2{margin:0 0 6px;font:600 17px var(--mono);color:var(--primary)}
+.vs p{margin:0 auto 18px;max-width:470px;color:var(--secondary);font-size:14px}
+.vs form,.vs .vin{display:flex;align-items:center;gap:10px;max-width:380px;margin:0 auto;padding:9px 12px;border:1px solid var(--border);border-radius:6px;background:var(--code-bg);font:14px var(--mono)}
+.vs form:focus-within{border-color:var(--accent)}
+.vs form b{color:var(--accent)}
+.vs input{flex:1;min-width:0;border:0;outline:0;background:transparent;color:var(--primary);font:inherit}
+.vs .err{margin:12px 0 0;color:var(--bad);font-size:13px}
+.vs .acts{justify-content:center;margin-top:4px}
+.vlk h2{font-size:26px;color:var(--accent);margin-bottom:10px}
+.vf{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px 20px;margin-top:12px;font:12px var(--mono);color:var(--secondary)}
+.vf a{color:var(--secondary)}
+.vf a:hover{color:var(--accent)}
+#lb{position:fixed;inset:0;z-index:40;display:flex;flex-direction:column;background:#100e0d;color:#e7e1d9;touch-action:pan-y}
+#lb[hidden]{display:none}
+.lbt{display:flex;align-items:center;gap:18px;padding:12px 18px;font:13px var(--mono)}
+.lbt span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#lb button,#lb a{color:#cfc7bd;font:13px var(--sans);text-decoration:none}
+#lb button:hover,#lb a:hover{color:#fff}
+.lbm{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:0 12px 18px;position:relative}
+.lbm img{max-width:100%;max-height:100%;object-fit:contain;user-select:none;-webkit-user-drag:none}
+.lbm .nav{position:absolute;top:0;bottom:0;width:22%;border:0;background:none;font-size:28px !important;opacity:.6}
+.lbm .nav:hover{opacity:1}
+.lbm .prev{left:0;text-align:left;padding-left:18px}
+.lbm .next{right:0;text-align:right;padding-right:18px}
+@media (max-width:700px){
+.vw{padding:4px 12px 32px}
+.vh{padding:14px 14px 12px}
+.vn{font-size:18px}
+.vr{grid-template-columns:1fr auto;padding:7px 14px}
+.vr small+small{display:none}
+.vbar{padding:8px 14px}
+.vg{padding:4px 14px 14px}
+.vx iframe{height:72vh}
+.lbm .nav{display:none}
+}
 </style>
 </head>
 <body>
+<div id="vbanner">Preview: this is what someone with the link sees<a href="#" id="vexit">Exit preview</a></div>
 <header>
   <a class="brand" href="/">Priyanshu Debnath</a>
   <span class="here">/files</span>
@@ -200,11 +273,13 @@ dialog input:focus{border-color:var(--accent)}
     <div id="pbody"></div>
   </section>
 </div>
+<main id="viewer"></main>
+<div id="lb" hidden></div>
 <div id="drop">Drop to upload</div>
 <div id="ups"></div>
 <dialog id="dlg"><form method="dialog"><h3 id="dt"></h3><p id="dm"></p><input id="di" autocomplete="off"><div class="dbtn"><button type="button" id="dno">Cancel</button><button value="ok" class="pri" id="dok">OK</button></div></form></dialog>
 <dialog id="ch"><h3 id="cht"></h3><p id="chm"></p><div class="dbtn" id="chb"></div></dialog>
-<dialog id="sh"><form method="dialog" id="shf"><h3 id="sht"></h3><label>Link name<input id="shn" placeholder="optional, for example resume" autocomplete="off" spellcheck="false" maxlength="24"></label><label>Expires<select id="she"><option value="0">Never</option><option value="1">In 1 hour</option><option value="24">In 1 day</option><option value="168">In 7 days</option><option value="720">In 30 days</option></select></label><label>Password<input id="shp" placeholder="optional" autocomplete="off" spellcheck="false"></label><div class="dbtn"><button type="button" id="shno">Cancel</button><button value="ok" class="pri">Create link</button></div></form></dialog>
+<dialog id="sh"><form method="dialog" id="shf"><h3 id="sht"></h3><label>Link name<input id="shn" placeholder="optional, for example resume" autocomplete="off" spellcheck="false" maxlength="24"></label><label>Expires<select id="she"><option value="0">Never</option><option value="1">In 1 hour</option><option value="24">In 1 day</option><option value="168">In 7 days</option><option value="720">In 30 days</option></select></label><label>Password<input id="shp" placeholder="optional" autocomplete="off" spellcheck="false"></label><label id="shal">Visitors see<select id="sha"><option value="pub">Public items inside only</option><option value="all">Everything inside, private too</option></select></label><div class="dbtn"><button type="button" id="shno">Cancel</button><button value="ok" class="pri">Create link</button></div></form></dialog>
 <dialog id="mv"><h3 id="mvt"></h3><input id="mvq" placeholder="filter folders" autocomplete="off" spellcheck="false"><div id="mvl"></div><div class="dbtn"><button type="button" id="mvno">Cancel</button></div></dialog>
 <div id="toast"></div>
 <script>
@@ -215,7 +290,7 @@ const N = {};
 const S = { sel: null, admin: false, q: '', rows: [], shown: null, tok: null, tokAt: 0, v: 1, multi: new Set(), anchor: null, found: null, searching: false, drag: null, sorts: {}, share: null, spw: '', rootName: 'files', view: null, exp: null };
 try { S.sorts = JSON.parse(localStorage.getItem('dump_sort') || '{}') || {}; } catch (e) { S.sorts = {}; }
 let ROOT = null;
-const pw = () => { try { return localStorage.getItem('dump_pw') || ''; } catch (e) { return ''; } };
+const pw = () => { if (new URLSearchParams(location.search).has('as')) return ''; try { return localStorage.getItem('dump_pw') || ''; } catch (e) { return ''; } };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const ICON = {
   dir: '<svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8l-2-2z"/></svg>',
@@ -232,7 +307,7 @@ const ls = {
   set(k, v) { try { localStorage.setItem(k, String(v)); } catch (e) { MEM[k] = String(v); } },
   del(k) { delete MEM[k]; try { localStorage.removeItem(k); } catch (e) {} }
 };
-const SNAPS = { pub: null, pubAt: 0, adm: null, admAt: 0, admKey: '' };
+const SNAPS = { adm: null, admAt: 0, admKey: '' };
 
 function index(d, t) {
   if (!d || !d.root || !Array.isArray(d.items)) return null;
@@ -240,18 +315,6 @@ function index(d, t) {
   const kids = {};
   d.items.forEach((it) => { map[it.id] = it; (kids[it.p] || (kids[it.p] = [])).push(it); });
   return { root: d.root, v: d.v || 4, t: Number(t) || 0, map, kids };
-}
-
-function pubSnap() {
-  if (SNAPS.pub && Date.now() - SNAPS.pubAt > 60000) SNAPS.pub = null;
-  if (!SNAPS.pub) {
-    SNAPS.pubAt = Date.now();
-    SNAPS.pub = fetch(SBU + 'files_snapshot?id=eq.1&select=t,data', { headers: { apikey: SBK, Accept: 'application/vnd.pgrst.object+json' } })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((j) => (j ? index(j.data, j.t) : null))
-      .catch(() => null);
-  }
-  return SNAPS.pub;
 }
 
 function admSnap(rt) {
@@ -266,7 +329,6 @@ function admSnap(rt) {
   }
   return SNAPS.adm;
 }
-if (!pw()) pubSnap();
 
 async function sha(t) {
   const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t));
@@ -334,8 +396,9 @@ async function adminSnap() {
 
 async function fromSnap(o) {
   if (S.share || o.s) return null;
-  const admin = !!pw();
-  const s = admin ? await adminSnap() : await pubSnap();
+  if (!pw()) return null;
+  const admin = true;
+  const s = await adminSnap();
   if (!s) return null;
   const r = buildList(s, o.id || s.root, admin);
   if (r && admin) S.snapT = Math.max(S.snapT || 0, s.t);
@@ -386,7 +449,6 @@ function onSnapOk(at) {
   const m = Number(ls.get(DK) || 0);
   if (m && m < at) ls.del(DK);
   SNAPS.adm = null;
-  SNAPS.pub = null;
   resync();
 }
 
@@ -933,41 +995,6 @@ async function reveal(id) {
   S.sel = id;
 }
 
-async function openShare(slug) {
-  S.share = slug;
-  try { S.spw = sessionStorage.getItem('dump_spw_' + slug) || ''; } catch (e) { S.spw = ''; }
-  for (;;) {
-    let r;
-    try {
-      r = await api('list');
-    } catch (e) {
-      if (e.message === 'Password required' || e.message === 'Wrong link password') {
-        if (e.message === 'Wrong link password') toast('Wrong password');
-        const p = await ask('This link needs a password', { type: 'password', ok: 'Open' });
-        if (!p) { S.share = null; throw new Error('A password is needed to open this link.'); }
-        S.spw = p;
-        try { sessionStorage.setItem('dump_spw_' + slug, p); } catch (x) {}
-        continue;
-      }
-      S.share = null;
-      throw new Error(e.message === 'Link expired' ? 'This link has expired.' : e.message === 'Link not found' ? 'This link does not exist.' : e.message);
-    }
-    if (r.file && r.crumbs.length === 1) {
-      S.admin = false;
-      S.v = r.v || 1;
-      ROOT = '~';
-      S.rootName = 'shared';
-      N[ROOT] = { id: ROOT, name: 'shared', folder: true, vis: 'public', parent: null, kids: [r.file.id], open: true };
-      N[r.file.id] = Object.assign({ kids: null, open: false }, r.file, { parent: ROOT });
-      S.sel = r.file.id;
-    } else {
-      ingest(r);
-      S.sel = ROOT;
-    }
-    return;
-  }
-}
-
 async function init() {
   let h = location.hash.slice(1);
   try { h = decodeURIComponent(h); } catch (e) {}
@@ -983,43 +1010,467 @@ async function init() {
   S.share = null;
   S.spw = '';
   S.view = null;
+  S.admin = false;
   S.rootName = 'files';
   S.snapT = 0;
+  if (!pw()) { await viewer(); return; }
+  document.body.classList.remove('viewer', 'as');
   try {
-    const NONE = 'This link does not exist.';
-    const viaShare = async () => {
+    try { await loadDir(''); }
+    catch (e) { if (e.message !== 'Not found' && e.message !== 'Wrong password') throw e; S.admin = false; }
+    if (!S.admin) {
+      try { localStorage.removeItem('dump_pw'); } catch (e) {}
+      dropKey();
       wipe();
-      S.sel = null;
-      try { await openShare(slug); return true; }
-      catch (e) { if (e.message !== NONE) throw e; wipe(); return false; }
-    };
-    if (slug && !pw() && (await viaShare())) { render(); return; }
-    await loadDir('');
-    S.sel = ROOT;
-    if (slug && !S.admin && pw()) {
-      if (await viaShare()) { render(); return; }
-      await loadDir('');
-      S.sel = ROOT;
+      await viewer();
+      return;
     }
-    let target = id;
-    if (slug && S.admin) {
+    S.sel = ROOT;
+    let target = id && !id.includes('/') ? id : '';
+    if (slug) {
       try { const r = await api('list', { s: slug }); target = r.crumbs[r.crumbs.length - 1].id; }
-      catch (e) { target = h; }
-    } else if (slug) {
-      target = h;
+      catch (e) { target = e.message === 'Link not found' ? h : ''; if (!target) toast(e.message); }
     }
     if (target && target !== ROOT) {
       try { await reveal(target); }
-      catch (e) { toast(e.message === 'Not found' ? (slug ? 'That link does not exist, or the item is private' : 'That item is private or no longer exists') : e.message); history.replaceState(null, '', location.pathname); }
+      catch (e) { toast(e.message === 'Not found' ? 'That item no longer exists' : e.message); history.replaceState(null, '', location.pathname); }
     }
     render();
-    if (S.admin && pw()) queueSnap(0);
+    queueSnap(0);
   } catch (e) {
     S.sel = null;
     render();
     $('tree').textContent = '';
-    $('tree').append(el('div', 'note', /^(This link|A password)/.test(e.message) ? e.message : 'Could not load: ' + e.message));
+    $('tree').append(el('div', 'note', 'Could not load: ' + e.message));
   }
+}
+
+const AS = new URLSearchParams(location.search).has('as');
+const V = { token: '', slug: '', cur: '', r: null, q: '', sort: 'name', lb: null, seq: 0, ids: new Set() };
+const GDOC = /^application\/vnd\.google-apps\./;
+
+async function vcall(a, o) {
+  const r = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(Object.assign({ a }, o)) });
+  const j = await r.json();
+  if (j.error) throw new Error(j.error);
+  return j;
+}
+
+async function vpub(base, item) {
+  try {
+    const r = await fetch(SBU + 'rpc/get_files_public', { method: 'POST', headers: { apikey: SBK, 'Content-Type': 'application/json' }, body: JSON.stringify({ base, item }) });
+    if (!r.ok) return null;
+    const j = await r.json();
+    return j && Array.isArray(j.crumbs) && j.crumbs.length ? j : null;
+  } catch (e) { return null; }
+}
+
+function vspw() {
+  try { return sessionStorage.getItem('dump_spw_' + V.slug) || ''; } catch (e) { return ''; }
+}
+
+async function vfetch(cur) {
+  if (V.slug) {
+    const o = { s: V.slug, spw: vspw() };
+    if (cur && cur !== V.slug) o.id = cur;
+    return vcall('list', o);
+  }
+  const hit = await vpub(V.token, cur);
+  if (hit) return hit;
+  const r = await vcall('list', { id: cur, base: V.token });
+  const i = r.crumbs.findIndex((c) => c.id === V.token);
+  if (i < 0) throw new Error('Not found');
+  r.crumbs = r.crumbs.slice(i);
+  return r;
+}
+
+function vhash(id) {
+  const t = V.slug || V.token;
+  return '#' + t + (id && id !== V.r.crumbs[0].id ? '/' + id : '');
+}
+
+function vgo(id) {
+  const h = vhash(id);
+  if (location.hash === h) vroute();
+  else location.hash = h;
+}
+
+function vexp(ms) {
+  if (!ms) return '';
+  const d = ms - Date.now();
+  if (d <= 0) return 'This link has expired';
+  const m = Math.round(d / 60000);
+  if (m < 60) return 'Link expires in ' + Math.max(m, 1) + (m === 1 ? ' minute' : ' minutes');
+  const h = Math.round(m / 60);
+  if (h < 48) return 'Link expires in ' + h + (h === 1 ? ' hour' : ' hours');
+  return 'Link expires on ' + fmtDate(ms);
+}
+
+function vshell() {
+  const W = $('viewer');
+  W.textContent = '';
+  const w = el('div', 'vw');
+  const cr = el('nav', 'vcr');
+  const p = el('section', 'vp');
+  const f = el('footer', 'vf');
+  w.append(cr, p, f);
+  W.append(w);
+  return { cr, p, f };
+}
+
+function vfoot(f, exp, plain) {
+  const a = el('a', '', plain ? 'priyanshudebnath.me' : 'Shared from priyanshudebnath.me');
+  a.href = '/';
+  f.append(a);
+  if (exp) f.append(el('span', '', vexp(exp)));
+}
+
+function vstate(title, text, extra) {
+  const { p, f } = vshell();
+  const b = el('div', 'vs');
+  b.append(el('h2', '', title));
+  if (text) b.append(el('p', '', text));
+  if (extra) b.append(extra);
+  p.append(b);
+  vfoot(f, 0, true);
+  return b;
+}
+
+function vlock() {
+  document.title = 'files | Priyanshu Debnath';
+  const fm = el('form');
+  const inp = el('input');
+  inp.placeholder = 'paste a link or code';
+  inp.autocomplete = 'off';
+  inp.spellcheck = false;
+  inp.setAttribute('aria-label', 'Link or code');
+  fm.append(el('b', '', '❯'), inp);
+  const b = vstate('files/', 'This is a private library. Open a link you were given, or paste it here.', fm);
+  b.classList.add('vlk');
+  const err = el('p', 'err');
+  err.hidden = true;
+  b.append(err);
+  fm.onsubmit = (e) => {
+    e.preventDefault();
+    const v = inp.value.trim();
+    if (!v) return;
+    if (v.toLowerCase() === 'sudo') { inp.value = ''; unlock(); return; }
+    let t = v;
+    const k = v.indexOf('#');
+    if (k >= 0) t = v.slice(k + 1);
+    else if (/^https?:/i.test(v)) { err.textContent = 'That link has no file in it. Paste the full link you were sent.'; err.hidden = false; return; }
+    t = t.replace(/^\/+|\/+$/g, '');
+    if (!t) return;
+    location.hash = t;
+  };
+  setTimeout(() => inp.focus({ preventScroll: true }), 0);
+}
+
+function vpass(wrong, msg) {
+  const fm = el('form');
+  const inp = el('input');
+  inp.type = 'password';
+  inp.placeholder = 'password';
+  inp.autocomplete = 'off';
+  inp.setAttribute('aria-label', 'Password');
+  const go = el('button', 'pri', 'Open');
+  go.type = 'submit';
+  fm.append(el('b', '', '❯'), inp, go);
+  const b = vstate('This link needs a password', 'Enter the password you were given with the link.', fm);
+  if (wrong || msg) b.append(el('p', 'err', msg || 'Wrong password, try again.'));
+  fm.onsubmit = (e) => {
+    e.preventDefault();
+    if (!inp.value) return;
+    try { sessionStorage.setItem('dump_spw_' + V.slug, inp.value); } catch (x) {}
+    vroute();
+  };
+  setTimeout(() => inp.focus({ preventScroll: true }), 0);
+}
+
+function verror(e) {
+  const m = e.message || String(e);
+  if (m === 'Password required') return vpass(false);
+  if (m === 'Wrong link password') return vpass(true);
+  if (/^Too many wrong/.test(m)) return vpass(true, m);
+  if (m === 'Link expired') return vstate('This link has expired', 'Ask Priyanshu for a new link.');
+  if (m === 'Link not found') return vstate('This link does not exist', 'Check that you copied the whole link.');
+  if (m === 'Not found') return vstate('Not available', 'This link is incomplete, or the item was removed or is no longer shared.');
+  const a = el('div', 'acts');
+  a.append(btn('Try again', () => vroute(), 'pri'));
+  return vstate('Could not load', /fetch|network|json/i.test(m) ? 'Check your connection and try again.' : m, a);
+}
+
+function vsorted(items) {
+  const m = V.sort;
+  const f = (it) => (it.name || '').toLowerCase();
+  const t = (it) => Date.parse(it.modified || 0) || 0;
+  return items.slice().sort((a, b) => {
+    if (a.folder !== b.folder) return a.folder ? -1 : 1;
+    if (m === 'new') return t(b) - t(a);
+    if (m === 'old') return t(a) - t(b);
+    if (m === 'big') return (b.size || 0) - (a.size || 0);
+    if (m === 'small') return (a.size || 0) - (b.size || 0);
+    return f(a).localeCompare(f(b), undefined, { numeric: true });
+  });
+}
+
+function vrow(it, last) {
+  const a = el('a', 'vr' + (it.folder ? ' d' : ''));
+  a.href = vhash(it.id);
+  const n = el('span');
+  n.append(el('i', '', last ? '└── ' : '├── '), it.name + (it.folder ? '/' : ''));
+  a.append(n, el('small', '', it.folder ? '' : size(it.size) || ''), el('small', '', fmtDate(it.modified)));
+  return a;
+}
+
+function vbody(B, items) {
+  B.textContent = '';
+  const q = V.q.trim().toLowerCase();
+  const list = vsorted(items).filter((it) => !q || it.name.toLowerCase().includes(q));
+  if (!items.length) { B.append(el('div', 'note', 'This folder is empty.')); return; }
+  if (!list.length) { B.append(el('div', 'note', 'Nothing matches "' + V.q.trim() + '".')); return; }
+  const imgs = list.filter(isImg);
+  const useGrid = imgs.length >= 3 && imgs.length * 2 >= list.length;
+  const rest = useGrid ? list.filter((it) => !isImg(it)) : list;
+  if (rest.length) {
+    const L = el('div', 'vl');
+    rest.forEach((it, i) => L.append(vrow(it, i === rest.length - 1 && !useGrid)));
+    B.append(L);
+  }
+  if (useGrid) {
+    const g = el('div', 'vg');
+    const G = el('div', 'grid');
+    imgs.forEach((it, i) => {
+      const t = el('button', 'tile');
+      t.type = 'button';
+      t.title = it.name;
+      t.append(imgEl(it, 320, (im) => im.replaceWith(el('span', 'tname', it.name))));
+      t.onclick = () => vlb(imgs, i);
+      G.append(t);
+    });
+    g.append(G);
+    B.append(g);
+  }
+}
+
+async function vzip(id, b) {
+  if (b.disabled) return;
+  b.disabled = true;
+  toast('Preparing zip', true);
+  try {
+    const o = V.slug ? { s: V.slug, spw: vspw() } : {};
+    o.id = id;
+    const r = await vcall('zip', o);
+    saveBlob(r.url);
+    toast(r.files + (r.files === 1 ? ' file zipped' : ' files zipped') + ', download starting');
+  } catch (e) {
+    toast(e.message === 'Not found' ? 'This folder can no longer be downloaded' : e.message);
+  }
+  b.disabled = false;
+}
+
+function vrender(r) {
+  const { cr, p, f } = vshell();
+  const c = r.crumbs;
+  const self = r.file || { id: c[c.length - 1].id, name: c[c.length - 1].name, folder: true };
+  document.title = self.name + ' | Priyanshu Debnath';
+  const upto = c.length - 1;
+  c.slice(0, upto).forEach((x) => {
+    const a = el('a', '', x.name);
+    a.href = vhash(x.id);
+    cr.append(a, el('i', '', '/'));
+  });
+  if (upto) cr.prepend(el('i', '', '← '));
+  const h = el('div', 'vh');
+  const t = el('div', 'vt');
+  const nm = el('h1', 'vn', self.name);
+  if (self.folder) nm.append(el('b', '', '/'));
+  t.append(nm);
+  const bits = [];
+  const A = el('div', 'acts');
+  if (self.folder) {
+    const items = r.items || [];
+    const dirs = items.filter((it) => it.folder).length;
+    const files = items.length - dirs;
+    const bytes = items.reduce((s2, it) => s2 + (it.folder ? 0 : it.size || 0), 0);
+    if (dirs) bits.push(dirs + (dirs === 1 ? ' folder' : ' folders'));
+    if (files) bits.push(files + (files === 1 ? ' file' : ' files') + (bytes ? ', ' + size(bytes) : ''));
+    if (!items.length) bits.push('empty');
+    if (files || dirs) {
+      const z = btn('Download all', () => vzip(self.id, z), 'pri');
+      A.append(z);
+    }
+  } else {
+    const kind = GDOC.test(self.mime || '') ? 'Google ' + (self.mime.split('.').pop() || 'file') : ((self.name.match(/\.([a-z0-9]{1,6})$/i) || [])[1] || 'file').toUpperCase();
+    bits.push(kind);
+    if (self.size) bits.push(size(self.size));
+    if (self.modified) bits.push(fmtDate(self.modified));
+    const drive = 'https://drive.google.com/file/d/' + self.id + '/view';
+    if (GDOC.test(self.mime || '')) {
+      const g = el('a', 'btn pri', 'Open in Google');
+      g.href = drive;
+      g.target = '_blank';
+      g.rel = 'noopener';
+      A.append(g);
+    } else {
+      const d = el('a', 'btn pri', 'Download');
+      d.href = dlOf(self.id);
+      d.rel = 'noopener';
+      A.append(d);
+      const o = el('a', 'btn', 'Open in Drive');
+      o.href = drive;
+      o.target = '_blank';
+      o.rel = 'noopener';
+      A.append(o);
+    }
+  }
+  A.append(btn('Copy link', () => clip(location.href, 'Link copied')));
+  const M = el('div', 'vm');
+  M.append(mb(bits));
+  t.append(M);
+  h.append(t, A);
+  p.append(h);
+  if (self.folder) {
+    const items = r.items || [];
+    const B = el('div');
+    if (items.length > 1) {
+      const bar = el('div', 'vbar');
+      const q = el('input');
+      q.placeholder = 'filter';
+      q.autocomplete = 'off';
+      q.spellcheck = false;
+      q.value = V.q;
+      q.setAttribute('aria-label', 'Filter');
+      q.oninput = () => { V.q = q.value; vbody(B, items); };
+      const sel = el('select');
+      SORTS.forEach(([k, l]) => { const o = el('option', '', l); o.value = k; sel.append(o); });
+      sel.value = V.sort;
+      sel.setAttribute('aria-label', 'Sort');
+      sel.onchange = () => { V.sort = sel.value; fit(sel); vbody(B, items); };
+      bar.append(el('b', '', '❯'), q, sel);
+      p.append(bar);
+      setTimeout(() => fit(sel), 0);
+    }
+    p.append(B);
+    vbody(B, items);
+  } else {
+    const X = el('div', 'vx');
+    if (isImg(self)) X.append(imgEl(self, 1600, (im) => im.replaceWith(frame(self))));
+    else X.append(frame(self));
+    p.append(X);
+  }
+  vfoot(f, r.exp);
+  if (motion()) p.animate([{ opacity: 0, transform: 'translateY(4px)' }, { opacity: 1, transform: 'none' }], { duration: 180, easing: 'ease-out' });
+}
+
+function vlb(list, i) {
+  const L = $('lb');
+  const show = (k) => {
+    i = (k + list.length) % list.length;
+    const it = list[i];
+    L.textContent = '';
+    const top = el('div', 'lbt');
+    top.append(el('span', '', (i + 1) + ' / ' + list.length + '   ' + it.name));
+    const d = el('a', '', 'Download');
+    d.href = dlOf(it.id);
+    d.rel = 'noopener';
+    const x = el('button', '', 'Close');
+    x.type = 'button';
+    x.onclick = close;
+    top.append(d, x);
+    const m = el('div', 'lbm');
+    m.append(imgEl(it, 1600, (im) => im.replaceWith(el('span', 'tname', it.name))));
+    if (list.length > 1) {
+      const pv = el('button', 'nav prev', '‹');
+      pv.type = 'button';
+      pv.setAttribute('aria-label', 'Previous');
+      pv.onclick = () => show(i - 1);
+      const nx = el('button', 'nav next', '›');
+      nx.type = 'button';
+      nx.setAttribute('aria-label', 'Next');
+      nx.onclick = () => show(i + 1);
+      m.append(pv, nx);
+      [i - 1, i + 1].forEach((k) => {
+        const j = list[(k + list.length) % list.length];
+        const im = new Image();
+        im.referrerPolicy = 'no-referrer';
+        im.src = j.thumb ? j.thumb.replace(/=s\d+$/, '=s1600') : 'https://drive.google.com/thumbnail?id=' + j.id + '&sz=w1600';
+      });
+    }
+    L.append(top, m);
+  };
+  const key = (e) => {
+    if (e.key === 'Escape') close();
+    else if (e.key === 'ArrowLeft') show(i - 1);
+    else if (e.key === 'ArrowRight') show(i + 1);
+  };
+  let sx = null;
+  L.onpointerdown = (e) => { sx = e.clientX; };
+  L.onpointerup = (e) => {
+    if (sx == null) return;
+    const dx = e.clientX - sx;
+    sx = null;
+    if (Math.abs(dx) > 50 && list.length > 1) show(dx < 0 ? i + 1 : i - 1);
+  };
+  function close() {
+    L.hidden = true;
+    L.textContent = '';
+    document.removeEventListener('keydown', key);
+    V.lb = null;
+  }
+  V.lb = close;
+  document.addEventListener('keydown', key);
+  L.hidden = false;
+  show(i);
+}
+
+async function vroute() {
+  if (V.lb) V.lb();
+  let h = location.hash.slice(1);
+  try { h = decodeURIComponent(h); } catch (e) {}
+  const parts = h.split('/').filter(Boolean);
+  const tok = parts[0] || '';
+  if (!tok) { V.token = ''; V.slug = ''; V.r = null; vlock(); return; }
+  const slug = tok.length <= 24 && !V.ids.has(tok) ? tok.toLowerCase() : '';
+  if (tok !== V.token || slug !== V.slug) { V.q = ''; V.sort = 'name'; }
+  V.token = tok;
+  V.slug = slug;
+  const cur = parts.length > 1 ? parts[parts.length - 1] : tok;
+  if (V.cur !== cur) V.q = '';
+  V.cur = cur;
+  const seq = ++V.seq;
+  const head = document.querySelector('#viewer .vh');
+  if (head) head.classList.add('busy');
+  else {
+    const { p } = vshell();
+    const vh = el('div', 'vh busy');
+    vh.append(el('div', 'vt'));
+    p.append(vh, el('div', 'vs'));
+  }
+  try {
+    const r = await vfetch(slug && cur === tok ? '' : cur);
+    if (seq !== V.seq) return;
+    V.r = r;
+    vrender(r);
+  } catch (e) {
+    if (seq !== V.seq) return;
+    if (slug && e.message === 'Link not found' && /^[A-Za-z0-9_-]+$/.test(tok) && !V.ids.has(tok)) { V.ids.add(tok); vroute(); return; }
+    verror(e);
+  }
+}
+
+async function viewer() {
+  ['tree', 'ppath', 'pmeta', 'acts', 'pbody', 'into', 'count'].forEach((i) => { $(i).textContent = ''; });
+  S.shown = null;
+  document.body.classList.add('viewer');
+  document.body.classList.toggle('as', AS);
+  document.body.classList.remove('admin');
+  $('lock').hidden = true;
+  $('expo').hidden = true;
+  V.token = '';
+  V.slug = '';
+  V.cur = '';
+  await vroute();
 }
 
 function urlOf(n, kind) {
@@ -1129,6 +1580,7 @@ function copyMenu(n) {
   if (!(n.folder && S.admin && n.id !== ROOT && S.v >= 4)) add('Google Drive link', 'drive');
   if (!n.folder) add('Direct download link', 'download');
   if (S.admin && n.id !== ROOT) m.append(btn('Create share link', () => { d.open = false; shareVia(n); }));
+  if (S.admin && n.id !== ROOT) m.append(btn('Preview as visitor', () => { d.open = false; preview(n.id); }));
   d.append(m);
   return d;
 }
@@ -1550,6 +2002,10 @@ async function saveUrl() {
   }
 }
 
+function preview(token) {
+  window.open(location.pathname + '?as#' + token, '_blank', 'noopener');
+}
+
 function shareUrl(slug) {
   return location.origin + location.pathname + '#' + slug;
 }
@@ -1565,7 +2021,8 @@ function shareForm(n) {
     let ok = false;
     $('sht').textContent = 'Share "' + n.name + '"';
     $('shf').onsubmit = () => { ok = true; };
-    d.onclose = () => res(ok ? { slug: $('shn').value.trim(), hours: Number($('she').value), spw: $('shp').value } : null);
+    $('shal').hidden = !n.folder;
+    d.onclose = () => res(ok ? { slug: $('shn').value.trim(), hours: Number($('she').value), spw: $('shp').value, all: !!n.folder && $('sha').value === 'all' } : null);
     d.showModal();
     $('shn').focus();
   });
@@ -1576,14 +2033,17 @@ async function shareVia(n) {
   $('shn').value = '';
   $('she').value = '0';
   $('shp').value = '';
+  $('sha').value = 'pub';
   for (;;) {
     const f = await shareForm(n);
     if (!f) return;
     toast('Creating link', true);
     try {
-      const r = await api('share', { id: n.id, slug: f.slug, hours: f.hours, spw: f.spw });
+      const r = await api('share', { id: n.id, slug: f.slug, hours: f.hours, spw: f.spw, all: f.all });
       untoast();
       await clip(shareUrl(r.slug), 'Share link copied');
+      const c = await choose('Link copied', shareUrl(r.slug), [['', 'Done'], ['p', 'Preview as recipient']]);
+      if (c === 'p') preview(r.slug);
       return;
     } catch (e) {
       toast(e.message);
@@ -1663,8 +2123,10 @@ function renderExposed() {
   x.links.forEach((l) => {
     const meta = [l.gone ? 'item deleted' : (l.exp ? 'expires ' + when(l.exp) : 'no expiry')];
     if (l.pw) meta.push('password');
+    if (l.folder && l.all === false) meta.push('public items only');
     row((l.gone ? '' : l.path + l.name + (l.folder ? '/' : '')), '#' + l.slug + '  ', mb(meta), [
       btn('Copy', () => clip(shareUrl(l.slug), 'Share link copied')),
+      btn('Preview', () => preview(l.slug)),
       btn('Revoke', async () => { toast('Revoking', true); try { await api('unshare', { slug: l.slug }); untoast(); } catch (e) { toast(e.message); } openExposed(); }, 'bad')
     ]);
   });
@@ -2054,8 +2516,9 @@ async function unlock() {
   const p = await ask('Unlock', { type: 'password', ok: 'Unlock' });
   if (!p) return;
   try { localStorage.setItem('dump_pw', p); } catch (e) {}
+  if (AS) { location.href = location.pathname + location.hash; return; }
   await init();
-  if (!S.admin) { try { localStorage.removeItem('dump_pw'); } catch (e) {} dropKey(); toast('Wrong password'); }
+  if (!S.admin) toast('Wrong password');
 }
 $('lock').onclick = async () => {
   if (S.admin) {
@@ -2068,6 +2531,7 @@ $('lock').onclick = async () => {
   }
 };
 $('vis').addEventListener('change', () => fit($('vis')));
+$('vexit').onclick = (e) => { e.preventDefault(); location.href = location.pathname + location.hash; };
 fit($('vis'));
 $('theme').onclick = () => {
   const t = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
@@ -2181,6 +2645,7 @@ window.addEventListener('drop', (e) => {
 });
 window.addEventListener('beforeunload', (e) => { if (pending()) { e.preventDefault(); e.returnValue = ''; } });
 window.addEventListener('hashchange', () => {
+  if (document.body.classList.contains('viewer')) { vroute(); return; }
   const id = location.hash.slice(1) || ROOT;
   if (N[id]) pick(id, false);
   else if (pending()) toast('Finish or cancel uploads first');
