@@ -241,6 +241,18 @@ body.as #vbanner{display:flex}
 .vs input{flex:1;min-width:0;border:0;outline:0;background:transparent;color:var(--primary);font:inherit}
 .vs .err{margin:12px 0 0;color:var(--bad);font-size:13px}
 .vs .acts{justify-content:center;margin-top:4px}
+.vart{position:relative;display:grid;place-items:end center;width:100%;max-width:320px;height:230px;margin:0 auto 20px}
+.vart::before{content:"";position:absolute;width:230px;height:230px;bottom:-46px;left:50%;translate:-50% 0;border-radius:50%;background:radial-gradient(circle at 50% 45%,color-mix(in srgb,var(--accent) 20%,transparent),transparent 68%);opacity:0;transition:opacity .6s ease}
+.vart.ready::before{opacity:1;animation:dglow 5s ease-in-out infinite}
+.vsl{grid-area:1/1;width:100%;display:grid;place-items:end center;opacity:0;transform:translateY(14px) scale(.96);transition:opacity .7s ease,transform .7s ease;pointer-events:none}
+.vsl.on{opacity:1;transform:none}
+.vsl .dd{position:relative;width:min(300px,92%);height:auto;display:block}
+.vsl.on .dd{animation:dbob 5s ease-in-out infinite}
+.dd .doodle-a{fill:var(--accent)}
+.dd .doodle-i{fill:var(--primary)}
+@keyframes dbob{0%,100%{transform:translateY(0) rotate(-.6deg)}50%{transform:translateY(-8px) rotate(.6deg)}}
+@keyframes dglow{0%,100%{opacity:.8;scale:1}50%{opacity:1;scale:1.08}}
+@media (max-width:700px){.vart{height:180px;max-width:250px;margin-bottom:12px}.vart::before{width:180px;height:180px;bottom:-36px}}
 .vlk h2{font-size:26px;color:var(--accent);margin-bottom:10px}
 @media (max-width:700px){
 body.viewer #viewer{padding:0}
@@ -1256,6 +1268,30 @@ function vstate(title, text, extra) {
   return b;
 }
 
+let DOODLES = null;
+
+function vart() {
+  const a = el('div', 'vart');
+  a.setAttribute('aria-hidden', 'true');
+  if (!DOODLES) DOODLES = fetch('/files/doodles.json').then((r) => (r.ok ? r.json() : [])).catch(() => []);
+  DOODLES.then((list) => {
+    if (!a.isConnected || !Array.isArray(list) || !list.length) return;
+    list.forEach((d, i) => { const s2 = el('div', 'vsl' + (i ? '' : ' on')); s2.innerHTML = d.svg; a.append(s2); });
+    a.classList.add('ready');
+    if (!motion() || list.length < 2) return;
+    let i = 0;
+    const t = setInterval(() => {
+      if (!a.isConnected) { clearInterval(t); return; }
+      if (document.hidden) return;
+      const k = a.querySelectorAll('.vsl');
+      k[i].classList.remove('on');
+      i = (i + 1) % k.length;
+      k[i].classList.add('on');
+    }, 4200);
+  });
+  return a;
+}
+
 function vlock() {
   document.title = 'files | Priyanshu Debnath';
   const fm = el('form');
@@ -1267,6 +1303,7 @@ function vlock() {
   fm.append(el('b', '', '❯'), inp);
   const b = vstate('files/', 'This is a private library. Open a link you were given, or paste it here.', fm);
   b.classList.add('vlk');
+  b.prepend(vart());
   const err = el('p', 'err');
   err.hidden = true;
   b.append(err);
